@@ -50,6 +50,10 @@ dependencies = [
 [[package]]
 name = "logifos-svg"
 version = "0.1.0"
+dependencies = [
+ "logifos-layout",
+ "xmlparser",
+]
 
 [[package]]
 name = "logifos-syntax-mathml"
