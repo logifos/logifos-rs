@@ -1,4 +1,5 @@
 [package]
+publish = false
 name = "logifos-facade"
 version.workspace = true
 edition.workspace = true
