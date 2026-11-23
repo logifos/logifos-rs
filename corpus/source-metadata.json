@@ -1,0 +1,2671 @@
+{
+  "repository": "https://github.com/plurimath/plurimath-testsuite",
+  "revision": "27e5493203290b7910aaccf4efc2230540660cea",
+  "source_pins": [
+    {
+      "repository": "https://github.com/plurimath/plurimath-testsuite",
+      "revision": "27e5493203290b7910aaccf4efc2230540660cea",
+      "path": "scripts/seeds/mathml.yaml",
+      "sha256": "d2d68fb1f0b560d1529a6e7f70701e766d5bedefcb65ecc18b2cb82b3ed804b7"
+    },
+    {
+      "repository": "https://github.com/plurimath/plurimath-testsuite",
+      "revision": "27e5493203290b7910aaccf4efc2230540660cea",
+      "path": "README.adoc",
+      "sha256": "e2aac251838c3d2a188339dbf2c07d884af10c084fd939066a0b28b030c99362"
+    },
+    {
+      "repository": "https://github.com/plurimath/plurimath-testsuite",
+      "revision": "27e5493203290b7910aaccf4efc2230540660cea",
+      "path": "stages/mathml/generations/000003/provenance.yaml",
+      "sha256": "261d7d1c5af5cd1985a95442b3b8a2ab8ae65cf001e2c5136fa52ff285b979f7"
+    }
+  ],
+  "directory_receipt_sha256": "f39446d63372e9f61b47e705e7eb592760b5249b2f901488a69181ad690d9ad6",
+  "sources": [
+    {
+      "repository": "https://github.com/plurimath/plurimath-testsuite",
+      "revision": "27e5493203290b7910aaccf4efc2230540660cea",
+      "required_replay": false,
+      "coverage": "metadata-only",
+      "generation": 3,
+      "stage_payload_paths": [
+        "stages/mathml/generations/000003/payloads/elementary-math.yaml",
+        "stages/mathml/generations/000003/payloads/enclose.yaml",
+        "stages/mathml/generations/000003/payloads/fences.yaml",
+        "stages/mathml/generations/000003/payloads/fractions.yaml",
+        "stages/mathml/generations/000003/payloads/layout.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-elementary-math.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-enclose.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-fences.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-fractions.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-layout.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-over-under.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-partial-render-r2.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-partial-render.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-rejections.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-roots.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-scripts.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-tables.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-text.yaml",
+        "stages/mathml/generations/000003/payloads/model-roundtrip-tokens.yaml",
+        "stages/mathml/generations/000003/payloads/over-under.yaml",
+        "stages/mathml/generations/000003/payloads/partial-render.yaml",
+        "stages/mathml/generations/000003/payloads/rejections.yaml",
+        "stages/mathml/generations/000003/payloads/roots.yaml",
+        "stages/mathml/generations/000003/payloads/scripts.yaml",
+        "stages/mathml/generations/000003/payloads/tables.yaml",
+        "stages/mathml/generations/000003/payloads/text.yaml",
+        "stages/mathml/generations/000003/payloads/tokens.yaml"
+      ],
+      "inputs": [
+        {
+          "id": "mathml-tokens-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:85",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:94",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:302",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:560",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1082",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1479",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1499",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1965",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:2256",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:2273",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/utility_spec.rb:56",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-012",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/utility_spec.rb:61",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-013",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/utility_spec.rb:70",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-014",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:19",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-015",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:46",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-016",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:74",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-017",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:99",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-018",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:124",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-019",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:198",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-020",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:235",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-021",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:270",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-022",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:309",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-023",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:370",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-024",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:741",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-025",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:879",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-026",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:914",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-027",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:15",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-028",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:59",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-029",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:86",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-030",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:216",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-031",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:305",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-032",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:626",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-033",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:666",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-034",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1093",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-035",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1121",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-036",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1145",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-037",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1177",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-038",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1275",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-039",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1355",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-040",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1379",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-041",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1406",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-042",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1456",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-043",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1480",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-044",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1566",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-045",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1649",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-046",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1674",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-047",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1698",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-048",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1722",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-049",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2148",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-050",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2390",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-051",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2417",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-052",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2452",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-053",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2485",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-054",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2510",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-055",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2537",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-056",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2566",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-057",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2595",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-058",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2628",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-059",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2663",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-060",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2692",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-061",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2720",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-062",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3293",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-063",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3581",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-064",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3724",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-065",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3761",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-066",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3796",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-067",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3845",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-068",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3897",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-069",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3934",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-070",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3967",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-071",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4021",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-072",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4075",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-073",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4100",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-074",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4125",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-075",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4150",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-076",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4175",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-077",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4200",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-078",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4225",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-079",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4254",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-080",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4285",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-081",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4801",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-082",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4882",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-083",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4945",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-084",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4971",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-085",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5056",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-086",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5112",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-087",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5138",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tokens-088",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_7_spec.rb:15",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:18",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1103",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1125",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1147",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1169",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1191",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1213",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1235",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1260",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:792",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-layout-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1208",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:68",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:68",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:68",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:68",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:80",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:319",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:336",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1874",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_2_spec.rb:15",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_2_spec.rb:35",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-text-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:698",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1351",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1389",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1420",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:116",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:367",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:394",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:421",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:448",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:571",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:717",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:835",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-012",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:879",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-013",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:926",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-014",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1532",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-015",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1758",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-016",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2027",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-017",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2092",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-018",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2223",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-019",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2268",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-020",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2313",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-021",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2356",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-022",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3229",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-023",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3262",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-024",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3421",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-025",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3454",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-026",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3501",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-027",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3550",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-028",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5200",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-029",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5236",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-030",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5356",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fences-031",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5395",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-enclose-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1452",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-roots-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:619",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-roots-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:677",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-roots-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:892",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-roots-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1504",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:2042",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:158",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:429",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:459",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:529",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:958",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1079",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1109",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1141",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1176",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1551",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-012",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:339",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-fractions-013",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2856",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:202",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:225",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:249",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:514",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:809",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:841",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1433",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1456",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1825",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1922",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:2155",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-012",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_1_spec.rb:48",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-013",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:398",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-014",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:610",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-015",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:823",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-016",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:849",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-017",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1024",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-018",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1513",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-019",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1589",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-020",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1636",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-021",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:35",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-022",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:147",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-023",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:479",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-024",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:518",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-025",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:791",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-026",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1225",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-027",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1318",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-028",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1432",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-029",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1828",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-030",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1937",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-031",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2751",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-032",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2784",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-033",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2815",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-034",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2914",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-035",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2961",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-036",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3019",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-037",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3094",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-038",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3171",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-039",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3611",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-040",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3665",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-041",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4840",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-042",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4914",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-043",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5002",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-044",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5032",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-045",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5085",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-046",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5275",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-047",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5317",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-048",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5441",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-049",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5490",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-scripts-050",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_7_spec.rb:35",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:39",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:117",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:141",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:172",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:278",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:369",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:405",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:429",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:452",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:483",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-011",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:537",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-012",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:868",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-013",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:915",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-014",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:937",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-015",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:966",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-016",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1003",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-017",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1046",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-018",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1407",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-019",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1612",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-020",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:1999",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-021",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:495",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-022",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:562",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-023",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1689",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-024",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1738",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-025",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1787",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-026",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:1840",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-027",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:260",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-028",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:2182",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-029",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4323",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-030",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4374",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-031",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4415",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-032",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4453",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-033",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:4504",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-over-under-034",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:5172",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:590",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:712",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/parser_spec.rb:767",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2026",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2202",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:1016",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-tables-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_4_spec.rb:3354",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-001",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2272",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-002",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2306",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-003",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2339",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-004",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2379",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-005",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2423",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-006",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2462",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-007",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2769",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-008",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2794",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-009",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2819",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        },
+        {
+          "id": "mathml-elementary-math-010",
+          "origin_status": "unresolved",
+          "seed_source": "spec/plurimath/mathml/v3/section_3_spec.rb:2849",
+          "original_repository": "https://github.com/plurimath/plurimath",
+          "original_url": null,
+          "original_revision": null,
+          "license": null,
+          "sha256": null
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    "Seed metadata identifies original Plurimath spec paths/lines, but original input revisions, individual input hashes and licenses have not been verified.",
+    "Seed metadata has 260 ids in 11 groups; the README additionally lists 27 partial-render inputs absent from the seed inventory. Generation 3 lists 27 payloads, including model-roundtrip, rejection and partial-render-r2 cases; mapping all stage input ids to eligible original source bytes is incomplete.",
+    "No upstream fixture inputs, expected Formula trees or renderer outputs are vendored or required for replay. Original-source consumption is pending provenance clearance."
+  ],
+  "authorship": "Fresh factual metadata transcript: ids, reported source locations and directory names only; no fixture input or expected-output bytes copied."
+}

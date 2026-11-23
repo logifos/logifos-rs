@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://logifos.org/corpus/manifest-v1.schema.json",
+  "type": "object",
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "formula_contract": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "schema_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "enum": [
+            "unresolved",
+            "pinned"
+          ]
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "schema_path",
+        "sha256",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "source_inventory": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_inventory_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]+$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "stage": {
+            "enum": [
+              "P0",
+              "P1"
+            ]
+          },
+          "rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input_kind": {
+            "enum": [
+              "bootstrap-request",
+              "mathml"
+            ]
+          },
+          "expected": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "refusal",
+                  "syntax"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "assertion-only",
+                  "pending"
+                ]
+              },
+              "assertion": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "output": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "kind",
+              "status",
+              "assertion",
+              "output"
+            ],
+            "additionalProperties": false
+          },
+          "formula_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "font_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "author": {
+                "type": "string",
+                "minLength": 1
+              },
+              "origin": {
+                "enum": [
+                  "fresh-logifos",
+                  "specification-derived"
+                ]
+              },
+              "license": {
+                "const": "MIT"
+              },
+              "references": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "declaration": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "author",
+              "origin",
+              "license",
+              "references",
+              "declaration"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "path",
+          "sha256",
+          "stage",
+          "rule",
+          "input_kind",
+          "expected",
+          "formula_revision",
+          "font_sha256",
+          "provenance"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "format_version",
+    "formula_contract",
+    "source_inventory",
+    "source_inventory_sha256",
+    "cases"
+  ],
+  "additionalProperties": false
+}

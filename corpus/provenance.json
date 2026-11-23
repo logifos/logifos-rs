@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "declaration": {
+    "author": "Logifos contributors",
+    "statement": "No renderer source, data or output was copied.",
+    "no_renderer_source_data_output_copied": true
+  },
+  "files": {
+    "tools/conformance.py": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance foundation file.",
+      "origin": "fresh-logifos",
+      "kind": "implementation",
+      "license": "MIT",
+      "specification_refs": [],
+      "review_signals": {
+        "attribution": "SPDX marks newly authored Logifos code under the unchanged MIT license; no source was imported."
+      }
+    },
+    "corpus/README.md": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance foundation file.",
+      "origin": "fresh-logifos",
+      "kind": "documentation",
+      "license": "MIT",
+      "specification_refs": []
+    },
+    "corpus/cases/bootstrap-missing-op.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance input case.",
+      "origin": "fresh-logifos",
+      "kind": "fixture",
+      "license": "MIT",
+      "specification_refs": [],
+      "source_trail": "Authored synthetic case, independently derived from the existing bootstrap refusal boundary."
+    },
+    "corpus/cases/bootstrap-parse-refusal.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance input case.",
+      "origin": "fresh-logifos",
+      "kind": "fixture",
+      "license": "MIT",
+      "specification_refs": [],
+      "source_trail": "Authored synthetic case, independently derived from the existing bootstrap refusal boundary."
+    },
+    "corpus/cases/bootstrap-unknown-op.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance input case.",
+      "origin": "fresh-logifos",
+      "kind": "fixture",
+      "license": "MIT",
+      "specification_refs": [],
+      "source_trail": "Authored synthetic case, independently derived from the existing bootstrap refusal boundary."
+    },
+    "corpus/cases/mathml-inherited-style.mml": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance input case.",
+      "origin": "fresh-logifos",
+      "kind": "fixture",
+      "license": "MIT",
+      "specification_refs": [
+        {
+          "url": "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html",
+          "edition": "MathML 3.0 Second Edition, 10 April 2014",
+          "section": "2.1.2 and 2.1.6"
+        }
+      ],
+      "source_trail": "Newly authored MathML input derived independently from MathML 3.0 Second Edition sections 2.1.2 and 2.1.6; no expected output."
+    },
+    "corpus/cases/mathml-namespace-token.mml": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance input case.",
+      "origin": "fresh-logifos",
+      "kind": "fixture",
+      "license": "MIT",
+      "specification_refs": [
+        {
+          "url": "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html",
+          "edition": "MathML 3.0 Second Edition, 10 April 2014",
+          "section": "2.1.2 and 2.1.6"
+        }
+      ],
+      "source_trail": "Newly authored MathML input derived independently from MathML 3.0 Second Edition sections 2.1.2 and 2.1.6; no expected output."
+    },
+    "corpus/cases/mathml-prefixed-token.mml": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance input case.",
+      "origin": "fresh-logifos",
+      "kind": "fixture",
+      "license": "MIT",
+      "specification_refs": [
+        {
+          "url": "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html",
+          "edition": "MathML 3.0 Second Edition, 10 April 2014",
+          "section": "2.1.2 and 2.1.6"
+        }
+      ],
+      "source_trail": "Newly authored MathML input derived independently from MathML 3.0 Second Edition sections 2.1.2 and 2.1.6; no expected output."
+    },
+    "corpus/inventory.py": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance foundation file.",
+      "origin": "fresh-logifos",
+      "kind": "implementation",
+      "license": "MIT",
+      "specification_refs": [],
+      "review_signals": {
+        "attribution": "SPDX marks newly authored Logifos code under the unchanged MIT license; no source was imported."
+      }
+    },
+    "corpus/manifest.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance foundation file.",
+      "origin": "fresh-logifos",
+      "kind": "infrastructure",
+      "license": "MIT",
+      "specification_refs": []
+    },
+    "corpus/manifest.schema.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance foundation file.",
+      "origin": "fresh-logifos",
+      "kind": "infrastructure",
+      "license": "MIT",
+      "specification_refs": []
+    },
+    "corpus/provenance.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh shared conformance foundation file.",
+      "origin": "fresh-logifos",
+      "kind": "infrastructure",
+      "license": "MIT",
+      "specification_refs": []
+    },
+    "corpus/source-inputs.json": {
+      "author": "Logifos contributors",
+      "description": "Inventory generated only from fresh tracked source metadata.",
+      "origin": "generated-logifos",
+      "kind": "generated",
+      "license": "MIT",
+      "specification_refs": [],
+      "receipt": {
+        "command": "python3 corpus/inventory.py > corpus/source-inputs.json",
+        "generator": {
+          "path": "corpus/inventory.py",
+          "sha256": "8be1f56dfa8b7616f9c3ce50ec07b0fc36a4a41ed4d4082468e744ea359eeac6"
+        },
+        "inputs": [
+          {
+            "path": "corpus/source-metadata.json",
+            "sha256": "675ae8f68462568fb1f90c8233d3145fffc47767915ef5e1fb4f03c714de3245"
+          }
+        ],
+        "output_sha256": "cbc27ba63a9df72fa587e7f762ee3cf68bb14d09498794f01168c5ea2996f242"
+      }
+    },
+    "corpus/source-metadata.json": {
+      "author": "Logifos contributors",
+      "description": "Fresh factual transcript of upstream case-id/source-location metadata only.",
+      "origin": "fresh-logifos",
+      "kind": "table",
+      "license": "MIT",
+      "specification_refs": [],
+      "source_trail": "Independently enumerated 260 seed ids/source locations and 27 stage directory paths from direct original plurimath/plurimath-testsuite revision 27e5493203290b7910aaccf4efc2230540660cea. Original metadata URLs and SHA-256 pins are in source_pins. No source-input/expected-output fixture bytes copied; original byte/license eligibility remains unresolved."
+    }
+  }
+}
