@@ -46,7 +46,7 @@ def artifact_hashes(output):
 def pins():
     lock = (ROOT / "Cargo.lock").read_text()
     match = re.search(r'\[\[package\]\]\nname = "wasm-bindgen"\nversion = "([^"]+)"', lock)
-    if not match or match[1] != "0.2.105":
+    if not match or match[1] != "0.2.130":
         raise ValueError("lockfile bindgen mismatch")
     compiler = subprocess.check_output(
         ["rustup", "run", "1.95.0", "rustc", "--version"], text=True).strip()

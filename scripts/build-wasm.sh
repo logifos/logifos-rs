@@ -7,7 +7,7 @@ cd "$repo_root"
 : "${CARGO_TARGET_DIR:?Set CARGO_TARGET_DIR to a task-local target directory}"
 output=${1:?Usage: bash scripts/build-wasm.sh NEW_OUTPUT_DIRECTORY}
 [[ "$(rustup run 1.95.0 rustc --version)" == 'rustc 1.95.0 '* ]] || { echo 'Rust 1.95.0 required' >&2; exit 1; }
-[[ "$("$WASM_BINDGEN" --version)" == 'wasm-bindgen 0.2.105' ]] || { echo 'wasm-bindgen 0.2.105 required' >&2; exit 1; }
+[[ "$("$WASM_BINDGEN" --version)" == 'wasm-bindgen 0.2.130' ]] || { echo 'wasm-bindgen 0.2.130 required' >&2; exit 1; }
 [[ ! -e "$output" ]] || { echo 'Output directory must be new' >&2; exit 1; }
 [[ $(df -Pm . | awk 'NR==2 {print $4}') -ge 600 ]] || { echo 'Insufficient disk space' >&2; exit 1; }
 # A fixed linear-memory ceiling bounds growth. Traps require a fresh instance.

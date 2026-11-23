@@ -10,12 +10,12 @@ wire envelopes and errors, independently of their memory-ownership APIs.
 ## Pinned build
 
 Use Rust **1.95.0**, target `wasm32-unknown-unknown`, the committed `Cargo.lock`,
-and **wasm-bindgen 0.2.105** for both the Rust dependency and CLI. Install tools
+and **wasm-bindgen 0.2.130** for both the Rust dependency and CLI. Install tools
 only into a chosen scratch directory, for example:
 
 ```sh
 rustup target add --toolchain 1.95.0 wasm32-unknown-unknown
-cargo +1.95.0 install wasm-bindgen-cli --version 0.2.105 --locked -j 2 --root "$TMPDIR/tools"
+cargo +1.95.0 install wasm-bindgen-cli --version 0.2.130 --locked -j 2 --root "$TMPDIR/tools"
 export WASM_BINDGEN="$TMPDIR/tools/bin/wasm-bindgen"
 export CARGO_TARGET_DIR="$TMPDIR/target"
 export WASM_CONTRACT_DIR=/path/to/authoritative/contracts
