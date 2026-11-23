@@ -124,10 +124,19 @@ dependencies = [
 [[package]]
 name = "logifos-svg"
 version = "0.1.0"
+dependencies = [
+ "logifos-layout",
+ "xmlparser",
+]
 
 [[package]]
 name = "logifos-syntax-mathml"
 version = "0.1.0"
+dependencies = [
+ "logifos-json",
+ "logifos-model",
+ "xmlparser",
+]
 
 [[package]]
 name = "logifos-wasm"
@@ -310,6 +319,12 @@ checksum = "76f218a38c84bcb33c25ec7059b07847d465ce0e0a76b995e134a45adcb6af76"
 dependencies = [
  "unicode-ident",
 ]
+
+[[package]]
+name = "xmlparser"
+version = "0.13.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66fee0b777b0f5ac1c69bb06d361268faafa61cd4682ae064a171c16c433e9e4"
 
 [[package]]
 name = "zmij"

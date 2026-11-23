@@ -10,3 +10,7 @@ MathML, MathJAX, and KaTeX are architecture study references only.
 
 See [docs/PLAN.adoc](docs/PLAN.adoc) for the architecture, crates and
 phased plan.
+
+Development setup and optional local hooks are described in
+[CONTRIBUTING.md](CONTRIBUTING.md). See [CHANGELOG.md](CHANGELOG.md) for the
+unreleased workspace status and [SECURITY.md](SECURITY.md) for the reporting gap.

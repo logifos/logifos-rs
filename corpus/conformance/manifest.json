@@ -1,0 +1,134 @@
+{
+  "format_version": 1,
+  "formula_contract": {
+    "repository": "https://github.com/plurimath/plurimath-rs",
+    "revision": null,
+    "schema_path": null,
+    "sha256": null,
+    "status": "unresolved"
+  },
+  "source_inventory": "source-inputs.json",
+  "source_inventory_sha256": "47bf83a3e9efbc24ad8cee295072ae291085779f534bdf730e4972ba9ca2bc51",
+  "cases": [
+    {
+      "id": "bootstrap-unknown-op",
+      "path": "cases/bootstrap-unknown-op.json",
+      "sha256": "bfcd655bd1a598e089bf81a0adf9c69dbbae460154626020ea5a011dfe61a269",
+      "stage": "P0",
+      "rule": "P0.FACADE.UNKNOWN_OP",
+      "input_kind": "bootstrap-request",
+      "expected": {
+        "kind": "refusal",
+        "status": "assertion-only",
+        "assertion": {
+          "ok": false
+        },
+        "output": null
+      },
+      "formula_revision": null,
+      "font_sha256": null,
+      "origin": "synthetic",
+      "references": []
+    },
+    {
+      "id": "bootstrap-parse-refusal",
+      "path": "cases/bootstrap-parse-refusal.json",
+      "sha256": "4693afeffc4e4e59f8eb94e2f8b50eedb2816fd52afc6358f029b20bc9272b0b",
+      "stage": "P0",
+      "rule": "P0.FACADE.PARSER_UNAVAILABLE",
+      "input_kind": "bootstrap-request",
+      "expected": {
+        "kind": "refusal",
+        "status": "assertion-only",
+        "assertion": {
+          "ok": false
+        },
+        "output": null
+      },
+      "formula_revision": null,
+      "font_sha256": null,
+      "origin": "synthetic",
+      "references": []
+    },
+    {
+      "id": "bootstrap-missing-op",
+      "path": "cases/bootstrap-missing-op.json",
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "stage": "P0",
+      "rule": "P0.FACADE.OP_REQUIRED",
+      "input_kind": "bootstrap-request",
+      "expected": {
+        "kind": "refusal",
+        "status": "assertion-only",
+        "assertion": {
+          "ok": false
+        },
+        "output": null
+      },
+      "formula_revision": null,
+      "font_sha256": null,
+      "origin": "synthetic",
+      "references": []
+    },
+    {
+      "id": "mathml-namespace-token",
+      "path": "cases/mathml-namespace-token.mml",
+      "sha256": "96faac0c032eaeeecf08b802c5ee0e5d07415d2e28ccb863d20fa135d75f27d9",
+      "stage": "P1",
+      "rule": "P1.MATHML.NAMESPACE",
+      "input_kind": "mathml",
+      "expected": {
+        "kind": "syntax",
+        "status": "pending",
+        "assertion": null,
+        "output": null
+      },
+      "formula_revision": null,
+      "font_sha256": null,
+      "origin": "specification-derived",
+      "references": [
+        "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.namespaces"
+      ]
+    },
+    {
+      "id": "mathml-prefixed-token",
+      "path": "cases/mathml-prefixed-token.mml",
+      "sha256": "e94f95c97e6027b7f76866badb5454d7477fe3d3d87f6dfb9040a9b893ea13fb",
+      "stage": "P1",
+      "rule": "P1.MATHML.PREFIX",
+      "input_kind": "mathml",
+      "expected": {
+        "kind": "syntax",
+        "status": "pending",
+        "assertion": null,
+        "output": null
+      },
+      "formula_revision": null,
+      "font_sha256": null,
+      "origin": "specification-derived",
+      "references": [
+        "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.namespaces"
+      ]
+    },
+    {
+      "id": "mathml-inherited-style",
+      "path": "cases/mathml-inherited-style.mml",
+      "sha256": "49ba41cf4ac03dc74d98f956d4ab6baa853f6fde21267ac219a9e94ea194295d",
+      "stage": "P1",
+      "rule": "P1.MATHML.INHERITED_PRESENTATION",
+      "input_kind": "mathml",
+      "expected": {
+        "kind": "syntax",
+        "status": "pending",
+        "assertion": null,
+        "output": null
+      },
+      "formula_revision": null,
+      "font_sha256": null,
+      "origin": "specification-derived",
+      "references": [
+        "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.globatt"
+      ]
+    }
+  ]
+}

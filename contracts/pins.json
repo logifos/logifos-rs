@@ -1,0 +1,18 @@
+{
+  "pin_format": 1,
+  "formula": {
+    "origin": "https://github.com/plurimath/plurimath-rs",
+    "revision": null,
+    "schema_path": null,
+    "sha256": null,
+    "status": "unresolved-card-12"
+  },
+  "mathml_syntax": {
+    "origin": "logifos-syntax-mathml",
+    "revision": null,
+    "schema_path": null,
+    "sha256": null,
+    "status": "unresolved-card-13"
+  },
+  "policy": "Null pins prohibit model validation or successful parse/transform/render qualification. Card 09 defines envelopes only; it does not define or alter Formula."
+}

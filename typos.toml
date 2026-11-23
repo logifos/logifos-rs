@@ -1,0 +1,9 @@
+[files]
+extend-exclude = [".git", "target", ".venv"]
+
+[default.extend-words]
+logifos = "logifos"
+plurimath = "plurimath"
+Fontisan = "Fontisan"
+claricle = "claricle"
+svgpng = "svgpng"
