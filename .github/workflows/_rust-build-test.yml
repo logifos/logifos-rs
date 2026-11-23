@@ -58,3 +58,6 @@ jobs:
           cargo build --workspace --all-targets --locked -j 2 "${feature_args[@]}"
           cargo test --workspace --locked -j 2 "${feature_args[@]}"
           cargo clippy --workspace --all-targets --locked -j 2 "${feature_args[@]}" -- -D warnings
+      - name: Check the C ABI from a C consumer
+        if: runner.os != 'Windows'
+        run: bash scripts/check-ffi.sh

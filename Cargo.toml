@@ -7,6 +7,7 @@ members = [
     "crates/logifos-layout",
     "crates/logifos-svg",
     "crates/logifos-facade",
+    "crates/logifos-ffi",
 ]
 
 [workspace.package]
