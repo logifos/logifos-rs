@@ -120,7 +120,7 @@ def validate(manifest_path):
                 require(re.fullmatch(r'[0-9a-f]{64}', item.get('sha256', '')) is not None, 'missing upstream input hash')
                 require(item.get('license') and item.get('original_revision'), 'missing upstream license/revision')
     generator = inventory.get('generator', {})
-    require(generator.get('path') == 'corpus/inventory.py', 'unknown inventory generator')
+    require(generator.get('path') == 'corpus/conformance/inventory.py', 'unknown inventory generator')
     require(generator.get('sha256') == digest(root / 'inventory.py'), 'inventory generator hash mismatch')
     require(re.fullmatch(r'[0-9a-f]{64}', generator.get('directory_receipt_sha256', '')) is not None, 'missing directory receipt')
     require(generator.get('input_pins') and all(re.fullmatch(r'[0-9a-f]{64}', x.get('sha256', '')) and re.fullmatch(r'[0-9a-f]{40}', x.get('revision', '')) for x in generator['input_pins']), 'missing inventory input pins')
@@ -148,7 +148,7 @@ def validate(manifest_path):
             except UnicodeError as error:
                 raise Invalid('case is not UTF-8') from error
     tracked = generator.get('tracked_input', {})
-    require(tracked.get('path') == 'corpus/source-metadata.json' and tracked.get('sha256') == digest(root / 'source-metadata.json'), 'stale source metadata receipt')
+    require(tracked.get('path') == 'corpus/conformance/source-metadata.json' and tracked.get('sha256') == digest(root / 'source-metadata.json'), 'stale source metadata receipt')
     return manifest, inventory
 
 
@@ -234,7 +234,7 @@ def self_test(manifest_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--manifest', type=Path, default=ROOT / 'corpus/manifest.json')
+    parser.add_argument('--manifest', type=Path, default=ROOT / 'corpus/conformance/manifest.json')
     parser.add_argument('--case', action='append', default=[], help='exact case ID (repeatable)')
     parser.add_argument('--stage', choices=['P0', 'P1'])
     parser.add_argument('--self-test', action='store_true')

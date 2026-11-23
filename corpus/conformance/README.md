@@ -1,16 +1,17 @@
 # Shared conformance foundation (format 1)
 
-This corpus contains test inputs and upstream source metadata.
+The canonical corpus at `corpus/conformance/` contains test inputs and upstream source metadata.
+Run the following commands from the repository root.
 The validator uses only the Python standard library. It validates all entries
 before selecting exact names, so a named case cannot hide a corrupt corpus.
 
 ```sh
-python3 tools/conformance.py
-python3 tools/conformance.py --case bootstrap-unknown-op
-python3 tools/conformance.py --stage P1
-python3 tools/conformance.py --self-test
-python3 tools/conformance.py --check-p1
-python3 tools/conformance.py --replay
+python3 -B tools/conformance.py
+python3 -B tools/conformance.py --case bootstrap-unknown-op
+python3 -B tools/conformance.py --stage P1
+python3 -B tools/conformance.py --self-test
+python3 -B tools/conformance.py --check-p1
+python3 -B tools/conformance.py --replay
 ```
 
 The last two commands deliberately exit 2. Validation exits 0; malformed data,
@@ -55,7 +56,7 @@ block P1 closure even when this foundation validator passes.
 Inventory generation consumes only the tracked, fresh metadata transcript:
 
 ```sh
-python3 corpus/inventory.py > corpus/source-inputs.json
+python3 -B corpus/conformance/inventory.py > corpus/conformance/source-inputs.json
 ```
 
 `source-metadata.json` independently enumerates the original seed case ids,

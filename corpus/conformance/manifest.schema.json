@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://logifos.org/corpus/manifest-v1.schema.json",
+  "$id": "https://logifos.org/corpus/conformance/manifest-v1.schema.json",
   "type": "object",
   "properties": {
     "format_version": {

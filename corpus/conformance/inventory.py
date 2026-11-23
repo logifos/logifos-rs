@@ -29,9 +29,9 @@ def generate(metadata):
     if source['required_replay'] or source['coverage'] != 'metadata-only' or any(item['origin_status'] != 'unresolved' for item in source['inputs']):
         raise ValueError('metadata transcript must not enable unverified upstream inputs')
     return {'format_version': 1, 'stage': 'P1',
-            'generator': {'path': 'corpus/inventory.py', 'sha256': sha(Path(__file__)),
+            'generator': {'path': 'corpus/conformance/inventory.py', 'sha256': sha(Path(__file__)),
                           'input_pins': data['source_pins'],
-                          'tracked_input': {'path': 'corpus/source-metadata.json', 'sha256': sha(metadata)},
+                          'tracked_input': {'path': 'corpus/conformance/source-metadata.json', 'sha256': sha(metadata)},
                           'directory_receipt_sha256': data['directory_receipt_sha256']},
             'sources': data['sources'], 'gaps': data['gaps']}
 

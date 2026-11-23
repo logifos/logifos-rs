@@ -2,8 +2,8 @@
   "format_version": 1,
   "stage": "P1",
   "generator": {
-    "path": "corpus/inventory.py",
-    "sha256": "8be1f56dfa8b7616f9c3ce50ec07b0fc36a4a41ed4d4082468e744ea359eeac6",
+    "path": "corpus/conformance/inventory.py",
+    "sha256": "dab5955af87262ca561b809d993847e9dfd0059886870f2b6a471fd8ee4e7dd0",
     "input_pins": [
       {
         "repository": "https://github.com/plurimath/plurimath-testsuite",
@@ -25,7 +25,7 @@
       }
     ],
     "tracked_input": {
-      "path": "corpus/source-metadata.json",
+      "path": "corpus/conformance/source-metadata.json",
       "sha256": "d70c97d7981b9edaa0896504121b65e52702cd35a27317736333649f9538814a"
     },
     "directory_receipt_sha256": "f39446d63372e9f61b47e705e7eb592760b5249b2f901488a69181ad690d9ad6"
