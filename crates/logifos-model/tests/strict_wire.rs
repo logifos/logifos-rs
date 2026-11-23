@@ -1,24 +1,26 @@
-//! Freshly authored regression cases for the bootstrap wire boundary (MIT).
-//! These exercise existing supported shapes, not an upstream mapping contract.
+//! Strict refusal and preservation checks for the pinned wire subset.
 
-use logifos_model::Formula;
+use logifos_model::{Formula, WireError};
 use serde_json::{json, Value};
 
-fn convert(node: Value) -> Result<Formula, String> {
+fn convert(node: Value) -> Result<Formula, WireError> {
     Formula::from_wire(node.as_object().expect("test node must be an object"))
 }
 
 fn sequence(children: Value) -> Value {
-    json!({"class": "Math::Formula", "fields": {"parameter1": children}})
+    json!({"class": "Math::Formula", "fields": {"value": children}})
 }
 
 fn symbol(text: Value) -> Value {
-    json!({"class": "Math::Symbol", "fields": {"value": text}})
+    json!({"class": "Math::Symbols::Symbol", "fields": {"value": text}})
 }
 
 fn assert_refused(node: Value) {
     let error = convert(node.clone()).expect_err(&format!("must refuse {node}"));
-    assert!(!error.is_empty(), "refusal must explain the invalid node");
+    assert!(
+        !error.to_string().is_empty(),
+        "refusal must explain the invalid node"
+    );
 }
 
 #[test]
@@ -90,14 +92,14 @@ fn refuses_missing_or_wrongly_typed_envelope_fields() {
         json!({}),
         json!({"fields": {}}),
         json!({"class": "Math::Formula"}),
-        json!({"class": "Math::Symbol"}),
+        json!({"class": "Math::Symbols::Symbol"}),
     ] {
         assert_refused(node);
     }
     for value in [Value::Null, json!(false), json!(9), json!([]), json!({})] {
         assert_refused(json!({"class": value, "fields": {}}));
     }
-    for class in ["Math::Formula", "Math::Symbol"] {
+    for class in ["Math::Formula", "Math::Symbols::Symbol"] {
         for fields in [Value::Null, json!(true), json!(9), json!("x"), json!([])] {
             assert_refused(json!({"class": class, "fields": fields}));
         }
@@ -106,7 +108,7 @@ fn refuses_missing_or_wrongly_typed_envelope_fields() {
 
 #[test]
 fn refuses_missing_or_wrongly_typed_symbol_values() {
-    assert_refused(json!({"class": "Math::Symbol", "fields": {}}));
+    assert_refused(json!({"class": "Math::Symbols::Symbol", "fields": {}}));
     for value in [Value::Null, json!(false), json!(1), json!([]), json!({})] {
         assert_refused(symbol(value));
     }
@@ -125,9 +127,9 @@ fn refuses_unexpected_node_information() {
 #[test]
 fn refuses_unexpected_class_fields() {
     for node in [
-        json!({"class": "Math::Formula", "fields": {"parameter1": [], "parameter2": "lost"}}),
-        json!({"class": "Math::Formula", "fields": {"parameter1": [], "style": null}}),
-        json!({"class": "Math::Symbol", "fields": {"value": "x", "style": "bold"}}),
+        json!({"class": "Math::Formula", "fields": {"value": [], "parameter2": "lost"}}),
+        json!({"class": "Math::Formula", "fields": {"value": [], "style": null}}),
+        json!({"class": "Math::Symbols::Symbol", "fields": {"value": "x", "style": "bold"}}),
     ] {
         assert_refused(node);
     }
@@ -147,8 +149,8 @@ fn refuses_invalid_nested_nodes_without_partial_success() {
         sequence(Value::Null),
         symbol(json!(42)),
         json!({"class": "Math::Unknown", "fields": {}}),
-        json!({"class": "Math::Symbol", "fields": {"value": "x", "style": "bold"}}),
-        json!({"class": "Math::Symbol", "fields": {"value": "x"}, "extra": true}),
+        json!({"class": "Math::Symbols::Symbol", "fields": {"value": "x", "style": "bold"}}),
+        json!({"class": "Math::Symbols::Symbol", "fields": {"value": "x"}, "extra": true}),
     ] {
         assert_refused(sequence(json!([
             symbol(json!("before")),
