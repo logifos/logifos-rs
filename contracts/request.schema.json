@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:logifos:facade:request:1",
+  "title": "Logifos v1 request envelope (external payload validation required)",
+  "$defs": {
+    "contractIdentity": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "schema_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "origin",
+        "revision",
+        "schema_path",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "limits": {
+          "$ref": "#/$defs/limits"
+        },
+        "font_size_px": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4096
+        },
+        "display": {
+          "enum": [
+            "inline",
+            "block"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "fonts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/font"
+          },
+          "maxItems": 16
+        },
+        "fallback_order": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "request_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8388608
+        },
+        "json_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "source_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "tree_nodes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "tree_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "font_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "font_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194304
+        },
+        "total_font_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194304
+        },
+        "response_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8388608
+        },
+        "glyphs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "font": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes_base64": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 5592408
+        },
+        "face_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "id",
+        "sha256",
+        "bytes_base64",
+        "face_index"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "abi_version": {
+          "const": 1
+        },
+        "op": {
+          "const": "negotiate"
+        },
+        "options": {
+          "$ref": "#/$defs/options"
+        }
+      },
+      "required": [
+        "schema_version",
+        "abi_version",
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "abi_version": {
+          "const": 1
+        },
+        "op": {
+          "const": "parse"
+        },
+        "options": {
+          "$ref": "#/$defs/options"
+        },
+        "format": {
+          "const": "mathml"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "abi_version",
+        "op",
+        "format",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "abi_version": {
+          "const": 1
+        },
+        "op": {
+          "const": "transform"
+        },
+        "options": {
+          "$ref": "#/$defs/options"
+        },
+        "format": {
+          "const": "mathml"
+        },
+        "direction": {
+          "enum": [
+            "syntax_to_formula",
+            "formula_to_syntax"
+          ]
+        },
+        "input": {
+          "type": "object"
+        },
+        "input_contract": {
+          "$ref": "#/$defs/contractIdentity"
+        },
+        "output_contract": {
+          "$ref": "#/$defs/contractIdentity"
+        }
+      },
+      "required": [
+        "schema_version",
+        "abi_version",
+        "op",
+        "format",
+        "direction",
+        "input",
+        "input_contract",
+        "output_contract"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "abi_version": {
+          "const": 1
+        },
+        "op": {
+          "const": "render"
+        },
+        "options": {
+          "$ref": "#/$defs/options"
+        },
+        "formula": {
+          "type": "object"
+        },
+        "formula_contract": {
+          "$ref": "#/$defs/contractIdentity"
+        },
+        "output": {
+          "enum": [
+            "svg",
+            "png"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "abi_version",
+        "op",
+        "formula",
+        "formula_contract",
+        "output"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

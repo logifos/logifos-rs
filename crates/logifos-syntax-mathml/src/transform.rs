@@ -1,0 +1,254 @@
+//! Conservative conversion from syntax into the current Formula vocabulary.
+
+use std::fmt;
+
+use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+
+use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
+
+/// Stable categories for a refused syntax-to-Formula conversion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransformErrorKind {
+    /// An element has no representation in the current Formula model.
+    UnsupportedElement,
+    /// A non-namespace attribute cannot be preserved by Formula.
+    UnsupportedAttribute,
+    /// An `mo` token is outside the five typed operators.
+    UnsupportedOperator,
+    /// Comments or character data cannot be represented at this position.
+    UnsupportedContent,
+    /// A root, token or binary construct has an invalid structure.
+    InvalidStructure,
+    /// The shared model's depth or node budget was exceeded.
+    ResourceLimit,
+}
+
+/// A refusal naming the element and its exact location in the syntax tree.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransformError {
+    /// Stable failure category.
+    pub kind: TransformErrorKind,
+    /// Qualified name of the rejected element, or the containing element for text.
+    pub element: QualifiedName,
+    /// Syntax-tree path, rooted at `/root`. Child indices include all syntax nodes.
+    /// Attribute and document-comment paths identify their respective array entries.
+    /// This is a tree location, not an original source byte offset.
+    pub location: String,
+    /// The rejected attribute's qualified name, when applicable.
+    pub attribute: Option<Box<QualifiedName>>,
+}
+
+impl TransformError {
+    /// Maps refusals into the facade's version 1 error vocabulary.
+    pub fn code(&self) -> &'static str {
+        match self.kind {
+            TransformErrorKind::ResourceLimit => "RESOURCE_LIMIT",
+            _ => "UNSUPPORTED_SYNTAX",
+        }
+    }
+}
+
+impl fmt::Display for TransformError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:?} for element {} at {}",
+            self.kind, self.element.local, self.location
+        )
+    }
+}
+
+impl std::error::Error for TransformError {}
+
+fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> TransformError {
+    TransformError {
+        kind,
+        element: element.name.clone(),
+        location: location.into(),
+        attribute: None,
+    }
+}
+
+/// Transforms a parsed MathML document without extending the shared model.
+///
+/// `math` and `mrow` become ordered sequences (including empty or singleton rows).
+/// `mi`, `mn` and `mtext` become symbols with their decoded text preserved exactly;
+/// Formula has one shared text/identifier class. `mo` accepts only `+`, `-`, `=`,
+/// `*` and `×`, with no trimming, substitution or symbol fallback. `mfrac`, `msub`
+/// and `msup` require exactly two element operands in source order.
+///
+/// Only XML whitespace between operands is insignificant. Namespace declarations
+/// identify names and carry no Formula presentation data. Every non-namespace
+/// attribute, comment, other element, nested token markup and non-whitespace text
+/// outside tokens refuses the entire conversion. No partial tree is returned.
+/// Radicals, fences, tables, combined scripts, under/over constructs, style,
+/// spacing, enclosure, semantics and annotations therefore remain unsupported.
+/// Names in either the MathML namespace or no namespace are accepted.
+///
+/// Traversal is bounded by the shared model's root-inclusive depth and node
+/// limits, also counting syntax text nodes and insignificant whitespace. These
+/// checks apply to manually constructed syntax trees as well as parsed input.
+pub fn transform(document: &MathmlDocument) -> Result<Formula, TransformError> {
+    for (comments, path) in [
+        (&document.before_root, "/before_root/0"),
+        (&document.after_root, "/after_root/0"),
+    ] {
+        if !comments.is_empty() {
+            return Err(refusal(
+                TransformErrorKind::UnsupportedContent,
+                &document.root,
+                path,
+            ));
+        }
+    }
+    if document.root.name.local != "math" {
+        return Err(refusal(
+            TransformErrorKind::InvalidStructure,
+            &document.root,
+            "/root",
+        ));
+    }
+    Transformer { nodes: 0 }.element(&document.root, "/root", 1)
+}
+
+struct Transformer {
+    nodes: usize,
+}
+
+impl Transformer {
+    fn visit(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<(), TransformError> {
+        if depth > MAX_DEPTH || self.nodes >= MAX_NODES {
+            return Err(refusal(
+                TransformErrorKind::ResourceLimit,
+                element,
+                location,
+            ));
+        }
+        self.nodes += 1;
+        Ok(())
+    }
+
+    fn element(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Formula, TransformError> {
+        self.visit(element, location, depth)?;
+        if !matches!(
+            element.name.namespace.as_deref(),
+            None | Some(MATHML_NAMESPACE)
+        ) {
+            return Err(refusal(
+                TransformErrorKind::UnsupportedElement,
+                element,
+                location,
+            ));
+        }
+        if let Some(attribute) = element.attributes.first() {
+            let mut error = refusal(
+                TransformErrorKind::UnsupportedAttribute,
+                element,
+                &format!("{location}/attributes/0"),
+            );
+            error.attribute = Some(Box::new(attribute.name.clone()));
+            return Err(error);
+        }
+        match element.name.local.as_str() {
+            "mi" | "mn" | "mtext" | "mo" => self.token(element, location, depth),
+            "math" if depth != 1 => Err(refusal(
+                TransformErrorKind::UnsupportedElement,
+                element,
+                location,
+            )),
+            "math" | "mrow" | "mfrac" | "msub" | "msup" => {
+                let mut children = Vec::new();
+                for (index, node) in element.children.iter().enumerate() {
+                    let path = format!("{location}/children/{index}");
+                    match node {
+                        Node::Element(child) => {
+                            children.push(self.element(child, &path, depth + 1)?);
+                        }
+                        Node::Text(text) if text.chars().all(xml_whitespace) => {
+                            self.visit(element, &path, depth + 1)?;
+                        }
+                        Node::Text(_) | Node::Comment(_) => {
+                            return Err(refusal(
+                                TransformErrorKind::UnsupportedContent,
+                                element,
+                                &path,
+                            ));
+                        }
+                    }
+                }
+                match element.name.local.as_str() {
+                    "math" | "mrow" => Ok(Formula::Sequence(children)),
+                    _ => {
+                        let [first, second]: [Formula; 2] = children.try_into().map_err(|_| {
+                            refusal(TransformErrorKind::InvalidStructure, element, location)
+                        })?;
+                        let pair = (Box::new(first), Box::new(second));
+                        Ok(match element.name.local.as_str() {
+                            "mfrac" => Formula::Fraction(pair.0, pair.1),
+                            "msub" => Formula::Subscript(pair.0, pair.1),
+                            _ => Formula::Superscript(pair.0, pair.1),
+                        })
+                    }
+                }
+            }
+            _ => Err(refusal(
+                TransformErrorKind::UnsupportedElement,
+                element,
+                location,
+            )),
+        }
+    }
+
+    fn token(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Formula, TransformError> {
+        let mut text = String::new();
+        for (index, node) in element.children.iter().enumerate() {
+            let path = format!("{location}/children/{index}");
+            match node {
+                Node::Text(value) => {
+                    self.visit(element, &path, depth + 1)?;
+                    text.push_str(value);
+                }
+                Node::Element(child) => {
+                    return Err(refusal(TransformErrorKind::InvalidStructure, child, &path));
+                }
+                Node::Comment(_) => {
+                    return Err(refusal(
+                        TransformErrorKind::UnsupportedContent,
+                        element,
+                        &path,
+                    ));
+                }
+            }
+        }
+        if element.name.local != "mo" {
+            return Ok(Formula::Symbol(text));
+        }
+        match text.as_str() {
+            "+" | "-" | "=" | "*" | "×" => Ok(Formula::Operator(text)),
+            _ => Err(refusal(
+                TransformErrorKind::UnsupportedOperator,
+                element,
+                location,
+            )),
+        }
+    }
+}
+
+fn xml_whitespace(character: char) -> bool {
+    matches!(character, ' ' | '\t' | '\r' | '\n')
+}
