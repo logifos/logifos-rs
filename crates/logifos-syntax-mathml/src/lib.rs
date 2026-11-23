@@ -1,8 +1,10 @@
-//! Namespace-aware MathML syntax, independent of formula and layout models.
+//! Namespace-aware MathML syntax and explicit conversion into Formula.
 //!
 //! [`parse`] accepts a complete UTF-8 XML 1.0 document with a `math` root in
 //! the MathML namespace (or no namespace for legacy input). Unknown elements
 //! and attributes remain syntax data; parsing does not imply rendering support.
+//! [`transform`] converts only the current Formula subset and returns a located,
+//! typed refusal for information the shared model cannot represent.
 //! Prefixes, local namespace declarations, attribute order, comments and mixed
 //! content are retained. XML line endings and attribute whitespace are normalized
 //! per XML 1.0 sections 2.11 and 3.3.3; character references are decoded. CDATA
@@ -22,10 +24,12 @@ mod error;
 mod model;
 mod parser;
 mod text;
+mod transform;
 
 pub use error::{ParseError, ParseErrorKind};
 pub use model::{Attribute, Element, MathmlDocument, NamespaceDeclaration, Node, QualifiedName};
 pub use parser::{parse, parse_with_limits, ParseLimits};
+pub use transform::{transform, TransformError, TransformErrorKind};
 
 /// The MathML namespace URI.
 pub const MATHML_NAMESPACE: &str = "http://www.w3.org/1998/Math/MathML";
