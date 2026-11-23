@@ -8,7 +8,9 @@ pub struct MathmlDocument {
 
 impl MathmlDocument {
     pub fn new(label: impl Into<String>) -> Self {
-        Self { label: label.into() }
+        Self {
+            label: label.into(),
+        }
     }
 }
 

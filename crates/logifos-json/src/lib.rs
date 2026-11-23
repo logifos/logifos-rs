@@ -26,7 +26,6 @@ fn depth_of(v: &Value) -> usize {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

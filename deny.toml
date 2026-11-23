@@ -1,0 +1,31 @@
+# Audit every workspace member, including unpublished bootstrap crates, and all
+# dependency targets. Do not narrow the graph to the runner's operating system.
+[graph]
+all-features = true
+
+[advisories]
+yanked = "deny"
+unmaintained = "all"
+unsound = "all"
+ignore = []
+
+[licenses]
+# Every dependency in the resolved bootstrap graph offers MIT terms. Additional
+# license obligations need a deliberate review when new dependencies are added.
+allow = ["MIT"]
+confidence-threshold = 0.95
+
+[licenses.private]
+ignore = false
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+# Unpublished workspace members use local paths without registry versions.
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
