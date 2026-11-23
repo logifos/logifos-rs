@@ -1,0 +1,3 @@
+[default.extend-words]
+# OpenType's glyph-location table tag.
+loca = "loca"
