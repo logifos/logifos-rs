@@ -188,6 +188,7 @@ name = "logifos-layout"
 version = "0.1.0"
 dependencies = [
  "fontisan",
+ "logifos-model",
  "sha2",
 ]
 
