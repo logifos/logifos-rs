@@ -28,8 +28,10 @@ pub enum Formula {
 
 impl Formula {
     /// Converts the plurimath common-model node (`{class, fields}`) into
-    /// the typed tree. Unknown classes refuse typed: the conversion is
-    /// the single boundary where wire and model meet.
+    /// the typed tree. Only the bootstrap Formula sequence and Symbol
+    /// shapes are supported; this is not an authoritative upstream mapping.
+    /// Missing, wrongly typed or unexpected information is refused, including
+    /// in children, so a successful conversion never silently discards data.
     pub fn from_wire(model: &Map<String, Value>) -> Result<Self, String> {
         let class = model
             .get("class")
@@ -39,20 +41,22 @@ impl Formula {
             .get("fields")
             .and_then(Value::as_object)
             .ok_or("model.fields must be an object")?;
+        Self::check_keys(model, &["class", "fields"], "model")?;
         match class {
             "Math::Formula" => {
-                let mut nodes = Vec::new();
-                for value in fields
+                Self::check_keys(fields, &["parameter1"], class)?;
+                let children = fields
                     .get("parameter1")
                     .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
+                    .ok_or("Math::Formula.parameter1 must be an array")?;
+                let mut nodes = Vec::with_capacity(children.len());
+                for value in children {
                     nodes.push(Self::from_wire_value(value)?);
                 }
                 Ok(Self::Sequence(nodes))
             }
             "Math::Symbol" => {
+                Self::check_keys(fields, &["value"], class)?;
                 let text = fields
                     .get("value")
                     .and_then(Value::as_str)
@@ -62,6 +66,17 @@ impl Formula {
             }
             other => Err(format!("unsupported wire class {other:?}")),
         }
+    }
+
+    fn check_keys(
+        object: &Map<String, Value>,
+        allowed: &[&str],
+        context: &str,
+    ) -> Result<(), String> {
+        if let Some(key) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+            return Err(format!("{context} contains unexpected field {key:?}"));
+        }
+        Ok(())
     }
 
     fn from_wire_value(value: &Value) -> Result<Self, String> {
@@ -83,10 +98,7 @@ mod tests {
         symbol.insert("fields".into(), serde_json::json!({"value": "x"}));
         let mut model = Map::new();
         model.insert("class".into(), Value::from("Math::Formula"));
-        model.insert(
-            "fields".into(),
-            serde_json::json!({"parameter1": [symbol]}),
-        );
+        model.insert("fields".into(), serde_json::json!({"parameter1": [symbol]}));
         let formula = Formula::from_wire(&model).unwrap();
         assert_eq!(
             formula,
