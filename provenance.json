@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "declaration": {
+    "author": "Suleman <suleman@workytical.com>",
+    "no_renderer_source_data_output_copied": true,
+    "statement": "This Logifos change was written fresh under MIT. No renderer source, data or output was copied. Checker test files are independently authored synthetic examples."
+  },
+  "files": {
+    "docs/PROVENANCE.md": {
+      "author": "Suleman <suleman@workytical.com>",
+      "origin": "fresh-logifos",
+      "kind": "documentation",
+      "description": "Fresh Logifos provenance enforcement documentation for board card 05; authored from the approved board requirements.",
+      "specification_refs": [],
+      "license": "MIT",
+      "review_signals": {
+        "attribution": "Documents the unchanged existing MIT notice and its measured hash; no imported source."
+      }
+    },
+    "provenance.json": {
+      "author": "Suleman <suleman@workytical.com>",
+      "origin": "fresh-logifos",
+      "kind": "infrastructure",
+      "description": "Fresh Logifos provenance enforcement infrastructure for board card 05; authored from the approved board requirements.",
+      "specification_refs": [],
+      "license": "MIT"
+    },
+    "tools/provenance.py": {
+      "author": "Suleman <suleman@workytical.com>",
+      "origin": "fresh-logifos",
+      "kind": "implementation",
+      "description": "Fresh Logifos provenance enforcement implementation for board card 05; authored from the approved board requirements.",
+      "specification_refs": [],
+      "license": "MIT",
+      "review_signals": {
+        "foreign-reference": "Detection rules and synthetic negative examples contain signal names only; no renderer implementation was read or imported.",
+        "source-path": "Synthetic source-path detection strings are independently authored test and checker data.",
+        "attribution": "Detection rules and synthetic negative examples exercise attribution review; no foreign source headers were imported."
+      }
+    },
+    "tools/tests/test_provenance.py": {
+      "author": "Suleman <suleman@workytical.com>",
+      "origin": "fresh-logifos",
+      "kind": "implementation",
+      "description": "Fresh Logifos provenance enforcement implementation for board card 05; authored from the approved board requirements.",
+      "specification_refs": [],
+      "license": "MIT",
+      "review_signals": {
+        "foreign-reference": "Detection rules and synthetic negative examples contain signal names only; no renderer implementation was read or imported.",
+        "source-path": "Synthetic source-path detection strings are independently authored test and checker data.",
+        "attribution": "Detection rules and synthetic negative examples exercise attribution review; no foreign source headers were imported."
+      }
+    }
+  }
+}
