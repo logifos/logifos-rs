@@ -27,13 +27,8 @@
       },
       "formula_revision": null,
       "font_sha256": null,
-      "provenance": {
-        "author": "Logifos contributors",
-        "origin": "fresh-logifos",
-        "license": "MIT",
-        "references": [],
-        "declaration": "Authored fresh for Logifos; no renderer source, data or output was copied."
-      }
+      "origin": "synthetic",
+      "references": []
     },
     {
       "id": "bootstrap-parse-refusal",
@@ -52,13 +47,8 @@
       },
       "formula_revision": null,
       "font_sha256": null,
-      "provenance": {
-        "author": "Logifos contributors",
-        "origin": "fresh-logifos",
-        "license": "MIT",
-        "references": [],
-        "declaration": "Authored fresh for Logifos; no renderer source, data or output was copied."
-      }
+      "origin": "synthetic",
+      "references": []
     },
     {
       "id": "bootstrap-missing-op",
@@ -77,13 +67,8 @@
       },
       "formula_revision": null,
       "font_sha256": null,
-      "provenance": {
-        "author": "Logifos contributors",
-        "origin": "fresh-logifos",
-        "license": "MIT",
-        "references": [],
-        "declaration": "Authored fresh for Logifos; no renderer source, data or output was copied."
-      }
+      "origin": "synthetic",
+      "references": []
     },
     {
       "id": "mathml-namespace-token",
@@ -100,15 +85,10 @@
       },
       "formula_revision": null,
       "font_sha256": null,
-      "provenance": {
-        "author": "Logifos contributors",
-        "origin": "specification-derived",
-        "license": "MIT",
-        "references": [
-          "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.namespaces"
-        ],
-        "declaration": "Authored fresh for Logifos; no renderer source, data or output was copied."
-      }
+      "origin": "specification-derived",
+      "references": [
+        "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.namespaces"
+      ]
     },
     {
       "id": "mathml-prefixed-token",
@@ -125,15 +105,10 @@
       },
       "formula_revision": null,
       "font_sha256": null,
-      "provenance": {
-        "author": "Logifos contributors",
-        "origin": "specification-derived",
-        "license": "MIT",
-        "references": [
-          "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.namespaces"
-        ],
-        "declaration": "Authored fresh for Logifos; no renderer source, data or output was copied."
-      }
+      "origin": "specification-derived",
+      "references": [
+        "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.namespaces"
+      ]
     },
     {
       "id": "mathml-inherited-style",
@@ -150,15 +125,10 @@
       },
       "formula_revision": null,
       "font_sha256": null,
-      "provenance": {
-        "author": "Logifos contributors",
-        "origin": "specification-derived",
-        "license": "MIT",
-        "references": [
-          "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.globatt"
-        ],
-        "declaration": "Authored fresh for Logifos; no renderer source, data or output was copied."
-      }
+      "origin": "specification-derived",
+      "references": [
+        "https://www.w3.org/TR/2014/REC-MathML3-20140410/chapter2.html#fund.globatt"
+      ]
     }
   ]
 }

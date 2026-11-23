@@ -1,6 +1,6 @@
 # Shared conformance foundation (format 1)
 
-This is fresh MIT test input and source metadata, not a rendering baseline.
+This corpus contains test inputs and upstream source metadata.
 The validator uses only the Python standard library. It validates all entries
 before selecting exact names, so a named case cannot hide a corrupt corpus.
 
@@ -20,7 +20,9 @@ reported. No command in this card executes, compiles or qualifies an engine.
 `manifest.schema.json` is the format authority. The checker implements exactly
 the subset of JSON Schema used in that file, not a general JSON Schema library.
 Every case has a stable stage/rule id, exact input-file SHA-256, nullable Formula
-revision and font SHA-256, origin declaration, and expected result kind. A font
+revision and font SHA-256, origin classification, specification references, and
+expected result kind. Origin is `synthetic` or `specification-derived`; the latter
+requires a nonempty `references` array of direct `https://www.w3.org/TR/` URLs. A font
 hash is null because these cases use no font. A future font-bearing case must
 supply a separately pinned resource receipt and an adapter before replay.
 Paths stay inside the corpus; symlinks, missing files, duplicate names, unknown
@@ -29,7 +31,7 @@ fields/versions, empty input and hash mismatches fail. JSON is strict UTF-8.
 P0 cases target the current bootstrap facade, with its existing `op`/`format`
 envelope. Their `{ "ok": false }` assertions express the refusal contract;
 they are not recorded engine observations. They make no claim about the future
-versioned facade from card 09. P1 cases are newly authored examples based on
+versioned facade from card 09. P1 cases are examples based on
 MathML 3.0 Second Edition (10 April 2014), section 2.1.2 (namespaces) and 2.1.6
 (shared presentation attributes). Their expected kind is `syntax`, status
 `pending`, and output is null. No successful output, Formula tree, SVG or
@@ -62,8 +64,3 @@ or outputs are included. Its upstream metadata URLs/revisions/hashes record the
 source trail; they are not input-eligibility clearance. The generator receipt
 pins this tracked transcript and generator. Original case URLs and revisions
 remain null until direct original-source identity, bytes and license are checked.
-
-`provenance.json` uses the card-05 manifest format and covers every card file.
-The generated inventory has a reproducible command and tracked generator/input/
-output hashes. Run the separately pinned card-05 checker against committed
-base/head; this focused validator does not replace that check.

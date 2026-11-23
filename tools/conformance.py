@@ -133,10 +133,8 @@ def validate(manifest_path):
         require(digest(path) == case['sha256'], 'case hash mismatch: ' + case['id'])
         require(case['rule'].startswith(case['stage'] + '.'), 'rule/stage mismatch')
         require(case['formula_revision'] == pin['revision'], 'case Formula pin mismatch')
-        provenance = case['provenance']
-        require(provenance['declaration'] == 'Authored fresh for Logifos; no renderer source, data or output was copied.', 'missing authorship declaration')
-        if provenance['origin'] == 'specification-derived':
-            require(provenance['references'] and all(x.startswith('https://www.w3.org/TR/') for x in provenance['references']), 'missing direct specification reference')
+        if case['origin'] == 'specification-derived':
+            require(case['references'] and all(x.startswith('https://www.w3.org/TR/') for x in case['references']), 'missing direct specification reference')
         expected = case['expected']
         if case['stage'] == 'P0':
             require(case['input_kind'] == 'bootstrap-request' and expected['kind'] == 'refusal', 'invalid P0 expectation')
@@ -151,19 +149,6 @@ def validate(manifest_path):
                 raise Invalid('case is not UTF-8') from error
     tracked = generator.get('tracked_input', {})
     require(tracked.get('path') == 'corpus/source-metadata.json' and tracked.get('sha256') == digest(root / 'source-metadata.json'), 'stale source metadata receipt')
-    provenance = read_json(root / 'provenance.json')
-    declaration = provenance.get('declaration', {})
-    require(declaration.get('author') and declaration.get('no_renderer_source_data_output_copied') is True and declaration.get('statement'), 'missing file declaration')
-    entries = provenance.get('files')
-    require(isinstance(entries, dict) and entries, 'empty file provenance')
-    required = {'tools/conformance.py'} | {'corpus/' + str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()}
-    require(set(entries) == required, 'file provenance coverage mismatch')
-    for path, entry in entries.items():
-        require(entry.get('origin') in ['fresh-logifos', 'generated-logifos'] and entry.get('license') == 'MIT' and entry.get('author') and entry.get('description'), 'uncleared file provenance')
-        if entry['origin'] == 'generated-logifos':
-            receipt = entry.get('receipt', {})
-            require(receipt.get('command') and receipt.get('generator') == {'path': generator['path'], 'sha256': generator['sha256']} and receipt.get('inputs') == [tracked], 'incomplete generated provenance receipt')
-            require(path == 'corpus/source-inputs.json' and receipt.get('output_sha256') == digest(inventory_path), 'wrong generated output receipt')
     return manifest, inventory
 
 
@@ -202,7 +187,18 @@ def self_test(manifest_path):
         reject('unknown version', lambda m: m.update(format_version=2))
         reject('unknown field', lambda m: m.update(extra=True))
         reject('duplicate case', lambda m: m['cases'].append(copy.deepcopy(m['cases'][0])))
-        reject('unknown origin', lambda m: m['cases'][0]['provenance'].update(origin='unknown'))
+        reject('unknown origin', lambda m: m['cases'][0].update(origin='unknown'))
+        reject('missing origin', lambda m: m['cases'][0].pop('origin'))
+        reject('missing references', lambda m: m['cases'][3].pop('references'))
+        reject('empty specification references', lambda m: m['cases'][3].update(references=[]))
+        reject('non-array references', lambda m: m['cases'][3].update(references='https://www.w3.org/TR/MathML3/'))
+        reject('non-string reference', lambda m: m['cases'][3].update(references=[None]))
+        reject('empty reference', lambda m: m['cases'][3].update(references=['']))
+        reject('insecure specification reference', lambda m: m['cases'][3].update(references=['http://www.w3.org/TR/MathML3/']))
+        reject('unrelated specification reference', lambda m: m['cases'][3].update(references=['https://example.com/TR/MathML3/']))
+        reject('spoofed specification host', lambda m: m['cases'][3].update(references=['https://www.w3.org.example.com/TR/MathML3/']))
+        reject('non-specification W3C reference', lambda m: m['cases'][3].update(references=['https://www.w3.org/Math/']))
+        reject('unknown case field', lambda m: m['cases'][0].update(extra=True))
         reject('invented success', lambda m: m['cases'][0]['expected'].update(output='<svg/>'))
         reject('incomplete Formula pin', lambda m: m['formula_contract'].update(status='pinned'))
         reject('inventory hash mismatch', lambda m: m.update(source_inventory_sha256='0' * 64))

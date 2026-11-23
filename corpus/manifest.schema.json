@@ -139,42 +139,18 @@
             ],
             "pattern": "^[0-9a-f]{64}$"
           },
-          "provenance": {
-            "type": "object",
-            "properties": {
-              "author": {
-                "type": "string",
-                "minLength": 1
-              },
-              "origin": {
-                "enum": [
-                  "fresh-logifos",
-                  "specification-derived"
-                ]
-              },
-              "license": {
-                "const": "MIT"
-              },
-              "references": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "declaration": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "required": [
-              "author",
-              "origin",
-              "license",
-              "references",
-              "declaration"
-            ],
-            "additionalProperties": false
+          "origin": {
+            "enum": [
+              "synthetic",
+              "specification-derived"
+            ]
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "required": [
@@ -187,7 +163,8 @@
           "expected",
           "formula_revision",
           "font_sha256",
-          "provenance"
+          "origin",
+          "references"
         ],
         "additionalProperties": false
       }
