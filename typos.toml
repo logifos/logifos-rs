@@ -7,3 +7,5 @@ plurimath = "plurimath"
 Fontisan = "Fontisan"
 claricle = "claricle"
 svgpng = "svgpng"
+# OpenType glyph-location table tag.
+loca = "loca"

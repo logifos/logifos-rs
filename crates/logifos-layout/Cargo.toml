@@ -7,3 +7,7 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[dependencies]
+fontisan = { git = "https://github.com/fontist/fontisan-rs", rev = "291dfc35a290a3153bd08f366115feaf8ebeada8" }
+sha2 = "0.10"

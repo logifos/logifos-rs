@@ -10,6 +10,7 @@
 //! performed here. Equal inputs produce equal geometry without hidden state.
 
 pub mod boxes;
+pub mod font;
 pub mod geometry;
 
 pub use boxes::{BoxKind, BoxTree, Kern, PositionedBox, StackItem};
