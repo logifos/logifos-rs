@@ -81,9 +81,20 @@ syntax models ──transform──▶ Formula ──layout──▶ box tree �
 | Deterministic SVG emitter (byte-stable ordering, no timestamps).
 
 | logifos-facade
-| JSON request facade (`op: "parse" | "transform" | "render"`), versioned
-C ABI, WASM entry.
+| JSON request facade (`op: "parse" | "transform" | "render"`); owns
+request behavior and errors. WASM entry is planned here.
+
+| logifos-ffi
+| Unpublished C-ABI `cdylib` producer depending on the facade. Owns native
+exports, the C header, allocation/free contract, and native build recipes;
+contains no rendering behavior.
 |===
+
+The current scaffold exports only `logifos_request_json` and
+`logifos_string_free`. Rendering is not implemented: a render request returns
+the facade's explicit error. The full native export set will also live in
+`logifos-ffi`, rather than `logifos-facade`. See
+`crates/logifos-ffi/README.md` for ownership and the C smoke check.
 
 == Runtimes (per-language repos, parsanol pattern)
 

@@ -21,6 +21,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "logifos-ffi"
+version = "0.1.0"
+dependencies = [
+ "logifos-facade",
+]
+
+[[package]]
 name = "logifos-json"
 version = "0.1.0"
 dependencies = [

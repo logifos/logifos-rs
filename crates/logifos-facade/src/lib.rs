@@ -20,6 +20,7 @@ fn handle(bytes: &[u8]) -> Result<Value, String> {
         .and_then(Value::as_str)
         .ok_or("request.op must be a string")?;
     match op {
+        "render" => Err("renderer is not implemented".into()),
         "parse" => Err(format!(
             "format {:?} has no parser yet (lands in P1)",
             request.get("format").and_then(Value::as_str).unwrap_or("?")
@@ -43,5 +44,12 @@ mod tests {
     fn refuses_missing_formats_typed() {
         let reply = request_json(br#"{"op":"parse"}"#);
         assert_eq!(reply["ok"], false);
+    }
+
+    #[test]
+    fn reports_unimplemented_renderer() {
+        let reply = request_json(br#"{"op":"render"}"#);
+        assert_eq!(reply["ok"], false);
+        assert_eq!(reply["error"], "renderer is not implemented");
     }
 }
