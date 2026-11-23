@@ -1,0 +1,2 @@
+# Snapshot assertions compare exact LF bytes on every platform.
+/crates/logifos-layout/tests/snapshots/*.txt text eol=lf
