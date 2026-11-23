@@ -176,9 +176,6 @@ Run `python3 contracts/test_contract.py` for named fresh envelope/refusal and
 metric-unit checks, or `python3 contracts/check.py contracts/cases/parse.json`.
 No test invokes an engine, imports a renderer fixture or supplies a successful
 render baseline. The existing bootstrap API is deliberately not rewritten here.
-`contracts/provenance.json` records authorship for this card's paths. The shared
-card-05 provenance checker is run from a separately pinned checker worktree
-against explicit base/head commits; it is not copied into this card.
 
 Direct specification sources read for this contract:
 
