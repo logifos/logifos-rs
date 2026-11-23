@@ -7,3 +7,9 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[dependencies]
+logifos-layout = { path = "../logifos-layout" }
+
+[dev-dependencies]
+xmlparser = "=0.13.6"
