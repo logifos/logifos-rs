@@ -10,9 +10,9 @@ unsound = "all"
 ignore = []
 
 [licenses]
-# Every dependency in the resolved bootstrap graph offers MIT terms. Additional
-# license obligations need a deliberate review when new dependencies are added.
-allow = ["MIT"]
+# Fontisan uses BSD-3-Clause; its pure Rust dependencies also offer the
+# Unicode and Zlib terms listed here.
+allow = ["MIT", "BSD-3-Clause", "Unicode-3.0", "Zlib"]
 confidence-threshold = 0.95
 
 [licenses.private]
@@ -28,4 +28,4 @@ allow-wildcard-paths = true
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-allow-git = []
+allow-git = ["https://github.com/fontist/fontisan-rs"]

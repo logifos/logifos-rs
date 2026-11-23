@@ -1,5 +1,7 @@
 //! Formula to box tree
 
+pub mod font;
+
 /// The logifos-layout boundary type.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BoxTree {
