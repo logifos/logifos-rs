@@ -8,6 +8,7 @@ members = [
     "crates/logifos-svg",
     "crates/logifos-facade",
     "crates/logifos-ffi",
+    "crates/logifos-wasm",
 ]
 
 [workspace.package]
@@ -19,7 +20,7 @@ license = "MIT"
 repository = "https://github.com/logifos/logifos-rs"
 
 [workspace.dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = "1.0"
 serde_json = "1.0"
 
 [profile.release]

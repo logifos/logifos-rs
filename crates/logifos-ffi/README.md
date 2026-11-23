@@ -45,11 +45,13 @@ Its capabilities report empty implemented operations and outputs and null
 external contract pins. Parse, transform and render refuse; no SVG, metrics or
 successful render placeholder is generated. The facade validates versions,
 closed envelopes, basic options and per-call byte/depth/source ceilings. Font
-resource validation and external payload qualification remain unimplemented:
-nonempty resources receive `NOT_IMPLEMENTED`, including on negotiation. Valid
-core PNG requests receive `UNSUPPORTED_OUTPUT`. These checks qualify transport
-and refusals, not full font/model validation or rendering. An impossibly small
-response limit receives a bounded `RESOURCE_LIMIT` diagnostic, whose envelope
+byte identity checks validate canonical base64, SHA-256, resource IDs and
+fallback order in the shared facade, including on negotiation. Font-file validity
+and external payload qualification remain unimplemented. SVG requests refuse
+with `MISSING_FONT` or `UNPINNED_CONTRACT`; valid core PNG requests receive
+`UNSUPPORTED_OUTPUT`. Native and WASM use the same negotiated limits and JSON
+boundary. These checks qualify transport and refusals, not font/model validation
+or rendering. An impossibly small response limit receives a bounded `RESOURCE_LIMIT` diagnostic, whose envelope
 may itself exceed that requested limit.
 
 The existing `logifos_request_json` and `logifos_string_free` remain as legacy
