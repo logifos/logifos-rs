@@ -13,4 +13,4 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 logifos-facade = { path = "../logifos-facade" }
-wasm-bindgen = "=0.2.105"
+wasm-bindgen = "=0.2.130"
