@@ -33,6 +33,25 @@ pub fn decode_checked(
     if bytes.len() > max_bytes {
         return Err(fail("RESOURCE_LIMIT", "request byte limit exceeded"));
     }
+    check_depth(bytes, max_depth)?;
+    std::str::from_utf8(bytes).map_err(|_| fail("INVALID_UTF8", "request is not UTF-8"))?;
+    let mut decoder = serde_json::Deserializer::from_slice(bytes);
+    let value = StrictValue::deserialize(&mut decoder).map_err(|_| {
+        if unpaired_surrogate(bytes) {
+            fail("INVALID_UTF8", "unpaired Unicode surrogate")
+        } else {
+            fail("INVALID_JSON", "invalid JSON or duplicate object key")
+        }
+    })?;
+    decoder
+        .end()
+        .map_err(|_| fail("INVALID_JSON", "trailing bytes after JSON"))?;
+    Ok(value.0)
+}
+
+/// Checks container depth before recursive decoding, ignoring string delimiters.
+pub fn check_depth(bytes: &[u8], max_depth: usize) -> Result<(), DecodeError> {
+    let fail = |code, message| DecodeError { code, message };
     // Scan before recursive deserialization, ignoring delimiters in strings.
     let (mut depth, mut quoted, mut escaped) = (0usize, false, false);
     for &byte in bytes {
@@ -58,19 +77,7 @@ pub fn decode_checked(
             }
         }
     }
-    std::str::from_utf8(bytes).map_err(|_| fail("INVALID_UTF8", "request is not UTF-8"))?;
-    let mut decoder = serde_json::Deserializer::from_slice(bytes);
-    let value = StrictValue::deserialize(&mut decoder).map_err(|_| {
-        if unpaired_surrogate(bytes) {
-            fail("INVALID_UTF8", "unpaired Unicode surrogate")
-        } else {
-            fail("INVALID_JSON", "invalid JSON or duplicate object key")
-        }
-    })?;
-    decoder
-        .end()
-        .map_err(|_| fail("INVALID_JSON", "trailing bytes after JSON"))?;
-    Ok(value.0)
+    Ok(())
 }
 
 fn unpaired_surrogate(bytes: &[u8]) -> bool {

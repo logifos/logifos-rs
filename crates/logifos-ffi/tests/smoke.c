@@ -74,10 +74,10 @@ int main(void) {
     for (int i = 0; i < 1000; ++i) {
         CHECK(expect((const uint8_t *)render, strlen(render), "\"ok\":false") == 0);
     }
-    CHECK(expect((const uint8_t *)render, strlen(render), "NOT_IMPLEMENTED") == 0);
+    CHECK(expect((const uint8_t *)render, strlen(render), "MISSING_FONT") == 0);
 
     char *legacy = logifos_request_json((const uint8_t *)render, strlen(render));
-    CHECK(legacy != NULL && strstr(legacy, "NOT_IMPLEMENTED") != NULL);
+    CHECK(legacy != NULL && strstr(legacy, "MISSING_FONT") != NULL);
     logifos_string_free(legacy);
     CHECK(logifos_request_json(NULL, 0) == NULL);
     CHECK(logifos_request_json(input, SIZE_MAX) == NULL);
