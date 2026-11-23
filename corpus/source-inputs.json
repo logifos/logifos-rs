@@ -26,7 +26,7 @@
     ],
     "tracked_input": {
       "path": "corpus/source-metadata.json",
-      "sha256": "675ae8f68462568fb1f90c8233d3145fffc47767915ef5e1fb4f03c714de3245"
+      "sha256": "d70c97d7981b9edaa0896504121b65e52702cd35a27317736333649f9538814a"
     },
     "directory_receipt_sha256": "f39446d63372e9f61b47e705e7eb592760b5249b2f901488a69181ad690d9ad6"
   },
@@ -2673,6 +2673,6 @@
   "gaps": [
     "Seed metadata identifies original Plurimath spec paths/lines, but original input revisions, individual input hashes and licenses have not been verified.",
     "Seed metadata has 260 ids in 11 groups; the README additionally lists 27 partial-render inputs absent from the seed inventory. Generation 3 lists 27 payloads, including model-roundtrip, rejection and partial-render-r2 cases; mapping all stage input ids to eligible original source bytes is incomplete.",
-    "No upstream fixture inputs, expected Formula trees or renderer outputs are vendored or required for replay. Original-source consumption is pending provenance clearance."
+    "No upstream fixture inputs, expected Formula trees or renderer outputs are vendored or required for replay. Original upstream sources are not consumed until their identity, bytes and license are checked."
   ]
 }

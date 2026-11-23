@@ -2665,7 +2665,7 @@
   "gaps": [
     "Seed metadata identifies original Plurimath spec paths/lines, but original input revisions, individual input hashes and licenses have not been verified.",
     "Seed metadata has 260 ids in 11 groups; the README additionally lists 27 partial-render inputs absent from the seed inventory. Generation 3 lists 27 payloads, including model-roundtrip, rejection and partial-render-r2 cases; mapping all stage input ids to eligible original source bytes is incomplete.",
-    "No upstream fixture inputs, expected Formula trees or renderer outputs are vendored or required for replay. Original-source consumption is pending provenance clearance."
+    "No upstream fixture inputs, expected Formula trees or renderer outputs are vendored or required for replay. Original upstream sources are not consumed until their identity, bytes and license are checked."
   ],
   "authorship": "Fresh factual metadata transcript: ids, reported source locations and directory names only; no fixture input or expected-output bytes copied."
 }
