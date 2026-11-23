@@ -55,7 +55,7 @@
       "license": "MIT",
       "sha256": "2cef549a0e17d9ad001f3512fe1bcb6032551837cd7af2a4a8e16777a02484d4",
       "review_signals": {
-        "attribution": "SPDX-License-Identifier: MIT is the fresh Logifos file license marker, consistent with the existing repository MIT license; no foreign attribution or imported source."
+        "attribution": "The MIT marker identifies fresh Logifos code under the existing repository license. No foreign attribution or imported source is present."
       }
     },
     "contracts/pins.json": {
@@ -94,7 +94,7 @@
       "license": "MIT",
       "sha256": "8a741def5e71add9f90f9295dd3b60b62a29dc69813642126f0ebddbd78e8030",
       "review_signals": {
-        "attribution": "SPDX-License-Identifier: MIT is the fresh Logifos file license marker, consistent with the existing repository MIT license; no foreign attribution or imported source."
+        "attribution": "The MIT marker identifies fresh Logifos code under the existing repository license. No foreign attribution or imported source is present."
       }
     },
     "docs/CONTRACT.md": {
