@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:logifos:facade:response:1",
+  "title": "Logifos v1 response envelope",
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "unit": {
+          "const": "css_px"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "depth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "baseline": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ink_bounds": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "unit",
+        "width",
+        "height",
+        "depth",
+        "baseline",
+        "ink_bounds"
+      ],
+      "additionalProperties": false
+    },
+    "contractIdentity": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "schema_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "origin",
+        "revision",
+        "schema_path",
+        "sha256"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "abi_version": {
+          "const": 1
+        },
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": [
+                "INVALID_UTF8",
+                "INVALID_JSON",
+                "INVALID_REQUEST",
+                "UNSUPPORTED_ABI",
+                "UNSUPPORTED_SCHEMA",
+                "UNKNOWN_OPTION",
+                "RESOURCE_LIMIT",
+                "INVALID_FONT",
+                "FONT_HASH_MISMATCH",
+                "MISSING_FONT",
+                "MISSING_GLYPH",
+                "UNPINNED_CONTRACT",
+                "CONTRACT_MISMATCH",
+                "INVALID_MODEL",
+                "UNSUPPORTED_SYNTAX",
+                "UNSUPPORTED_OUTPUT",
+                "NOT_IMPLEMENTED",
+                "ALLOCATION_FAILED",
+                "INTERNAL_ERROR"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "path": {
+              "type": "string"
+            },
+            "stage": {
+              "enum": [
+                "decode",
+                "contract",
+                "parse",
+                "transform",
+                "font",
+                "layout",
+                "svg",
+                "transport"
+              ]
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "path",
+            "stage"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "abi_version",
+        "ok",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "abi_version": {
+          "const": 1
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "syntax"
+                },
+                "format": {
+                  "const": "mathml"
+                },
+                "syntax_contract": {
+                  "$ref": "#/$defs/contractIdentity"
+                },
+                "value": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "kind",
+                "format",
+                "syntax_contract",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "formula"
+                },
+                "formula_contract": {
+                  "$ref": "#/$defs/contractIdentity"
+                },
+                "value": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "kind",
+                "formula_contract",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "svg"
+                },
+                "media_type": {
+                  "const": "image/svg+xml"
+                },
+                "encoding": {
+                  "const": "utf-8"
+                },
+                "svg": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "metrics": {
+                  "$ref": "#/$defs/metrics"
+                },
+                "fonts_used": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "face_index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 65535
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "sha256",
+                      "face_index"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "media_type",
+                "encoding",
+                "svg",
+                "metrics",
+                "fonts_used"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "capabilities"
+                },
+                "abi_versions": {
+                  "type": "array",
+                  "items": {
+                    "const": 1
+                  },
+                  "minItems": 1
+                },
+                "schema_versions": {
+                  "type": "array",
+                  "items": {
+                    "const": 1
+                  },
+                  "minItems": 1
+                },
+                "implemented_operations": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "parse",
+                      "transform",
+                      "render"
+                    ]
+                  }
+                },
+                "outputs": {
+                  "type": "array",
+                  "items": {
+                    "const": "svg"
+                  }
+                },
+                "formula_contract": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "origin": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "revision": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{40}$"
+                        },
+                        "schema_path": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      },
+                      "required": [
+                        "origin",
+                        "revision",
+                        "schema_path",
+                        "sha256"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "syntax_contract": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "origin": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "revision": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{40}$"
+                        },
+                        "schema_path": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      },
+                      "required": [
+                        "origin",
+                        "revision",
+                        "schema_path",
+                        "sha256"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "request_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8388608
+                    },
+                    "json_depth": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 64
+                    },
+                    "source_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1048576
+                    },
+                    "tree_nodes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100000
+                    },
+                    "tree_depth": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 128
+                    },
+                    "font_count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 16
+                    },
+                    "font_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4194304
+                    },
+                    "total_font_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4194304
+                    },
+                    "response_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8388608
+                    },
+                    "glyphs": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100000
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind",
+                "abi_versions",
+                "schema_versions",
+                "implemented_operations",
+                "outputs",
+                "formula_contract",
+                "syntax_contract",
+                "limits"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "abi_version",
+        "ok",
+        "result"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}
