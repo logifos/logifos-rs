@@ -83,10 +83,7 @@ mod tests {
         symbol.insert("fields".into(), serde_json::json!({"value": "x"}));
         let mut model = Map::new();
         model.insert("class".into(), Value::from("Math::Formula"));
-        model.insert(
-            "fields".into(),
-            serde_json::json!({"parameter1": [symbol]}),
-        );
+        model.insert("fields".into(), serde_json::json!({"parameter1": [symbol]}));
         let formula = Formula::from_wire(&model).unwrap();
         assert_eq!(
             formula,

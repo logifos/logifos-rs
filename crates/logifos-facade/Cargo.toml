@@ -3,9 +3,14 @@ publish = false
 name = "logifos-facade"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+
+# Reserved pipeline boundaries; remove each exemption when the facade calls it.
+[package.metadata.cargo-machete]
+ignored = ["logifos-layout", "logifos-model", "logifos-svg", "logifos-syntax-mathml"]
 
 [dependencies]
 logifos-json = { path = "../logifos-json" }

@@ -1,0 +1,60 @@
+name: Rust build, test and lint
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: GitHub-hosted operating system for the host target
+        type: string
+        default: ubuntu-latest
+      toolchain:
+        description: Stable channel or a tested numeric Rust version
+        type: string
+        default: stable
+      feature-profile:
+        description: One of default, no-default, or all
+        type: string
+        default: default
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      FEATURE_PROFILE: ${{ inputs.feature-profile }}
+      RUST_TOOLCHAIN: ${{ inputs.toolchain }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate reusable workflow inputs
+        run: |
+          [[ "$RUST_TOOLCHAIN" =~ ^(stable|1\.[0-9]+(\.[0-9]+)?)$ ]] || exit 1
+          case "$FEATURE_PROFILE" in
+            default|no-default|all) ;;
+            *) echo "Unsupported feature profile: $FEATURE_PROFILE" >&2; exit 1 ;;
+          esac
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.toolchain }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: build-test-${{ inputs.toolchain }}-${{ inputs.feature-profile }}
+      - name: Build, test and lint the workspace
+        run: |
+          feature_args=()
+          case "$FEATURE_PROFILE" in
+            no-default) feature_args=(--no-default-features) ;;
+            all) feature_args=(--all-features) ;;
+          esac
+          cargo build --workspace --all-targets --locked -j 2 "${feature_args[@]}"
+          cargo test --workspace --locked -j 2 "${feature_args[@]}"
+          cargo clippy --workspace --all-targets --locked -j 2 "${feature_args[@]}" -- -D warnings

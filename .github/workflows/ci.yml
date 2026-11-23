@@ -5,17 +5,53 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  setup:
+    uses: ./.github/workflows/_rust-setup.yml
+
   test:
+    needs: setup
     strategy:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-    runs-on: ${{ matrix.os }}
+        feature-profile: [ default ]
+        include:
+          - os: ubuntu-latest
+            feature-profile: no-default
+          - os: ubuntu-latest
+            feature-profile: all
+    uses: ./.github/workflows/_rust-build-test.yml
+    with:
+      runner: ${{ matrix.os }}
+      feature-profile: ${{ matrix.feature-profile }}
+
+  msrv:
+    needs: setup
+    uses: ./.github/workflows/_rust-build-test.yml
+    with:
+      toolchain: ${{ needs.setup.outputs.msrv }}
+
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
-      - run: cargo test --workspace
-      - run: cargo clippy --workspace --all-targets -- -D warnings
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.22.0,typos-cli@1.52.2
+          fallback: none
+      - name: Check licenses, advisories, dependency bans and sources
+        run: cargo deny --workspace --locked check
+      - name: Check spelling in code and CI documentation
+        run: typos --hidden .github crates Cargo.toml README.md docs/ci-phase-zero.md

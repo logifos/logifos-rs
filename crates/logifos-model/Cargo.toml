@@ -3,9 +3,14 @@ publish = false
 name = "logifos-model"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+
+# Reserved bounded-JSON boundary until model input is wired through the facade.
+[package.metadata.cargo-machete]
+ignored = ["logifos-json"]
 
 [dependencies]
 logifos-json = { path = "../logifos-json" }

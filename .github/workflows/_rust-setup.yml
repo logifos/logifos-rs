@@ -1,0 +1,64 @@
+name: Rust workspace checks
+
+on:
+  workflow_call:
+    outputs:
+      msrv:
+        description: Minimum tested Rust version declared by the workspace
+        value: ${{ jobs.workspace.outputs.msrv }}
+
+permissions:
+  contents: read
+
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      msrv: ${{ steps.manifest.outputs.msrv }}
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: workspace-checks
+      - name: Read and check the workspace MSRV
+        id: manifest
+        shell: bash
+        run: |
+          cargo metadata --locked --no-deps --format-version 1 > "$RUNNER_TEMP/workspace.json"
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          metadata = json.loads((Path(os.environ["RUNNER_TEMP"]) / "workspace.json").read_text())
+          members = set(metadata["workspace_members"])
+          versions = {package["rust_version"] for package in metadata["packages"]
+                      if package["id"] in members}
+          if len(versions) != 1:
+              raise SystemExit("all workspace members must share one rust-version")
+          msrv = versions.pop()
+          if not isinstance(msrv, str) or not re.fullmatch(r"1\.[0-9]+(?:\.[0-9]+)?", msrv):
+              raise SystemExit("every workspace member must declare a stable rust-version")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"msrv={msrv}\n")
+          PY
+      - name: Check formatting
+        run: cargo fmt --all --check
+      - name: Build documentation
+        run: cargo doc --workspace --all-features --no-deps --locked -j 2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-machete@0.10.1
+          fallback: none
+      - name: Check unused dependencies
+        run: cargo machete --with-metadata
