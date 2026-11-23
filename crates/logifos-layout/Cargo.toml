@@ -9,5 +9,6 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+logifos-model = { path = "../logifos-model", version = "0.1.0" }
 fontisan = { git = "https://github.com/fontist/fontisan-rs", rev = "291dfc35a290a3153bd08f366115feaf8ebeada8" }
 sha2 = "0.10"

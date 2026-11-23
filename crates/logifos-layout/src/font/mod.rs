@@ -1,11 +1,13 @@
 //! Caller-supplied fonts loaded by Fontisan, with checked metrics and MATH data.
 //! No filesystem access, bundled fonts, host fallback, or shared mutable cache.
 
+mod bounds;
 mod error;
 pub mod math;
 mod reader;
 mod validate;
 
+pub use bounds::{GlyphBounds, MeasuredGlyph};
 use error::Result;
 pub use error::{FontError, FontErrorKind};
 use fontisan::sfnt::{Font, Options};
@@ -55,6 +57,7 @@ pub struct FontFace {
     pub math: MathTable,
     mappings: Vec<(u32, u32)>,
     advances: Vec<GlyphMetrics>,
+    bounds: Option<Vec<Option<GlyphBounds>>>,
 }
 
 impl FontFace {
@@ -140,6 +143,7 @@ impl FontFace {
         if outlines.count() != n {
             return Err(FontError::new(FontErrorKind::InvalidFont));
         }
+        let bounds = bounds::read(&outlines)?;
         let math = MathTable::parse(required(&font, "MATH")?.bytes, maxp.num_glyphs)?;
         Ok(Self {
             identity: FontIdentity {
@@ -155,6 +159,7 @@ impl FontFace {
             math,
             mappings,
             advances,
+            bounds,
         })
     }
 
@@ -163,6 +168,7 @@ impl FontFace {
             .binary_search_by_key(&(character as u32), |&(code, _)| code)
             .ok()
             .map(|i| self.mappings[i].1 as u16)
+            .filter(|&glyph| glyph != 0)
     }
 
     pub fn glyph_metrics(&self, glyph: u16) -> Result<GlyphMetrics> {

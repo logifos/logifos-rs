@@ -12,6 +12,7 @@
 pub mod boxes;
 pub mod font;
 pub mod geometry;
+pub mod layout;
 
 pub use boxes::{BoxKind, BoxTree, Kern, PositionedBox, StackItem};
 pub use geometry::{Bounds, GeometryError, Metrics, Point};

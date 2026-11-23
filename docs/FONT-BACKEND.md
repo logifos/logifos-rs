@@ -58,3 +58,14 @@ specification values. No font binaries or renderer outputs are stored.
 - [Character mapping](https://learn.microsoft.com/en-us/typography/opentype/spec/cmap)
 - [MATH](https://learn.microsoft.com/en-us/typography/opentype/spec/math)
 - [Coverage and device formats](https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2)
+
+## Glyph measurement
+
+`glyph_bounds` exposes checked default-instance TrueType control-point bounds;
+`measure` combines them with selected-font hmtx advances and side bearings into
+CSS pixel metrics and an enclosing ink rectangle. Empty and zero-contour glyphs
+retain advance without ink or vertical extent. CFF/CFF2 bounds refuse with
+`MetricsUnavailable`; missing glyph coverage, including cmap glyph zero, refuses
+with `MissingGlyph`. These measurements do not implement drawable outlines.
+See [token and row layout](TOKEN-ROW-LAYOUT.md) for coordinates, sizing, spacing,
+limits and typed refusal behavior.

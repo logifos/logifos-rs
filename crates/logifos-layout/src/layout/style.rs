@@ -1,0 +1,57 @@
+use super::LayoutError;
+use crate::font::FontProvider;
+
+/// Uniform options for this call; Formula has no presentation fields.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LayoutOptions {
+    /// CSS pixel size at script level zero, in (0, 4096].
+    pub font_size_px: f64,
+    /// Absolute nonnegative level relative to the supplied level-zero size.
+    pub script_level: u8,
+}
+
+/// Effective size inherited unchanged by every supported child.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ResolvedStyle {
+    pub font_size_px: f64,
+    pub script_level: u8,
+}
+
+impl LayoutOptions {
+    /// MathML Core section 4.5, from depth zero to the requested depth.
+    /// OpenType MATH percentages apply at levels one and two. Each further
+    /// level uses Core's factor 0.71; level two is relative to level zero.
+    pub fn resolve(self, fonts: &mut FontProvider) -> Result<ResolvedStyle, LayoutError> {
+        if !self.font_size_px.is_finite() || self.font_size_px <= 0.0 || self.font_size_px > 4096.0
+        {
+            return Err(LayoutError::InvalidOptions);
+        }
+        let mut factor = 1.0;
+        if self.script_level > 0 {
+            let c = &fonts.primary().math.constants;
+            let first = c.script_percent_scale_down;
+            if !(1..=100).contains(&first) {
+                return Err(LayoutError::InvalidMathConstants);
+            }
+            factor = f64::from(first) / 100.0;
+            if self.script_level > 1 {
+                let second = c.script_script_percent_scale_down;
+                if !(1..=first).contains(&second) {
+                    return Err(LayoutError::InvalidMathConstants);
+                }
+                factor = f64::from(second) / 100.0;
+                for _ in 2..self.script_level {
+                    factor *= 0.71;
+                }
+            }
+        }
+        let font_size_px = self.font_size_px * factor;
+        if font_size_px <= 0.0 || !font_size_px.is_finite() {
+            return Err(LayoutError::InvalidOptions);
+        }
+        Ok(ResolvedStyle {
+            font_size_px,
+            script_level: self.script_level,
+        })
+    }
+}

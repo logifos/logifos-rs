@@ -8,6 +8,7 @@ pub enum FontErrorKind {
     MissingTable,
     MalformedTable,
     MissingGlyph,
+    MetricsUnavailable,
     HashMismatch,
     InvalidResources,
     ResourceLimit,
@@ -43,6 +44,7 @@ impl FontError {
     /// Stable wire code for a future facade integration.
     pub fn code(&self) -> &'static str {
         match self.kind {
+            FontErrorKind::MetricsUnavailable => "MISSING_METRICS",
             FontErrorKind::MissingGlyph => "MISSING_GLYPH",
             FontErrorKind::HashMismatch => "FONT_HASH_MISMATCH",
             FontErrorKind::ResourceLimit => "RESOURCE_LIMIT",
