@@ -1,0 +1,164 @@
+[
+  {
+    "id": "mathml-namespace-token",
+    "path": "cases/mathml-namespace-token.mml",
+    "sha256": "2cb3fa8946535fab5989a137266d1980d5f2fc37006418174d182551a415ceea",
+    "stage": "P1",
+    "rule": "P1.MATHML.NAMESPACE",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "syntax",
+      "status": "assertion-only",
+      "assertion": {
+        "root_namespace": "http://www.w3.org/1998/Math/MathML"
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-prefixed-token",
+    "path": "cases/mathml-prefixed-token.mml",
+    "sha256": "99e8ca8b5e3ba7d432d061b993b9de9975ef9c542ad9735eae57fd50356a66b5",
+    "stage": "P1",
+    "rule": "P1.MATHML.PREFIX",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "syntax",
+      "status": "assertion-only",
+      "assertion": {
+        "root_prefix": "n"
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-mixed-content",
+    "path": "cases/mathml-mixed-content.mml",
+    "sha256": "c3fd4ab9dc9733d526c07ec386b06cc9f93caee78b6e1da8a0f50d85c7cb52a3",
+    "stage": "P1",
+    "rule": "P1.MATHML.MIXED_CONTENT",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "syntax",
+      "status": "assertion-only",
+      "assertion": {
+        "first_child": "mtext"
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-inherited-style",
+    "path": "cases/mathml-inherited-style.mml",
+    "sha256": "b1d70d6fadaf93da56aa3bfb42b5ff160328fde6a806d227a14cce9f589bd701",
+    "stage": "P1",
+    "rule": "P1.MATHML.INHERITED_PRESENTATION",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "syntax",
+      "status": "assertion-only",
+      "assertion": {
+        "first_attribute": "mathcolor"
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-malformed-close",
+    "path": "cases/mathml-malformed-close.mml",
+    "sha256": "4cb9a69bbcdd68066a2249ad056210e983122b8aadead55fa80756e7c91c11c0",
+    "stage": "P1",
+    "rule": "P1.MATHML.WELL_FORMED",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "refusal",
+      "status": "assertion-only",
+      "assertion": {
+        "error_kind": "MalformedXml"
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-dtd-refusal",
+    "path": "cases/mathml-dtd-refusal.mml",
+    "sha256": "6b903f03511742a43cb41967f82129bcb1c0e6d6e1ecaf2f1608c81e2d26d4c0",
+    "stage": "P1",
+    "rule": "P1.MATHML.NO_DTD",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "refusal",
+      "status": "assertion-only",
+      "assertion": {
+        "error_kind": "UnsafeXml"
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-depth-limit",
+    "path": "cases/mathml-depth-limit.mml",
+    "sha256": "c707b886137a3a55160e1e5ca18b48e60df415b31ae7f393b300c10d9fa71928",
+    "stage": "P1",
+    "rule": "P1.MATHML.DEPTH_BOUND",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "refusal",
+      "status": "assertion-only",
+      "assertion": {
+        "error_kind": "ResourceLimit",
+        "tree_depth": 2
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  },
+  {
+    "id": "mathml-byte-limit",
+    "path": "cases/mathml-byte-limit.mml",
+    "sha256": "e24b36aa1574c516628fd51cd2c9fed22c17164fc3832d21777456265db8a0d5",
+    "stage": "P1",
+    "rule": "P1.MATHML.BYTE_BOUND",
+    "input_kind": "mathml",
+    "expected": {
+      "kind": "refusal",
+      "status": "assertion-only",
+      "assertion": {
+        "error_kind": "ResourceLimit",
+        "source_bytes": 13
+      },
+      "output": null
+    },
+    "formula_revision": null,
+    "font_sha256": null,
+    "origin": "synthetic",
+    "references": []
+  }
+]
