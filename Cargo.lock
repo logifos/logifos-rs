@@ -55,6 +55,7 @@ name = "logifos-syntax-mathml"
 version = "0.1.0"
 dependencies = [
  "logifos-json",
+ "logifos-model",
  "xmlparser",
 ]
 

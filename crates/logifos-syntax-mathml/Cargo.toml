@@ -9,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+logifos-model = { path = "../logifos-model" }
 xmlparser = "=0.13.6"
 
 [dev-dependencies]
