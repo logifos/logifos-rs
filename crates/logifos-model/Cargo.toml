@@ -1,0 +1,11 @@
+[package]
+name = "logifos-model"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+logifos-json = { path = "../logifos-json" }
+serde_json = { workspace = true }

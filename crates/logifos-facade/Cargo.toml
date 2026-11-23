@@ -1,0 +1,15 @@
+[package]
+name = "logifos-facade"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+logifos-json = { path = "../logifos-json" }
+logifos-model = { path = "../logifos-model" }
+logifos-syntax-mathml = { path = "../logifos-syntax-mathml" }
+logifos-layout = { path = "../logifos-layout" }
+logifos-svg = { path = "../logifos-svg" }
+serde_json = { workspace = true }

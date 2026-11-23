@@ -1,0 +1,149 @@
+= logifos-rs — the math formula renderer
+
+== What logifos is
+
+logifos-rs is a Rust-native math formula renderer with three runtimes —
+Ruby, TypeScript (WASM), and Python — following the operational pattern of
+the parsanol family (one core, per-language runtime repos, shared corpora,
+lockstep release trains).
+
+Clean-room statement: logifos has no direct relation or code relation with
+Lasem at all. GNOME Lasem is retired as our rendering path. JEuclid, Lasem,
+WebKit MathML rendering, MathJAX, and KaTeX are study references only —
+their architecture lessons inform the design; no code is taken from any of
+them.
+
+== The architecture (model-driven, OOP, OCP)
+
+The central model is the Plurimath Formula model — plurimath-rs's common
+model (`{class: "Math::*", fields}`, mirroring the Ruby
+`Plurimath::Math::Formula` hierarchy). Logifos mirrors it as a typed Rust
+tree and converts at one boundary.
+
+[verse]
+--
+syntax models ──transform──▶ Formula ──layout──▶ box tree ──emit──▶ SVG ──▶ PNG
+   ▲                              │                  │
+   └────────────write─────────────┘       fonts via Fontisan
+--
+
+* Formula is the model. Every syntax parses into its own syntax model and
+  transforms into Formula; every syntax writer transforms Formula back into
+  its syntax model and serializes. Adding a syntax never touches the layout
+  or rendering core (OCP).
+* The layout stage is Formula → box tree (hbox/vbox, kerns, rules, scripts,
+  fractions, radicals, stretchy delimiters, operator spacing, tables), the
+  MathJax-internal / KaTeX-box / WebKit-RenderMathML discipline.
+* Rendering is box tree → SVG. PNG is out of scope for the core: SVG bytes
+  go to claricle/svgpng (`Svgpng.render(svg_bytes, profile:, fonts:,
+  fallback_fonts:)`).
+* Fonts are never hard-wired: glyph outlines, metrics and the OpenType MATH
+  table are read through Fontisan's Rust library, with multi-font and
+  fallback support. Different math fonts are a first-class configuration,
+  not a bundled constant.
+
+== Study references (architecture lessons only)
+
+* MathJax — MathML → internal transform completeness (implied rows,
+  mfenced inheritance), generic node factory, SVG output quality.
+* WebKit MathML — per-construct layout classes, OpenType MATH table usage
+  (axis height, radical parameters, script shifts).
+* KaTeX — box-model discipline, TeXbook spacing/algorithm clarity.
+* JEuclid — MathML attribute inheritance model (mathcolor/mathsize/
+  mathvariant cascading).
+* Lasem — the incumbent's feature envelope only (what consumers needed).
+
+== Workspace (crates)
+
+[cols="1,2"]
+|===
+| Crate | Purpose
+
+| logifos-model
+| Typed Formula tree + the plurimath wire-model conversion (one boundary).
+
+| logifos-json
+| Bounded JSON decoding for the facade (the plurimath-rs pattern).
+
+| logifos-syntax-mathml
+| MathML DOM + transformer to Formula + writer from Formula.
+
+| logifos-syntax-latex
+| LaTeX math AST + transformer + writer (follows mathml).
+
+| logifos-syntax-asciimath
+| AsciiMath syntax crate (last).
+
+| logifos-layout
+| Formula → box tree; Fontisan-backed metrics and MATH-table constants.
+
+| logifos-svg
+| Deterministic SVG emitter (byte-stable ordering, no timestamps).
+
+| logifos-facade
+| JSON request facade (`op: "parse" | "transform" | "render"`), versioned
+C ABI, WASM entry.
+|===
+
+== Runtimes (per-language repos, parsanol pattern)
+
+* logifos-ruby — ships as the gem `logifos`. Font inputs ride Fontisan's
+  Ruby side; PNG rides svgpng.
+* logifos-ts — WASM runtime (wasm-bindgen through the facade); lands with
+  the plurimath#539 pure-TS surface.
+* logifos-python — third runtime, same wire schemas.
+
+== Conformance and operations (family discipline from day one)
+
+* Corpora: plurimath-testsuite's mathml stage, the vendored W3C MathML
+  suites, the standard's examples.
+* Golden-render baselines: SVG structural diffs (canon comparison) against
+  MathJax and JEuclid renders of the same corpus; raster comparison via
+  svgpng as the second gate.
+* Fuzz, benches, perf-gate, MIGRATION.md, lockstep release trains.
+
+== Phases
+
+[cols="1,2,2"]
+|===
+| Phase | Deliverable | Exit gate
+
+| P0
+| Workspace bootstrap, CI, repos
+| cargo test + CI green
+
+| P1
+| logifos-syntax-mathml: parse → Formula → write
+| mathml-stage corpus parity
+
+| P2
+| logifos-layout: box tree + Fontisan metrics + MATH table
+| box-tree snapshots over the corpus
+
+| P3
+| logifos-svg + golden SOTA vs MathJax/JEuclid
+| structural diff pass; visual review set
+
+| P4
+| logifos-ruby (gem `logifos`) + svgpng PNG
+| plurimath renders through it end to end
+
+| P5
+| logifos-ts (WASM) + logifos-python
+| WASM corpus replay (with plurimath#539)
+
+| P6
+| SOTA scoreboard, perf-gate, release trains
+| family ops steady-state
+|===
+
+== Decisions (recorded)
+
+* Fonts: multi-font, first-class; metrics/glyphs through Fontisan (its Rust
+  library in the core, its Ruby side in the Ruby runtime). No bundled
+  font constant.
+* Runtimes: Ruby and TypeScript-WASM land together after P1–P3; Python
+  follows.
+* Naming and lineage: we ship `logifos`. No Lasem relation, no Lasem code,
+  no Lasem API compatibility. Lasem is retired when logifos-ruby passes the
+  same corpus Lasem served.
