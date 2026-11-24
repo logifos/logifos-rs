@@ -76,23 +76,25 @@ the painter's invariant "no contours, no ink" is enforced upstream. CFF/CFF2
 faces carry no decoded points yet and are a typed gap (`OutlinesUnavailable`),
 not a silent blank.
 
-**Style.** `LayoutOptions { font_size_px, script_level }` resolves through
-the MathML Core §4.5 script-level schedule and the OpenType MATH
-percentages into `ResolvedStyle`.
+**Style.** `LayoutOptions { font_size_px, script_level, display }` resolves
+through the MathML Core §4.5 script-level schedule and the OpenType MATH
+percentages into `ResolvedStyle`, which scripted children raise one level
+with compact displaystyle (§3.4.4) and a cramped math-shift flag.
 
 **Current.** Sequences, tokens (mi/mn/mo glyph placement with italics
 correction), operator spacing (a validated operator set with MathML
-spacing classes B/C/D) and fractions lay out. Fractions follow MathML
-Core §4.2: axis-aligned rule at the MATH `FractionRuleThickness`,
+spacing classes B/C/D), fractions and scripts lay out. Fractions follow
+MathML Core §4.2: axis-aligned rule at the MATH `FractionRuleThickness`,
 children centered, shifts grown to keep the minimum gaps, with the
-display variants selected by `LayoutOptions::display`. Sub/superscripts
-and radicals refuse typed (`LayoutError::UnsupportedConstruct`) — the
-next layout work, driven by the MATH table constants already parsed.
+display variants selected by `LayoutOptions::display`. Scripts follow
+§3.4.1: the script child builds one level up and compact, the shift is
+the MATH-constant max over the ink clamps, the base's italic correction
+kerns before the script, `SpaceAfterScript` trails it, and the script
+re-baselines through a padded vbox wrapper. Radicals refuse typed.
 
-**Target.** Scripts (shift computation from MATH constants), radicals
-(closure construction and assembly stretching), tables (row/column
-alignment), stretchy delimiters (glyph assembly with min connector
-overlap — the `StretchShape` machinery is already typed).
+**Target.** Radicals (closure construction and assembly stretching),
+tables (row/column alignment), stretchy delimiters (glyph assembly with
+min connector overlap — the `StretchShape` machinery is already typed).
 
 ## 5. The painter — `logifos-svg`
 

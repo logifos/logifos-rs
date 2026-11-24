@@ -2,7 +2,7 @@
 mod support;
 
 use logifos_layout::font::{FontErrorKind, FontFace, FontProvider, FontResource};
-use logifos_layout::layout::{layout, Construct, Layout, LayoutError, LayoutOptions};
+use logifos_layout::layout::{layout, Layout, LayoutError, LayoutOptions};
 use logifos_layout::{BoxTree, Point};
 use logifos_model::Formula;
 use support::{digest, put16, put32, words, FontBuilder};
@@ -361,23 +361,169 @@ fn multicharacter_tokens_use_ordered_advances_and_last_italic_correction() {
 }
 
 #[test]
-fn unsupported_constructs_refuse_even_inside_rows() {
-    for (node, kind) in [
-        (
-            Formula::Superscript(Box::new(symbol("x")), Box::new(symbol("y"))),
-            Construct::Superscript,
-        ),
-        (
-            Formula::Subscript(Box::new(symbol("x")), Box::new(symbol("y"))),
-            Construct::Subscript,
-        ),
-    ] {
-        for formula in [node.clone(), sequence(vec![symbol("x"), node])] {
-            let error = layout(&formula, &mut provider(&font()), options(0)).unwrap_err();
-            assert_eq!(error, LayoutError::UnsupportedConstruct(kind));
-            assert_eq!(error.code(), "NOT_IMPLEMENTED");
-        }
+fn superscript_lays_out_the_script_above_the_base_per_the_shift_rules() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    // SuperShift = max(ShiftUp, BottomMin + script ink descent,
+    //                  base ink ascent - BaselineDropMax): the drop dominates.
+    let shift = (10.8 - unit(MathConstant::SuperscriptBaselineDropMax))
+        .max(unit(MathConstant::SuperscriptBottomMin) + 4.32)
+        .max(unit(MathConstant::SuperscriptShiftUp));
+    close(shift, 8.82);
+    let width = 9.0 + 0.45 + 10.08 + unit(MathConstant::SpaceAfterScript);
+    let formula = Formula::Superscript(Box::new(symbol("x")), Box::new(symbol("y")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    // Base 'x': 9.0 wide with ink ascent 10.8 and 0.45 italic correction.
+    // Script 'y' builds at level one (80%): 10.08 wide, 11.52 tall, 4.32 deep.
+    let metrics = result.tree.metrics();
+    // finish() appends the construct's carried correction once more, as the
+    // row's trailing italic advance for whatever follows.
+    close(metrics.width(), width + 0.45);
+    close(metrics.baseline(), 11.52 + shift);
+    close(metrics.depth(), 1.8);
+    assert_eq!(result.glyphs.len(), 2);
+    close(result.glyphs[0].font_size_px, 18.0);
+    close(result.glyphs[1].font_size_px, 14.4);
+    // The base stays on the row baseline; the script's baseline rises by
+    // exactly the shift, and the correction kern separates them.
+    close(result.glyphs[0].origin.x(), 0.0);
+    close(result.glyphs[0].origin.y(), metrics.baseline());
+    close(result.glyphs[1].origin.x(), 9.0 + 0.45);
+    close(result.glyphs[1].origin.y(), metrics.baseline() - shift);
+    // The script wrapper's raised baseline carries the shift; its trailing
+    // pad keeps the wrapper's extent below its own baseline.
+    let row = result.tree.children()[0].node();
+    let wrapper = row.children()[1].node();
+    assert_eq!(wrapper.kind(), logifos_layout::BoxKind::VBox);
+    close(wrapper.metrics().baseline(), 11.52 + shift);
+    assert_eq!(
+        snapshot(&result),
+        include_str!("snapshots/superscript-row.txt")
+    );
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn subscript_lays_out_the_script_below_the_base_per_the_shift_rules() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    // SubShift = max(ShiftDown, script ink ascent - TopMax,
+    //                BaselineDropMin + base ink descent): the ascent clamp wins.
+    let shift = unit(MathConstant::SubscriptShiftDown)
+        .max(11.52 - unit(MathConstant::SubscriptTopMax))
+        .max(unit(MathConstant::SubscriptBaselineDropMin) + 1.8);
+    close(shift, 9.63);
+    let width = 9.0 + 10.08 + unit(MathConstant::SpaceAfterScript);
+    let formula = Formula::Subscript(Box::new(symbol("x")), Box::new(symbol("y")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    // Script 'y' builds at level one (80%): 10.08 wide, 11.52 tall, 4.32 deep.
+    let metrics = result.tree.metrics();
+    close(metrics.width(), width);
+    close(metrics.baseline(), 10.8);
+    close(metrics.depth(), shift + 4.32);
+    // No correction kern for subscripts: the script follows the base box.
+    close(result.glyphs[1].origin.x(), 9.0);
+    close(result.glyphs[1].origin.y(), metrics.baseline() + shift);
+    // The wrapper's lowered baseline leaves the base's height as the row's.
+    let row = result.tree.children()[0].node();
+    let wrapper = row.children()[1].node();
+    assert_eq!(wrapper.kind(), logifos_layout::BoxKind::VBox);
+    close(wrapper.metrics().baseline(), 11.52 - shift);
+    assert_eq!(
+        snapshot(&result),
+        include_str!("snapshots/subscript-row.txt")
+    );
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn script_children_raise_one_level_and_keep_compact_display() {
+    let fraction = || Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
+    let mut fonts = provider(&font());
+    let direct = layout(&fraction(), &mut fonts, options(1)).unwrap();
+    let inside = layout(
+        &Formula::Superscript(Box::new(symbol("x")), Box::new(fraction())),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    // The scripted fraction is one level deeper than its base, at the same
+    // size the direct level-one call resolves to.
+    close(inside.glyphs[0].font_size_px, 18.0);
+    for glyph in &inside.glyphs[1..] {
+        close(glyph.font_size_px, direct.style.font_size_px);
     }
+    // Compact displaystyle: the in-script fraction must equal the direct
+    // level-one fraction (which options(1) lays out compact) byte for byte.
+    let wrapper = inside.tree.children()[0].node().children()[1].node();
+    assert_eq!(
+        wrapper.children()[0].node(),
+        direct.tree.children()[0].node()
+    );
+}
+
+#[test]
+fn nested_scripts_use_the_cramped_superscript_constant() {
+    use logifos_layout::font::math::MathConstant;
+
+    // A low base and a high-floating script leave the plain shift constant
+    // in charge, so cramped versus relaxed is the only change in the max().
+    let mut b = builder(&[('x', 1), ('z', 3)]);
+    put16(b.tables.get_mut(b"glyf").unwrap(), 8, 200); // 'x' ink top: 200 units
+    let bytes = b.finish();
+    let mut fonts = provider(&bytes);
+    let value = |fonts: &mut FontProvider, constant: MathConstant, size: f64| -> f64 {
+        f64::from(fonts.primary().math.constants.value(constant)) * size / 1000.0
+    };
+    // Relaxed top level: SuperscriptShiftUp wins the max() at 18px, and the
+    // 'z' script is 7.2 tall at 14.4px.
+    let relaxed = layout(
+        &Formula::Superscript(Box::new(symbol("x")), Box::new(symbol("z"))),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    close(
+        relaxed.tree.metrics().baseline(),
+        7.2 + value(&mut fonts, MathConstant::SuperscriptShiftUp, 18.0),
+    );
+    // Inside a subscript the same construct is cramped and one level up:
+    // the inner wrapper's raised baseline carries SuperscriptShiftUpCramped
+    // at 14.4px over the 5.4-tall 'z' at 10.8px.
+    let nested = layout(
+        &Formula::Subscript(
+            Box::new(symbol("x")),
+            Box::new(Formula::Superscript(
+                Box::new(symbol("x")),
+                Box::new(symbol("z")),
+            )),
+        ),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    for (glyph, size) in nested.glyphs.iter().zip([18.0, 14.4, 10.8]) {
+        close(glyph.font_size_px, size);
+    }
+    let inner_wrapper = nested.tree.children()[0].node().children()[1]
+        .node()
+        .children()[0]
+        .node()
+        .children()[1]
+        .node();
+    close(
+        inner_wrapper.metrics().baseline(),
+        5.4 + value(&mut fonts, MathConstant::SuperscriptShiftUpCramped, 14.4),
+    );
+    close(inner_wrapper.metrics().baseline(), 6.9552);
 }
 
 #[test]
