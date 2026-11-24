@@ -2,6 +2,7 @@
 //! Refusals are observations, not successful coverage or golden parity.
 
 mod pipeline;
+mod reference;
 
 use logifos_layout::font::FontProvider;
 use pipeline::{Observation, Outcome};
@@ -172,4 +173,10 @@ pub fn report_json(report: &Value) -> String {
         "{}\n",
         serde_json::to_string_pretty(report).expect("JSON value serializes")
     )
+}
+
+/// Replays every fetched reference corpus (see the `reference` module) and
+/// returns the aggregate scoreboard.
+pub fn replay_reference(reference: &Path) -> Result<Value, String> {
+    reference::replay_reference(reference)
 }

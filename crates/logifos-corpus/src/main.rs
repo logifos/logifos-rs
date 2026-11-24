@@ -6,9 +6,15 @@ const DEFAULT_MANIFEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../corpus/conformance/manifest.json"
 );
-const USAGE: &str = "Usage: logifos-corpus [manifest.json] [--font font.ttf --sha256 SHA256]\nReports observations as JSON. Exit 0: no failures (refusals allowed); 1: case failures; 2: configuration/manifest error.";
+const REFERENCE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../corpus/reference");
+const USAGE: &str = "Usage: logifos-corpus [manifest.json] [--font font.ttf --sha256 SHA256] | --reference\nGrades a manifest (or every fetched reference corpus with --reference) and reports observations as JSON. Exit 0: no failures (refusals allowed); 1: case failures; 2: configuration/manifest error.";
 
 fn run(args: &[String]) -> Result<bool, String> {
+    if args == ["--reference"] {
+        let report = logifos_corpus::replay_reference(Path::new(REFERENCE_DIR))?;
+        print!("{}", logifos_corpus::report_json(&report));
+        return Ok(report["totals"]["failure"] == 0);
+    }
     let (manifest, font) = match args {
         [] => (DEFAULT_MANIFEST, None),
         [manifest] => (manifest.as_str(), None),
