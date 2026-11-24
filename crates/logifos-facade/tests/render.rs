@@ -132,6 +132,36 @@ fn render_lays_out_a_sqrt_through_the_wire() {
 }
 
 #[test]
+fn render_lays_out_a_table_through_the_wire() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><mtable><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    assert_eq!(svg.matches("<path").count(), 1, "one glyph path: {svg}");
+    // The 1x1 table centers its cell on the math axis (6px at 24px); with
+    // the 0.4em/0.5ex padding over the ex fallback (12px), the glyph's
+    // baseline lands 22.8px down and 9.6px right.
+    let glyphs_start = svg.find("<g id=\"glyphs\">").expect("glyph layer");
+    let layer = &svg[glyphs_start..];
+    assert_eq!(
+        layer,
+        concat!(
+            "<g id=\"glyphs\"><path d=\"M9.600000000000001 27.6 L21.6 6 L9.600000000000001 27.6 Z\"/>",
+            "</g></g></svg>",
+        ),
+        "glyph layer bytes: {svg}"
+    );
+}
+
+#[test]
 fn render_lays_out_a_subscript_through_the_wire() {
     let request = json!({
         "abi_version": 1, "schema_version": 1,

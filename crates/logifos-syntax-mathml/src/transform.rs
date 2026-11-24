@@ -80,12 +80,14 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// back to a row outside its two-child arity. `munder` and `mover` preserve
 /// base then script; `munderover` preserves base, underscript then overscript.
 /// Under/over elements outside their two- or three-child arity become rows.
+/// `mtable` holds `mtr` rows of `mtd` cells (each an anonymous row); loose
+/// rows or cells refuse.
 ///
 /// Only XML whitespace between operands is insignificant. Namespace declarations
 /// identify names and carry no Formula presentation data. Every non-namespace
 /// attribute, comment, other element, nested token markup and non-whitespace text
 /// outside tokens refuses the entire conversion. No partial tree is returned.
-/// Fences, tables, combined sub/sup scripts, style,
+/// Fences, combined sub/sup scripts, style,
 /// spacing, enclosure, semantics and annotations therefore remain unsupported.
 /// Names in either the MathML namespace or no namespace are accepted.
 ///
@@ -137,6 +139,36 @@ impl Transformer {
         Ok(())
     }
 
+    /// Collects element operands with insignificant whitespace between them,
+    /// the shared rule for row-like elements.
+    fn row_like(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Vec<Formula>, TransformError> {
+        let mut children = Vec::new();
+        for (index, node) in element.children.iter().enumerate() {
+            let path = format!("{location}/children/{index}");
+            match node {
+                Node::Element(child) => {
+                    children.push(self.element(child, &path, depth + 1)?);
+                }
+                Node::Text(text) if text.chars().all(xml_whitespace) => {
+                    self.visit(element, &path, depth + 1)?;
+                }
+                Node::Text(_) | Node::Comment(_) => {
+                    return Err(refusal(
+                        TransformErrorKind::UnsupportedContent,
+                        element,
+                        &path,
+                    ));
+                }
+            }
+        }
+        Ok(children)
+    }
+
     fn element(
         &mut self,
         element: &Element,
@@ -172,25 +204,7 @@ impl Transformer {
             )),
             "math" | "mrow" | "mfrac" | "msub" | "msup" | "msqrt" | "mroot" | "munder"
             | "mover" | "munderover" => {
-                let mut children = Vec::new();
-                for (index, node) in element.children.iter().enumerate() {
-                    let path = format!("{location}/children/{index}");
-                    match node {
-                        Node::Element(child) => {
-                            children.push(self.element(child, &path, depth + 1)?);
-                        }
-                        Node::Text(text) if text.chars().all(xml_whitespace) => {
-                            self.visit(element, &path, depth + 1)?;
-                        }
-                        Node::Text(_) | Node::Comment(_) => {
-                            return Err(refusal(
-                                TransformErrorKind::UnsupportedContent,
-                                element,
-                                &path,
-                            ));
-                        }
-                    }
-                }
+                let children = self.row_like(element, location, depth)?;
                 match element.name.local.as_str() {
                     "math" | "mrow" => Ok(Formula::Sequence(children)),
                     "munder" | "mover" | "munderover" => {
@@ -238,6 +252,71 @@ impl Transformer {
                         })
                     }
                 }
+            }
+            "mtable" => {
+                let mut rows = Vec::new();
+                for (row_index, node) in element.children.iter().enumerate() {
+                    let row_path = format!("{location}/children/{row_index}");
+                    match node {
+                        Node::Element(row) if row.name.local.as_str() == "mtr" => {
+                            let mut cells = Vec::new();
+                            for (cell_index, cell_node) in row.children.iter().enumerate() {
+                                let cell_path = format!("{row_path}/children/{cell_index}");
+                                match cell_node {
+                                    Node::Element(cell) if cell.name.local.as_str() == "mtd" => {
+                                        let children =
+                                            self.row_like(cell, &cell_path, depth + 2)?;
+                                        cells.push(Formula::Sequence(children));
+                                    }
+                                    Node::Text(text) if text.chars().all(xml_whitespace) => {
+                                        self.visit(row, &cell_path, depth + 2)?;
+                                    }
+                                    Node::Text(_) | Node::Comment(_) => {
+                                        return Err(refusal(
+                                            TransformErrorKind::UnsupportedContent,
+                                            row,
+                                            &cell_path,
+                                        ));
+                                    }
+                                    _ => {
+                                        let offending = match cell_node {
+                                            Node::Element(cell) => cell,
+                                            _ => row,
+                                        };
+                                        return Err(refusal(
+                                            TransformErrorKind::UnsupportedElement,
+                                            offending,
+                                            &cell_path,
+                                        ));
+                                    }
+                                }
+                            }
+                            rows.push(cells);
+                        }
+                        Node::Text(text) if text.chars().all(xml_whitespace) => {
+                            self.visit(element, &row_path, depth + 1)?;
+                        }
+                        Node::Text(_) | Node::Comment(_) => {
+                            return Err(refusal(
+                                TransformErrorKind::UnsupportedContent,
+                                element,
+                                &row_path,
+                            ));
+                        }
+                        _ => {
+                            let offending = match node {
+                                Node::Element(row) => row,
+                                _ => element,
+                            };
+                            return Err(refusal(
+                                TransformErrorKind::UnsupportedElement,
+                                offending,
+                                &row_path,
+                            ));
+                        }
+                    }
+                }
+                Ok(Formula::Table(rows))
             }
             _ => Err(refusal(
                 TransformErrorKind::UnsupportedElement,
