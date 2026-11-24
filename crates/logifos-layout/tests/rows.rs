@@ -1231,7 +1231,7 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
 
 #[test]
 fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
-    use logifos_model::{MathSpace, MathVariant, PresentationStyle};
+    use logifos_model::{MathVariant, PresentationStyle};
     for (hints, content) in [
         (
             PresentationStyle {
@@ -1239,13 +1239,6 @@ fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing(
                 ..Default::default()
             },
             Formula::Style(vec![symbol("x")]),
-        ),
-        (
-            PresentationStyle {
-                right_space: Some(MathSpace::Thick),
-                ..Default::default()
-            },
-            operator("+"),
         ),
         (
             PresentationStyle {
@@ -1356,5 +1349,33 @@ fn math_color_reaches_glyphs_in_scope_and_refuses_uncolorable_rules() {
     assert_eq!(
         layout(&rule, &mut provider(&font()), options(0)).unwrap_err(),
         LayoutError::NotLaidOutYet
+    );
+}
+
+#[test]
+fn rspace_replaces_only_the_trailing_operator_space() {
+    use logifos_model::{MathSpace, PresentationStyle};
+    let thick = PresentationStyle {
+        right_space: Some(MathSpace::Thick),
+        ..Default::default()
+    };
+    let with = |op: Formula| sequence(vec![symbol("x"), op, symbol("x")]);
+    let plain = layout(&with(operator("+")), &mut provider(&font()), options(0)).unwrap();
+    let spaced = layout(
+        &with(styled(operator("+"), thick)),
+        &mut provider(&font()),
+        options(0),
+    )
+    .unwrap();
+    // The infix + has 4/18 em on each side; rspace 5/18 em at 18px is 5px.
+    close(
+        spaced.tree.metrics().width() - plain.tree.metrics().width(),
+        5.0 - 4.0,
+    );
+    assert_eq!(spaced.glyphs[1].origin, plain.glyphs[1].origin);
+    assert_eq!(spaced.glyphs[2].origin.y(), plain.glyphs[2].origin.y());
+    close(
+        spaced.glyphs[2].origin.x() - plain.glyphs[2].origin.x(),
+        1.0,
     );
 }

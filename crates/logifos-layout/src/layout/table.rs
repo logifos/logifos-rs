@@ -139,5 +139,6 @@ pub(super) fn table<'a>(
         operator_font_size_px: None,
         italic: 0.0,
         empty: false,
+        right_space: None,
     })
 }

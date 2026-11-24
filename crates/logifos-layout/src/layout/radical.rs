@@ -104,6 +104,7 @@ pub(super) fn root<'a>(
         operator_font_size_px: None,
         italic: 0.0,
         empty: false,
+        right_space: None,
     })
 }
 
@@ -170,6 +171,7 @@ fn surd_row<'a>(
             operator_font_size_px: None,
             italic: 0.0,
             empty: false,
+            right_space: None,
         },
         rule,
         extra,

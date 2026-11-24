@@ -61,7 +61,7 @@ impl ResolvedStyle {
     ) -> Result<Self, LayoutError> {
         // Syntax can preserve these attributes before geometry/painting can
         // implement them. Never silently render them with default semantics.
-        if hints.math_variant.is_some() || hints.right_space.is_some() || hints.accent.is_some() {
+        if hints.math_variant.is_some() || hints.accent.is_some() {
             return Err(LayoutError::NotLaidOutYet);
         }
         let mut style = self;

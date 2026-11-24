@@ -124,6 +124,19 @@ impl MathSpace {
         })
     }
 
+    /// The space in eighteenths of an em (MathML Core named spaces).
+    pub fn units(self) -> f64 {
+        match self {
+            Self::VeryVeryThin => 1.0,
+            Self::VeryThin => 2.0,
+            Self::Thin => 3.0,
+            Self::Medium => 4.0,
+            Self::Thick => 5.0,
+            Self::VeryThick => 6.0,
+            Self::VeryVeryThick => 7.0,
+        }
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::VeryVeryThin => "veryverythinmathspace",

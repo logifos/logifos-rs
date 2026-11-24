@@ -30,6 +30,7 @@ pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, Layout
         operator_font_size_px: None,
         italic: 0.0,
         empty,
+        right_space: None,
     })
 }
 
@@ -85,6 +86,14 @@ pub(super) fn row<'a>(
     } else {
         None
     };
+    let core_space = if core.is_some() {
+        children
+            .iter()
+            .find(|node| !node.empty)
+            .and_then(|node| node.right_space)
+    } else {
+        None
+    };
     let core_style = if core.is_some() {
         children
             .iter()
@@ -103,6 +112,7 @@ pub(super) fn row<'a>(
                     text,
                     operator::form(index, count),
                     node.operator_font_size_px.unwrap_or(style.font_size_px),
+                    node.right_space,
                 )
             })
         } else {
@@ -122,6 +132,7 @@ pub(super) fn row<'a>(
     let mut node = stack(parts)?;
     node.operator = core;
     node.operator_font_size_px = core_style;
+    node.right_space = core_space;
     node.italic = previous_italic;
     Ok(node)
 }
@@ -151,6 +162,7 @@ fn stretched_fence<'a>(
         operator_font_size_px: Some(font_size_px),
         italic: 0.0,
         empty: false,
+        right_space: None,
     })
 }
 
@@ -160,6 +172,7 @@ pub(super) fn finish(node: Node<'_>, style: ResolvedStyle) -> Result<Node<'_>, L
             text,
             operator::form(0, 1),
             node.operator_font_size_px.unwrap_or(style.font_size_px),
+            node.right_space,
         )
     });
     let trailing = node.italic;

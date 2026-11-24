@@ -43,7 +43,13 @@ pub(super) fn form(index: usize, count: usize) -> Form {
     }
 }
 
-pub(super) fn space(text: &str, form: Form, size: f64) -> (f64, f64) {
+/// The spacing in pixels; an explicit rspace replaces the trailing space.
+pub(super) fn space(text: &str, form: Form, size: f64, right: Option<f64>) -> (f64, f64) {
+    let (lead, trail) = dictionary_space(text, form, size);
+    (lead, right.unwrap_or(trail))
+}
+
+fn dictionary_space(text: &str, form: Form, size: f64) -> (f64, f64) {
     // Core 3.2.4.2: the dictionary category supplies the leading space in
     // 1/18 em on each side. Fences are category F or G: no space on either side.
     if is_fence(text) {

@@ -38,6 +38,7 @@ pub(super) fn token<'a>(
                 operator_font_size_px: None,
                 italic: 0.0,
                 empty: false,
+                right_space: None,
             },
             0.0,
             0.0,
@@ -86,5 +87,6 @@ fn display_operator<'a>(
         operator_font_size_px: Some(style.font_size_px),
         italic: 0.0,
         empty: false,
+        right_space: None,
     })
 }

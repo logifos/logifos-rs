@@ -73,6 +73,8 @@ struct Node<'a> {
     operator_font_size_px: Option<f64>,
     italic: f64,
     empty: bool,
+    /// Explicit rspace of the operator this node embellishes, in pixels.
+    right_space: Option<f64>,
 }
 
 struct Budget {
@@ -111,6 +113,13 @@ fn build<'a>(
             return Err(LayoutError::InvalidOptions);
         }
         style = style.presentation(*hints, fonts)?;
+        if let Some(space) = hints.right_space {
+            // Core 3.2.4: rspace in 1/18 em of the operator's own size.
+            let mut node = build_construct(content, fonts, style, budget, depth)?;
+            let size = node.operator_font_size_px.unwrap_or(style.font_size_px);
+            node.right_space = Some(size * space.units() / 18.0);
+            return Ok(node);
+        }
         (content.as_ref(), style)
     } else {
         (formula, style)
