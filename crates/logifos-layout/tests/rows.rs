@@ -20,6 +20,7 @@ fn options(level: u8) -> LayoutOptions {
     LayoutOptions {
         font_size_px: 18.0,
         script_level: level,
+        display: false,
     }
 }
 
@@ -363,10 +364,6 @@ fn multicharacter_tokens_use_ordered_advances_and_last_italic_correction() {
 fn unsupported_constructs_refuse_even_inside_rows() {
     for (node, kind) in [
         (
-            Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y"))),
-            Construct::Fraction,
-        ),
-        (
             Formula::Superscript(Box::new(symbol("x")), Box::new(symbol("y"))),
             Construct::Superscript,
         ),
@@ -381,6 +378,121 @@ fn unsupported_constructs_refuse_even_inside_rows() {
             assert_eq!(error.code(), "NOT_IMPLEMENTED");
         }
     }
+}
+
+#[test]
+fn fraction_lays_out_its_children_around_the_axis_rule() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    // Fixture constants: 100 + spec index design units.
+    let rule = unit(MathConstant::FractionRuleThickness);
+    let gap_numerator = unit(MathConstant::FractionNumeratorGapMin);
+    let gap_denominator = unit(MathConstant::FractionDenominatorGapMin);
+
+    let formula = Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    // 'x': box 9.0 wide, 10.8 tall, 1.8 deep; 'y': box 12.6 wide, 14.4 tall,
+    // 5.4 deep (hmtx advances and triangle bounds at 18px over 1000upem).
+    let (numerator_height, numerator_depth, numerator_width): (f64, f64, f64) = (10.8, 1.8, 9.0);
+    let (denominator_height, denominator_depth, denominator_width): (f64, f64, f64) =
+        (14.4, 5.4, 12.6);
+    // The gap dominates the fixture's shift constants, so the shifts grow to
+    // keep the minimum gaps.
+    let shift_up = numerator_depth + rule / 2.0 + gap_numerator;
+    let shift_down = denominator_height + rule / 2.0 + gap_denominator;
+    let width = numerator_width.max(denominator_width);
+    let metrics = result.tree.metrics();
+    close(metrics.width(), width);
+    close(metrics.baseline(), numerator_height + shift_up);
+    close(metrics.depth(), shift_down + denominator_depth);
+
+    // finish() wraps the vbox in an hbox; the fraction vbox is its only child.
+    let children = result.tree.children();
+    assert_eq!(children.len(), 1);
+    let vbox = children[0].node();
+    let stack = vbox.children();
+    assert_eq!(stack.len(), 3);
+    // The vbox stacks without overlap: the denominator's bottom is the root's.
+    close(
+        stack[2].offset().y() + denominator_height + denominator_depth,
+        metrics.baseline() + metrics.depth(),
+    );
+    let rule_position = numerator_height + numerator_depth + gap_numerator;
+    close(stack[1].offset().y(), rule_position);
+    // The rule is centered on the fraction baseline: its top sits t/2 above it.
+    close(stack[1].offset().y(), metrics.baseline() - rule / 2.0);
+    close(stack[1].node().metrics().width(), width);
+    close(stack[1].node().metrics().baseline(), rule);
+
+    // Numerator glyphs keep their node-local origin (its top is the root top);
+    // denominator glyphs translate by the denominator's stack offset.
+    // Numerator glyphs keep their node-local origin (its top is the root top);
+    // denominator glyphs translate by the denominator's stack offset.
+    close(result.glyphs[0].origin.x(), (width - numerator_width) / 2.0);
+    close(result.glyphs[0].origin.y(), numerator_height);
+    close(
+        result.glyphs[1].origin.x(),
+        (width - denominator_width) / 2.0,
+    );
+    let denominator_offset = rule_position + rule + gap_denominator;
+    close(
+        result.glyphs[1].origin.y(),
+        denominator_offset + denominator_height,
+    );
+    // Both children center in the fraction width.
+    close(stack[0].node().metrics().width(), width);
+    close(stack[2].node().metrics().width(), width);
+}
+
+#[test]
+fn display_fractions_select_the_display_constants() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let inline = layout(
+        &Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y"))),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    let display = layout(
+        &Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y"))),
+        &mut fonts,
+        LayoutOptions {
+            font_size_px: 18.0,
+            script_level: 0,
+            display: true,
+        },
+    )
+    .unwrap();
+    // The gap constants dominate the fixture's shifts, so switching styles
+    // changes exactly the gap: FractionNumDisplayStyleGapMin (133) and
+    // FractionDenomDisplayStyleGapMin (136) versus 132 and 135.
+    let height_delta = unit_of(&mut fonts, MathConstant::FractionNumDisplayStyleGapMin)
+        - unit_of(&mut fonts, MathConstant::FractionNumeratorGapMin);
+    close(
+        display.tree.metrics().baseline() - inline.tree.metrics().baseline(),
+        height_delta * scale,
+    );
+    close(height_delta, 1.0);
+    close(
+        display.tree.metrics().depth() - inline.tree.metrics().depth(),
+        (136.0 - 135.0) * scale,
+    );
+    close(
+        display.tree.children()[0].node().children()[1].offset().y(),
+        display.tree.metrics().baseline()
+            - unit_of(&mut fonts, MathConstant::FractionRuleThickness) * scale / 2.0,
+    );
+}
+
+fn unit_of(fonts: &mut FontProvider, constant: logifos_layout::font::math::MathConstant) -> f64 {
+    f64::from(fonts.primary().math.constants.value(constant))
 }
 
 #[test]
@@ -419,7 +531,8 @@ fn invalid_sizes_and_script_constants_refuse_typed() {
                 &mut provider(&font()),
                 LayoutOptions {
                     font_size_px: size,
-                    script_level: 0
+                    script_level: 0,
+                    display: false
                 }
             )
             .unwrap_err(),
@@ -442,7 +555,8 @@ fn invalid_sizes_and_script_constants_refuse_typed() {
             &mut provider(&font()),
             LayoutOptions {
                 font_size_px: f64::from_bits(1),
-                script_level: 255
+                script_level: 255,
+                display: false
             }
         )
         .unwrap_err(),

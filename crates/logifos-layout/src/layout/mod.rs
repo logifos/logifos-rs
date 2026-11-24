@@ -1,6 +1,7 @@
 //! Formula tokens and baseline-aligned rows with explicit per-call options.
 
 mod error;
+mod fraction;
 mod operator;
 mod rows;
 mod style;
@@ -100,7 +101,11 @@ fn build<'a>(
             operator::validate(text)?;
             token::token(text, Some(text), fonts, style, budget)
         }
-        Formula::Fraction(..) => Err(LayoutError::UnsupportedConstruct(Construct::Fraction)),
+        Formula::Fraction(numerator, denominator) => {
+            let numerator = build(numerator, fonts, style, budget, depth + 1)?;
+            let denominator = build(denominator, fonts, style, budget, depth + 1)?;
+            fraction::fraction(numerator, denominator, fonts, style)
+        }
         Formula::Superscript(..) => Err(LayoutError::UnsupportedConstruct(Construct::Superscript)),
         Formula::Subscript(..) => Err(LayoutError::UnsupportedConstruct(Construct::Subscript)),
     }

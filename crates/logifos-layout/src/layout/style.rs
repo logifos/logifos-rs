@@ -8,13 +8,17 @@ pub struct LayoutOptions {
     pub font_size_px: f64,
     /// Absolute nonnegative level relative to the supplied level-zero size.
     pub script_level: u8,
+    /// MathML display style (display="block"); selects the display variants
+    /// of the MATH table's fraction, script and radical constants.
+    pub display: bool,
 }
 
-/// Effective size inherited unchanged by every supported child.
+/// Effective size and display flag inherited unchanged by every supported child.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ResolvedStyle {
     pub font_size_px: f64,
     pub script_level: u8,
+    pub display: bool,
 }
 
 impl LayoutOptions {
@@ -52,6 +56,7 @@ impl LayoutOptions {
         Ok(ResolvedStyle {
             font_size_px,
             script_level: self.script_level,
+            display: self.display,
         })
     }
 }
