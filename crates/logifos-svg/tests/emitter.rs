@@ -641,7 +641,10 @@ fn font_outline_px(
     logifos_layout::font::GlyphOutlinePx {
         contours: contours
             .into_iter()
-            .map(|points| logifos_layout::font::ContourPx { points })
+            .map(|points| logifos_layout::font::ContourPx {
+                points,
+                cubic: false,
+            })
             .collect(),
     }
 }

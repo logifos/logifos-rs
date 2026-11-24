@@ -16,6 +16,7 @@ fn font_outline(contours: &[&[(f64, f64, bool)]]) -> GlyphOutlinePx {
                     .iter()
                     .map(|&(x, y, on_curve)| PointPx { x, y, on_curve })
                     .collect(),
+                cubic: false,
             })
             .collect(),
     }
@@ -263,4 +264,69 @@ fn path_numbers_have_exact_lossless_formatting_and_normalize_signed_zero() {
             );
         }
     }
+}
+
+#[test]
+fn cubic_contours_emit_c_commands_without_implied_midpoints() {
+    // A Type 2 contour: moveto anchor, off-off-on cubic, then an on-curve
+    // line anchor; no wrap expansion may interfere.
+    let outline = GlyphOutlinePx {
+        contours: vec![ContourPx {
+            points: vec![
+                PointPx {
+                    x: 0.0,
+                    y: 0.0,
+                    on_curve: true,
+                },
+                PointPx {
+                    x: 2.0,
+                    y: 0.0,
+                    on_curve: false,
+                },
+                PointPx {
+                    x: 3.0,
+                    y: 1.0,
+                    on_curve: false,
+                },
+                PointPx {
+                    x: 4.0,
+                    y: 2.0,
+                    on_curve: true,
+                },
+                PointPx {
+                    x: 6.0,
+                    y: 2.0,
+                    on_curve: true,
+                },
+            ],
+            cubic: true,
+        }],
+    };
+    let converted = GlyphOutline::try_from(&outline).unwrap();
+    assert_eq!(
+        converted.to_svg_path(point(0.0, 0.0)).unwrap(),
+        "M0 0 C2 0 3 -1 4 -2 L6 -2 Z"
+    );
+    // A cubic run without its on-curve end is refused, not mispainted.
+    let dangling = GlyphOutlinePx {
+        contours: vec![ContourPx {
+            points: vec![
+                PointPx {
+                    x: 0.0,
+                    y: 0.0,
+                    on_curve: true,
+                },
+                PointPx {
+                    x: 1.0,
+                    y: 0.0,
+                    on_curve: false,
+                },
+            ],
+            cubic: true,
+        }],
+    };
+    assert_eq!(
+        GlyphOutline::try_from(&dangling).unwrap_err(),
+        OutlineError::InvalidCommandOrder
+    );
 }
