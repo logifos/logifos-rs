@@ -103,10 +103,10 @@ fn presentation_names_accept_mathml_namespaces_and_refuse_foreign_ones() {
 }
 
 #[test]
-fn attributes_on_presentation_containers_still_refuse() {
+fn unsupported_attributes_on_presentation_containers_still_refuse() {
     for name in CONTAINERS.into_iter().chain(["semantics"]) {
         for attribute in [
-            "mathcolor='red'",
+            "mathcolor='chartreuse'",
             "width='2em'",
             "data-note='keep'",
             "f:flag='yes' xmlns:f='urn:foreign'",

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+MathML syntax also retains the standard font-variant names, red/blue colors,
+positive named operator rspace values, boolean over-script accent flags and
+explicit centered table-cell alignment. Writing preserves their owning elements;
+other values and misplaced attributes refuse. Layout supports explicit centered
+cells and refuses font variants, colors, explicit operator spacing and accents
+with NOT_IMPLEMENTED until their rendering semantics are implemented.
+
 MathML preserves root display mode and row-like displaystyle and scriptlevel
 hints as typed presentation data. Validation accepts case-insensitive display
 and boolean values and absolute or signed decimal script levels up to 255;
@@ -11,7 +18,8 @@ relative depth scaling and absolute resets, including negative effective depths.
 Fractions now adjust child size and compact style automatically. Operator
 spacing and fence sizing retain the operator's effective font size; SVG uses
 the resulting glyph geometry. Table rows and cells reject attributes instead
-of discarding them. Other presentation attributes remain unsupported.
+of discarding them. Presentation attributes outside the supported subset remain
+unsupported.
 
 MathML transforms and writes attribute-free style, error, padded and phantom
 containers while preserving their kinds. Grouping containers use row layout;

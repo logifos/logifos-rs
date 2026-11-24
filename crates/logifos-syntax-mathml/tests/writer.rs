@@ -230,9 +230,9 @@ fn output_byte_limit_counts_escaping_and_utf8() {
 #[test]
 fn attributes_and_inherited_style_are_typed_refusals_never_dropped() {
     for attribute in [
-        "mathcolor='red'",
+        "mathcolor='chartreuse'",
         "mathbackground='white'",
-        "mathvariant='bold'",
+        "mathvariant='unknown'",
         "mathsize='12pt'",
         "dir='rtl'",
         "displaystyle='invalid'",

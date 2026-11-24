@@ -90,7 +90,11 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// Only XML whitespace between operands is insignificant. Namespace declarations
 /// identify names and carry no Formula presentation data. Row-like elements
 /// preserve validated `displaystyle` and bounded `scriptlevel` hints; the root
-/// also preserves `display`. Other attributes, comments, nested token markup
+/// also preserves `display`. Grouping elements retain supported font variants
+/// and red/blue colors; operators retain named positive `rspace`; over-script
+/// constructs retain boolean `accent`; table cells retain centered `columnalign`.
+/// These are syntax capabilities; layout may explicitly refuse a retained hint.
+/// Other attributes, comments, nested token markup
 /// and non-whitespace text
 /// outside tokens refuses the entire conversion. No partial tree is returned.
 /// `msubsup` preserves base, subscript then superscript, with row semantics at
@@ -248,7 +252,19 @@ impl Transformer {
                                         self.check_element(cell, &cell_path, depth + 2)?;
                                         let children =
                                             self.row_like(cell, &cell_path, depth + 2)?;
-                                        cells.push(Formula::Sequence(children));
+                                        let content = Formula::Sequence(children);
+                                        let style = presentation::attributes(cell, &cell_path)?;
+                                        cells.push(
+                                            if style == logifos_model::PresentationStyle::default()
+                                            {
+                                                content
+                                            } else {
+                                                Formula::Styled {
+                                                    style,
+                                                    content: Box::new(content),
+                                                }
+                                            },
+                                        );
                                     }
                                     Node::Text(text) if text.chars().all(xml_whitespace) => {
                                         self.visit(row, &cell_path, depth + 2)?;
@@ -377,6 +393,16 @@ impl Transformer {
                     2
                 };
                 if children.len() != arity {
+                    if presentation::attributes(element, location)?
+                        .accent
+                        .is_some()
+                    {
+                        return Err(refusal(
+                            TransformErrorKind::InvalidStructure,
+                            element,
+                            location,
+                        ));
+                    }
                     // MathML Core 3.4.1 and 3.4.2 use rows at other arities.
                     return Ok(Formula::Sequence(children));
                 }

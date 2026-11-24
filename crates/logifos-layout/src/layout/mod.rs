@@ -104,16 +104,7 @@ fn build<'a>(
     } = formula
     {
         let mut style = style;
-        if !matches!(
-            content.as_ref(),
-            Formula::Sequence(_)
-                | Formula::Style(_)
-                | Formula::ErrorGroup(_)
-                | Formula::Padded(_)
-                | Formula::Phantom(_)
-        ) || (hints.display.is_some()
-            && (depth != 1 || !matches!(content.as_ref(), Formula::Sequence(_))))
-        {
+        if !hints.valid_for(content, depth == 1, false) {
             return Err(LayoutError::InvalidOptions);
         }
         style = style.presentation(*hints, fonts)?;
@@ -229,6 +220,19 @@ fn build_construct<'a>(
             for row in rows {
                 let mut cells = Vec::with_capacity(row.len());
                 for cell in row {
+                    let cell = match cell {
+                        Formula::Styled {
+                            style: hints,
+                            content,
+                        } => {
+                            if !hints.valid_for(content, false, true) {
+                                return Err(LayoutError::InvalidOptions);
+                            }
+                            // Explicit center matches the table's existing alignment.
+                            content.as_ref()
+                        }
+                        _ => cell,
+                    };
                     cells.push(build(cell, fonts, style, budget, depth + 1)?);
                 }
                 built.push(cells);

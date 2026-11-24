@@ -320,9 +320,9 @@ fn foreign_namespace_elements_refuse_despite_known_local_name() {
 #[test]
 fn inherited_presentation_attributes_refuse_at_their_owner() {
     for attribute in [
-        "mathcolor='red'",
+        "mathcolor='chartreuse'",
         "mathbackground='white'",
-        "mathvariant='normal'",
+        "mathvariant='unknown'",
         "mathsize='12pt'",
         "dir='ltr'",
         "displaystyle='invalid'",

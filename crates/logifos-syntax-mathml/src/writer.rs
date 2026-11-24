@@ -66,7 +66,7 @@ fn refusal(kind: WriteErrorKind, location: &str) -> WriteError {
 /// sequences remain explicit `mrow` elements, including empty and singleton
 /// rows. All symbols use `mi`, since Formula does not distinguish identifier,
 /// number and text tokens. Operators retain their exact supported spelling.
-/// Typed display and script hints retain their owning row-like element.
+/// Typed presentation hints retain their owning element, including table cells.
 /// Attribute values use canonical case and decimal integer spellings.
 /// Script constructs retain their distinct elements and ordered operands,
 /// including multiscript placeholders and an explicitly empty prescript boundary.
@@ -320,6 +320,18 @@ impl SyntaxBuilder {
                         // transform's sequence cells reparse equal.
                         let cell_path = format!("{row_path}/cells/{cell_index}");
                         self.visit(&cell_path, depth + 2)?;
+                        let (cell, style) = match cell {
+                            Formula::Styled { style, content } => {
+                                if !style.valid_for(content, false, true) {
+                                    return Err(refusal(
+                                        WriteErrorKind::InvalidStructure,
+                                        &cell_path,
+                                    ));
+                                }
+                                (content.as_ref(), Some(*style))
+                            }
+                            _ => (cell, None),
+                        };
                         let Formula::Sequence(items) = cell else {
                             return Err(refusal(WriteErrorKind::InvalidStructure, &cell_path));
                         };
@@ -331,7 +343,11 @@ impl SyntaxBuilder {
                                 depth + 3,
                             )?));
                         }
-                        cells.push(Node::Element(self.node("mtd", content)));
+                        let mut element = self.node("mtd", content);
+                        if let Some(style) = style {
+                            Self::style_attributes(&mut element, style);
+                        }
+                        cells.push(Node::Element(element));
                     }
                     children.push(Node::Element(self.node("mtr", cells)));
                 }
@@ -348,21 +364,16 @@ impl SyntaxBuilder {
         location: &str,
         depth: usize,
     ) -> Result<Element, WriteError> {
-        use logifos_model::{MathDisplay, PresentationStyle, ScriptLevel};
-        if style == PresentationStyle::default()
-            || !matches!(
-                content,
-                Formula::Sequence(_)
-                    | Formula::Style(_)
-                    | Formula::ErrorGroup(_)
-                    | Formula::Padded(_)
-                    | Formula::Phantom(_)
-            )
-            || (style.display.is_some() && (depth != 1 || !matches!(content, Formula::Sequence(_))))
-        {
+        if !style.valid_for(content, depth == 1, false) {
             return Err(refusal(WriteErrorKind::InvalidStructure, location));
         }
         let mut element = self.element(content, location, depth)?;
+        Self::style_attributes(&mut element, style);
+        Ok(element)
+    }
+
+    fn style_attributes(element: &mut Element, style: logifos_model::PresentationStyle) {
+        use logifos_model::{MathColor, MathDisplay, ScriptLevel};
         let mut attribute = |name: &str, value: String| {
             element.attributes.push(crate::Attribute {
                 name: QualifiedName {
@@ -396,7 +407,28 @@ impl SyntaxBuilder {
                 },
             );
         }
-        Ok(element)
+        if let Some(variant) = style.math_variant {
+            attribute("mathvariant", variant.as_str().into());
+        }
+        if let Some(color) = style.math_color {
+            attribute(
+                "mathcolor",
+                match color {
+                    MathColor::Red => "red",
+                    MathColor::Blue => "blue",
+                }
+                .into(),
+            );
+        }
+        if let Some(space) = style.right_space {
+            attribute("rspace", space.as_str().into());
+        }
+        if let Some(accent) = style.accent {
+            attribute("accent", accent.to_string());
+        }
+        if style.column_align.is_some() {
+            attribute("columnalign", "center".into());
+        }
     }
 
     fn script_pairs(
@@ -454,7 +486,7 @@ impl SyntaxBuilder {
 }
 
 // Only serializes syntax constructed above: fixed names, one root namespace,
-// validated display/script attributes and no comments. Not a general XML serializer.
+// validated enum/boolean/integer attributes and no comments. Not a general XML serializer.
 struct Output(String);
 
 impl Output {

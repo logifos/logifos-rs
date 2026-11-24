@@ -1208,3 +1208,67 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
         LayoutError::InvalidOptions
     );
 }
+
+#[test]
+fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
+    use logifos_model::{MathColor, MathSpace, MathVariant, PresentationStyle};
+    for (hints, content) in [
+        (
+            PresentationStyle {
+                math_variant: Some(MathVariant::Bold),
+                ..Default::default()
+            },
+            Formula::Style(vec![symbol("x")]),
+        ),
+        (
+            PresentationStyle {
+                math_color: Some(MathColor::Red),
+                ..Default::default()
+            },
+            Formula::Style(vec![symbol("x")]),
+        ),
+        (
+            PresentationStyle {
+                right_space: Some(MathSpace::Thick),
+                ..Default::default()
+            },
+            operator("+"),
+        ),
+        (
+            PresentationStyle {
+                accent: Some(true),
+                ..Default::default()
+            },
+            Formula::Over(Box::new(symbol("x")), Box::new(symbol("y"))),
+        ),
+    ] {
+        let formula = sequence(vec![styled(content, hints)]);
+        assert_eq!(
+            layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
+            LayoutError::NotLaidOutYet
+        );
+    }
+}
+
+#[test]
+fn explicit_center_is_preserved_without_changing_default_table_geometry() {
+    use logifos_model::{ColumnAlign, PresentationStyle};
+    let hints = PresentationStyle {
+        column_align: Some(ColumnAlign::Center),
+        ..Default::default()
+    };
+    let plain = Formula::Table(vec![
+        vec![sequence(vec![symbol("x")])],
+        vec![sequence(vec![symbol("y"), symbol("z")])],
+    ]);
+    let explicit = Formula::Table(vec![
+        vec![styled(sequence(vec![symbol("x")]), hints)],
+        vec![sequence(vec![symbol("y"), symbol("z")])],
+    ]);
+    assert_eq!(render(&plain, 0), render(&explicit, 0));
+    let invalid = sequence(vec![styled(sequence(vec![symbol("x")]), hints)]);
+    assert_eq!(
+        layout(&invalid, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::InvalidOptions
+    );
+}

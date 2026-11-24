@@ -6,7 +6,9 @@
 //! never touches them.
 
 mod presentation;
-pub use presentation::{MathDisplay, PresentationStyle, ScriptLevel};
+pub use presentation::{
+    ColumnAlign, MathColor, MathDisplay, MathSpace, MathVariant, PresentationStyle, ScriptLevel,
+};
 
 mod wire;
 pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPTH, MAX_NODES};
@@ -17,7 +19,7 @@ pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPT
 pub enum Formula {
     /// A horizontal run of child formulas (the plain sequence).
     Sequence(Vec<Formula>),
-    /// Presentation attributes on a retained row-like element. The wrapper
+    /// Presentation attributes on a retained element. The wrapper
     /// shares its content's syntax depth; nested wrappers are invalid.
     Styled {
         style: PresentationStyle,

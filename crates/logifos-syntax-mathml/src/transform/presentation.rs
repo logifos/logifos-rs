@@ -1,6 +1,8 @@
 //! Validate every attribute before traversing a presentation subtree.
 
-use logifos_model::{MathDisplay, PresentationStyle, ScriptLevel};
+use logifos_model::{
+    ColumnAlign, MathColor, MathDisplay, MathSpace, MathVariant, PresentationStyle, ScriptLevel,
+};
 
 use super::{refusal, Element, TransformError, TransformErrorKind};
 
@@ -15,8 +17,7 @@ pub(super) fn attributes(
     );
     for (index, attribute) in element.attributes.iter().enumerate() {
         let value = &attribute.value;
-        let valid = grouping
-            && attribute.name.namespace.is_none()
+        let valid = attribute.name.namespace.is_none()
             && match attribute.name.local.as_str() {
                 "display" if element.name.local == "math" => {
                     style.display = if value.eq_ignore_ascii_case("block") {
@@ -28,7 +29,7 @@ pub(super) fn attributes(
                     };
                     style.display.is_some()
                 }
-                "displaystyle" => {
+                "displaystyle" if grouping => {
                     style.displaystyle = if value.eq_ignore_ascii_case("true") {
                         Some(true)
                     } else if value.eq_ignore_ascii_case("false") {
@@ -38,9 +39,37 @@ pub(super) fn attributes(
                     };
                     style.displaystyle.is_some()
                 }
-                "scriptlevel" => {
+                "scriptlevel" if grouping => {
                     style.script_level = script_level(value);
                     style.script_level.is_some()
+                }
+                "mathvariant" if grouping => {
+                    style.math_variant = MathVariant::parse(value);
+                    style.math_variant.is_some()
+                }
+                "mathcolor" if grouping => {
+                    style.math_color = match value.as_str() {
+                        "red" => Some(MathColor::Red),
+                        "blue" => Some(MathColor::Blue),
+                        _ => None,
+                    };
+                    style.math_color.is_some()
+                }
+                "rspace" if element.name.local == "mo" => {
+                    style.right_space = MathSpace::parse(value);
+                    style.right_space.is_some()
+                }
+                "accent" if matches!(element.name.local.as_str(), "mover" | "munderover") => {
+                    style.accent = match value.as_str() {
+                        "true" => Some(true),
+                        "false" => Some(false),
+                        _ => None,
+                    };
+                    style.accent.is_some()
+                }
+                "columnalign" if element.name.local == "mtd" => {
+                    style.column_align = (value == "center").then_some(ColumnAlign::Center);
+                    style.column_align.is_some()
                 }
                 _ => false,
             };
