@@ -27,7 +27,7 @@ use std::fmt;
 
 use outline::{GlyphOutline, OutlineError};
 
-use logifos_layout::layout::PlacedGlyph;
+use logifos_layout::layout::{MathColor, PlacedGlyph};
 use logifos_layout::{Bounds, BoxKind, BoxTree, GeometryError, Metrics, Point};
 
 /// Per-emission presentation. No CSS, URLs, or raw XML are accepted.
@@ -253,7 +253,12 @@ fn glyph_layer(glyphs: &[PlacedGlyph]) -> Result<String, SvgError> {
             .to_svg_path(glyph.origin)
             .map_err(SvgError::Outline)?;
         if !data.is_empty() {
-            layer.push_str(&format!("<path d=\"{data}\"/>"));
+            let fill = match glyph.color {
+                Some(MathColor::Red) => " fill=\"#ff0000\"",
+                Some(MathColor::Blue) => " fill=\"#0000ff\"",
+                None => "",
+            };
+            layer.push_str(&format!("<path{fill} d=\"{data}\"/>"));
         }
     }
     Ok(layer)

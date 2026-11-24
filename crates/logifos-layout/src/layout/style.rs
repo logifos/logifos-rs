@@ -1,6 +1,6 @@
 use super::LayoutError;
 use crate::font::FontProvider;
-use logifos_model::{MathDisplay, PresentationStyle, ScriptLevel};
+use logifos_model::{MathColor, MathDisplay, PresentationStyle, ScriptLevel};
 
 /// Inherited options for this call, before explicit Formula hints.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -25,6 +25,8 @@ pub struct ResolvedStyle {
     pub display: bool,
     /// MathML math-shift compact; selects the cramped superscript constant.
     pub cramped: bool,
+    /// The inherited mathcolor; glyphs carry it to the painter.
+    pub color: Option<MathColor>,
 }
 
 impl LayoutOptions {
@@ -46,6 +48,7 @@ impl LayoutOptions {
             script_level: i16::from(self.script_level),
             display: self.display,
             cramped: false,
+            color: None,
         })
     }
 }
@@ -58,14 +61,13 @@ impl ResolvedStyle {
     ) -> Result<Self, LayoutError> {
         // Syntax can preserve these attributes before geometry/painting can
         // implement them. Never silently render them with default semantics.
-        if hints.math_variant.is_some()
-            || hints.math_color.is_some()
-            || hints.right_space.is_some()
-            || hints.accent.is_some()
-        {
+        if hints.math_variant.is_some() || hints.right_space.is_some() || hints.accent.is_some() {
             return Err(LayoutError::NotLaidOutYet);
         }
         let mut style = self;
+        if hints.math_color.is_some() {
+            style.color = hints.math_color;
+        }
         if let Some(display) = hints.display {
             style.display = display == MathDisplay::Block;
         }

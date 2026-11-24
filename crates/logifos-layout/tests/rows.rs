@@ -1231,18 +1231,11 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
 
 #[test]
 fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
-    use logifos_model::{MathColor, MathSpace, MathVariant, PresentationStyle};
+    use logifos_model::{MathSpace, MathVariant, PresentationStyle};
     for (hints, content) in [
         (
             PresentationStyle {
                 math_variant: Some(MathVariant::Bold),
-                ..Default::default()
-            },
-            Formula::Style(vec![symbol("x")]),
-        ),
-        (
-            PresentationStyle {
-                math_color: Some(MathColor::Red),
                 ..Default::default()
             },
             Formula::Style(vec![symbol("x")]),
@@ -1330,4 +1323,38 @@ fn empty_operators_lay_out_as_nothing() {
     let b = layout(&with, &mut provider(&font()), options(0)).unwrap();
     close(a.tree.metrics().width(), b.tree.metrics().width());
     assert_eq!(a.glyphs.len(), b.glyphs.len());
+}
+
+#[test]
+fn math_color_reaches_glyphs_in_scope_and_refuses_uncolorable_rules() {
+    use logifos_layout::layout::MathColor;
+    use logifos_model::PresentationStyle;
+    let red = PresentationStyle {
+        math_color: Some(MathColor::Red),
+        ..Default::default()
+    };
+    let formula = sequence(vec![
+        symbol("x"),
+        styled(Formula::Style(vec![symbol("x")]), red),
+    ]);
+    let result = layout(&formula, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(result.glyphs[0].color, None);
+    assert_eq!(result.glyphs[1].color, Some(MathColor::Red));
+    // Geometry is unchanged by color.
+    let plain = sequence(vec![symbol("x"), Formula::Style(vec![symbol("x")])]);
+    assert_eq!(
+        result.tree,
+        layout(&plain, &mut provider(&font()), options(0))
+            .unwrap()
+            .tree
+    );
+    // A rule cannot carry color, so it must not be painted uncolored.
+    let rule = styled(
+        Formula::Style(vec![Formula::Sqrt(Box::new(symbol("x")))]),
+        red,
+    );
+    assert_eq!(
+        layout(&rule, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::NotLaidOutYet
+    );
 }

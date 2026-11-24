@@ -12,6 +12,7 @@ mod table;
 mod token;
 
 pub use error::LayoutError;
+pub use logifos_model::MathColor;
 pub use style::{LayoutOptions, ResolvedStyle};
 
 use crate::font::{FontProvider, ResolvedGlyph};
@@ -26,6 +27,8 @@ pub struct PlacedGlyph {
     /// Baseline origin in the root box's top-left coordinate system.
     pub origin: Point,
     pub font_size_px: f64,
+    /// Explicit mathcolor in effect for this glyph; `None` inherits the paint.
+    pub color: Option<logifos_model::MathColor>,
 }
 
 /// Geometry plus the font and glyph information needed by a later painter.
@@ -159,6 +162,10 @@ fn build_construct<'a>(
         Formula::Operator(text) => {
             operator::validate(text)?;
             token::token(text, Some(text), fonts, style, budget)
+        }
+        Formula::Fraction(..) | Formula::Sqrt(_) | Formula::Root(..) if style.color.is_some() => {
+            // Rules carry no color, so a colored rule would paint wrongly.
+            Err(LayoutError::NotLaidOutYet)
         }
         Formula::Fraction(numerator, denominator) => {
             // Core 3.3.2: compact children, auto-add depth only when the

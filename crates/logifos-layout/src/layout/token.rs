@@ -32,6 +32,7 @@ pub(super) fn token<'a>(
                     glyph: measured.glyph,
                     origin: Point::new(0.0, metrics.baseline())?,
                     font_size_px: style.font_size_px,
+                    color: style.color,
                 }],
                 operator: None,
                 operator_font_size_px: None,
@@ -76,6 +77,7 @@ fn display_operator<'a>(
         character,
         ascent + descent - extent,
         style.font_size_px,
+        style.color,
     )?;
     Ok(Node {
         tree,
