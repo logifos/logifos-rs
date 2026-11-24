@@ -86,6 +86,11 @@ fn execute(
         passed("facade", observations);
         return Ok(());
     }
+    if kind == "latex" {
+        // The KaTeX corpus replays once the LaTeX syntax crate lands (gate 4);
+        // until then the gap is an observation, not a harness failure.
+        return Err(refusal("input", "latex_not_yet_supported".to_owned()));
+    }
     if kind != "mathml" {
         return Err(Observation::new(
             "input",

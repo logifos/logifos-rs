@@ -15,4 +15,5 @@ logifos-layout = { path = "../logifos-layout" }
 logifos-syntax-mathml = { path = "../logifos-syntax-mathml" }
 logifos-svg = { path = "../logifos-svg" }
 serde_json.workspace = true
+serde_yaml = "0.9"
 sha2 = "0.10"
