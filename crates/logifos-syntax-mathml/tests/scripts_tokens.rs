@@ -49,6 +49,43 @@ fn refused(body: &str, kind: TransformErrorKind, path: &str) {
 }
 
 #[test]
+fn tables_preserve_combined_scripts_multiscripts_and_distinct_tokens() {
+    let body = "<mtable><mtr><mtd><msubsup><mi>x</mi><ms>sub</ms><mspace></mspace></msubsup></mtd><mtd><mmultiscripts><ms>base</ms><none></none><mi>post</mi><mprescripts></mprescripts><mspace></mspace><none></none></mmultiscripts></mtd></mtr></mtable>";
+    roundtrip(
+        body,
+        Formula::Table(vec![vec![
+            Formula::Sequence(vec![Formula::SubSup(
+                Box::new(symbol("x")),
+                Box::new(Formula::StringLiteral("sub".into())),
+                Box::new(Formula::Space),
+            )]),
+            Formula::Sequence(vec![Formula::MultiScripts {
+                base: Box::new(Formula::StringLiteral("base".into())),
+                postscripts: vec![pair(None, Some(symbol("post")))],
+                prescripts: Some(vec![pair(Some(Formula::Space), None)]),
+            }]),
+        ]]),
+        body,
+    );
+}
+
+#[test]
+fn tables_remain_distinct_in_combined_and_multiscript_operands() {
+    let table = "<mtable><mtr><mtd><mi>x</mi></mtd></mtr></mtable>";
+    let node = Formula::Table(vec![vec![Formula::Sequence(vec![symbol("x")])]]);
+    let body = format!("<msubsup>{table}<mi>sub</mi><mmultiscripts><mi>x</mi>{table}<none></none></mmultiscripts></msubsup>");
+    roundtrip(
+        &body,
+        Formula::SubSup(
+            Box::new(node.clone()),
+            Box::new(symbol("sub")),
+            Box::new(multi(vec![pair(Some(node), None)], None)),
+        ),
+        &body,
+    );
+}
+
+#[test]
 fn combined_scripts_preserve_all_three_operands() {
     let body = "<msubsup><mi>x</mi><mrow></mrow><mrow><mi>a</mi><mi>b</mi></mrow></msubsup>";
     roundtrip(

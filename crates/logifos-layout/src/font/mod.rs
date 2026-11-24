@@ -55,6 +55,8 @@ pub struct GlyphMetrics {
 pub struct FontFace {
     pub identity: FontIdentity,
     pub metrics: FontMetrics,
+    /// OS/2 sxHeight in design units, when the face carries it.
+    pub x_height: Option<i16>,
     pub math: MathTable,
     mappings: Vec<(u32, u32)>,
     advances: Vec<GlyphMetrics>,
@@ -167,6 +169,11 @@ impl FontFace {
             None
         };
         let math = MathTable::parse(required(&font, "MATH")?.bytes, maxp.num_glyphs)?;
+        let x_height = font
+            .os2()
+            .map_err(upstream)?
+            .and_then(|os2| os2.v2)
+            .map(|v| v[0] as i16);
         Ok(Self {
             identity: FontIdentity {
                 sha256: Sha256::digest(bytes).into(),
@@ -178,6 +185,7 @@ impl FontFace {
                 descent: hhea.descent,
                 line_gap: hhea.line_gap,
             },
+            x_height,
             math,
             mappings,
             advances,

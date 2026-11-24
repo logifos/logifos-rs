@@ -40,7 +40,11 @@ fn syntax_only_nodes_refuse_layout_without_visiting_their_operands() {
         Formula::Space,
         Formula::StringLiteral("private".into()),
     ] {
-        for formula in [node.clone(), Formula::Sequence(vec![node])] {
+        for formula in [
+            node.clone(),
+            Formula::Sequence(vec![node.clone()]),
+            Formula::Table(vec![vec![Formula::Sequence(vec![node])]]),
+        ] {
             let error = layout(
                 &formula,
                 &mut fonts,

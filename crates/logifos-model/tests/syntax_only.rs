@@ -26,6 +26,15 @@ fn syntax_only_nodes_refuse_wire_output_without_inventing_class_mappings() {
         assert_eq!(error.code, WireErrorCode::UnsupportedClass);
         assert_eq!(error.path, "");
         assert!(!error.to_string().contains("private"));
+        let error = Formula::Table(vec![vec![Formula::Sequence(vec![node.clone()])]])
+            .to_wire()
+            .unwrap_err();
+        assert_eq!(error.code, WireErrorCode::UnsupportedClass);
+        assert_eq!(
+            error.path,
+            "/fields/value/0/fields~1parameter_one/0/fields~1parameter_one/0"
+        );
+        assert!(!error.to_string().contains("private"));
         let error = Formula::Sequence(vec![Formula::Sequence(vec![]), node])
             .to_wire()
             .unwrap_err();

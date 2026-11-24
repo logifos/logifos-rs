@@ -125,11 +125,16 @@ the surd stretches vertically to rule + gap + radicand ink height
 (variant or extender-grown assembly with min-connector overlap), the
 overbar rides the radicand at a zero advance, and the mroot index
 raises by the bottom-raise percent two levels up. Both set math-shift
-compact; the index is also compact displaystyle.
+compact; the index is also compact displaystyle. Tables follow §3.5's
+inline-table semantics: a column grid of baseline-aligned rows, mtd's
+0.4em/0.5ex padding (ex from OS/2 sxHeight with the CSS fallback),
+cells centered per column, and the whole table's center on the math
+axis; ragged rows leave trailing cells empty. mtable sets math-style
+compact. Upstream fence parens and table options refuse until the
+stretchy-delimiter work.
 
-**Target.** Tables (row/column alignment), stretchy delimiters
-(horizontal glyph assembly with min connector overlap — the
-`expand_stretch` machinery already stretches vertically).
+**Target.** Stretchy delimiters (horizontal glyph assembly with min
+connector overlap — `expand_stretch` already stretches vertically).
 
 ## 5. The painter — `logifos-svg`
 
