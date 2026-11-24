@@ -24,7 +24,8 @@ typedef struct logifos_buffer {
 } logifos_buffer;
 
 /* Versions are independent of the package version. Unknown feature bits must
- * be ignored. RENDER is currently absent. Queries allocate nothing. */
+ * be ignored. RENDER advertises MathML-to-SVG rendering; callers without it
+ * must route by negotiation. Queries allocate nothing. */
 uint32_t logifos_abi_version(void);
 uint32_t logifos_schema_version(void);
 uint64_t logifos_features(void);

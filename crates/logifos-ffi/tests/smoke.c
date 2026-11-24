@@ -33,8 +33,8 @@ static int expect(const uint8_t *input, size_t len, const char *marker) {
 int main(void) {
     CHECK(logifos_abi_version() == LOGIFOS_ABI_VERSION);
     CHECK(logifos_schema_version() == LOGIFOS_SCHEMA_VERSION);
-    CHECK(logifos_features() == (LOGIFOS_FEATURE_BUFFER_V1 | LOGIFOS_FEATURE_JSON_V1));
-    CHECK((logifos_features() & LOGIFOS_FEATURE_RENDER) == 0);
+    CHECK(logifos_features()
+          == (LOGIFOS_FEATURE_BUFFER_V1 | LOGIFOS_FEATURE_JSON_V1 | LOGIFOS_FEATURE_RENDER));
     CHECK(logifos_engine_version() != NULL && strlen(logifos_engine_version()) > 0);
     CHECK(logifos_engine_version() == logifos_engine_version());
 
@@ -45,8 +45,8 @@ int main(void) {
     CHECK(first.ptr != NULL && second.ptr != NULL && first.ptr != second.ptr);
     memset(input, ' ', sizeof(input));
     CHECK(contains(first, "\"ok\":true"));
-    CHECK(contains(first, "\"implemented_operations\":[]"));
-    CHECK(contains(first, "\"outputs\":[]"));
+    CHECK(contains(first, "\"implemented_operations\":[\"negotiate\",\"parse\",\"render\"]"));
+    CHECK(contains(first, "\"outputs\":[\"svg\"]"));
     logifos_buffer_free_v1(first);
     CHECK(contains(second, "\"kind\":\"capabilities\""));
     logifos_buffer_free_v1(second);
@@ -68,8 +68,9 @@ int main(void) {
     CHECK(expect((const uint8_t *)duplicates, strlen(duplicates), "INVALID_JSON") == 0);
     const char *wrong_version = "{\"abi_version\":2,\"schema_version\":1,\"op\":\"negotiate\"}";
     CHECK(expect((const uint8_t *)wrong_version, strlen(wrong_version), "UNSUPPORTED_ABI") == 0);
-    const char *parse = "{\"abi_version\":1,\"schema_version\":1,\"op\":\"parse\",\"format\":\"mathml\",\"source\":\"\\u03b1\"}";
-    CHECK(expect((const uint8_t *)parse, strlen(parse), "NOT_IMPLEMENTED") == 0);
+    const char *parse = "{\"abi_version\":1,\"schema_version\":1,\"op\":\"parse\",\"format\":\"mathml\",\"source\":\"<math><mi>\\u03b1</mi></math>\"}";
+    CHECK(expect((const uint8_t *)parse, strlen(parse), "\"model\":{") == 0);
+    CHECK(expect((const uint8_t *)parse, strlen(parse), "\"ok\":true") == 0);
     const char *render = "{\"abi_version\":1,\"schema_version\":1,\"op\":\"render\",\"formula\":{},\"formula_contract\":{\"origin\":\"test\",\"revision\":\"0000000000000000000000000000000000000000\",\"schema_path\":\"schema.json\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"output\":\"svg\"}";
     for (int i = 0; i < 1000; ++i) {
         CHECK(expect((const uint8_t *)render, strlen(render), "\"ok\":false") == 0);
