@@ -1,7 +1,27 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
+use logifos_layout::font::{FontProvider, FontResource};
+use logifos_layout::layout::{layout as layout_formula, LayoutOptions};
+use logifos_model::{Formula, FORMULA_CONTRACT};
+use logifos_svg::{emit as emit_svg, SvgOptions};
+use logifos_syntax_mathml::{parse as parse_mathml, transform as transform_mathml};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+
+/// The formula contract identity, projected into the request identity shape.
+fn formula_contract_value() -> Value {
+    json!({
+        "origin": FORMULA_CONTRACT.origin,
+        "revision": FORMULA_CONTRACT.revision,
+        "schema_path": FORMULA_CONTRACT.definition_path,
+        "sha256": FORMULA_CONTRACT.sha256,
+    })
+}
+
+/// The pinned identity must name exactly this workspace's formula contract.
+fn contract_pinned(identity: &Value) -> bool {
+    identity == &formula_contract_value()
+}
 
 pub(super) struct Failure {
     code: &'static str,
@@ -260,10 +280,82 @@ fn execute(
     let font_count = fonts(options, limits)?;
     let result = match operation {
         "negotiate" => json!({"kind":"capabilities", "abi_versions":[1],"schema_versions":[1],
-            "implemented_operations":[],"outputs":[],"formula_contract":null,"syntax_contract":null,"limits":limits.as_value()}),
-        "parse" => return Err(Failure::new("NOT_IMPLEMENTED", "/op", "parse")),
+            "implemented_operations":["negotiate","parse","render"],"outputs":["svg"],
+            "formula_contract":formula_contract_value(),"syntax_contract":null,
+            "limits":limits.as_value()}),
+        "parse" => {
+            let source = text(&request["source"], "/source")?;
+            let document =
+                parse_mathml(source).map_err(|_| fail("INVALID_SOURCE", "/source"))?;
+            let formula = transform_mathml(&document)
+                .map_err(|_| fail("TRANSFORM_FAILED", "/source"))?;
+            let model =
+                formula.to_wire().map_err(|_| fail("WIRE_FAILED", "/source"))?;
+            return Ok(json!({"model": model, "formula_contract": formula_contract_value()}));
+        }
         "render" if font_count == 0 => return Err(fail("MISSING_FONT", "/options/fonts")),
-        "render" => return Err(fail("UNPINNED_CONTRACT", "/formula")),
+        "render" => {
+            if !contract_pinned(&request["formula_contract"]) {
+                return Err(fail("UNSUPPORTED_CONTRACT", "/formula_contract"));
+            }
+            let formula = Formula::from_wire(request["formula"].as_object().ok_or_else(|| fail("INVALID_REQUEST", "/formula"))?)
+                .map_err(|_| fail("INVALID_FORMULA", "/formula"))?;
+            let mut owned: Vec<(String, String, Vec<u8>, u16)> = Vec::new();
+            for (index, font) in options
+                .get("fonts")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .enumerate()
+            {
+                let path = format!("/options/fonts/{index}");
+                let data = STANDARD
+                    .decode(text(&font["bytes_base64"], &path)?)
+                    .map_err(|_| fail("INVALID_FONT", &path))?;
+                owned.push((
+                    text(&font["id"], &path)?.to_owned(),
+                    text(&font["sha256"], &path)?.to_owned(),
+                    data,
+                    font["face_index"].as_u64().unwrap_or(0) as u16,
+                ));
+            }
+            let resources: Vec<FontResource> = owned
+                .iter()
+                .map(|(id, hash, bytes, face_index)| FontResource {
+                    id,
+                    sha256: hash,
+                    bytes,
+                    face_index: *face_index,
+                })
+                .collect();
+            let order: Vec<&str> = options
+                .get("fallback_order")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .collect();
+            let mut provider =
+                FontProvider::new(&resources, &order).map_err(|_| fail("INVALID_FONT", "/options/fonts"))?;
+            let font_size_px = options
+                .get("font_size_px")
+                .and_then(Value::as_f64)
+                .unwrap_or(24.0);
+            let options_layout =
+                LayoutOptions { font_size_px, script_level: 0 };
+            let laid = layout_formula(&formula, &mut provider, options_layout)
+                .map_err(|e| fail("LAYOUT_FAILED", ""))?;
+            let color = options
+                .get("color")
+                .and_then(Value::as_str)
+                .unwrap_or("#000000");
+            let document = emit_svg(
+                &laid.tree,
+                &SvgOptions { color: color.to_owned(), title: None },
+            )
+            .map_err(|_| fail("RENDER_FAILED", ""))?;
+            return Ok(json!({"svg": document.as_str()}));
+        }
         _ => {
             return Err(fail(
                 "UNPINNED_CONTRACT",
