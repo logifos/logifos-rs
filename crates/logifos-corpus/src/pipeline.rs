@@ -173,6 +173,7 @@ fn execute(
                 logifos_svg::SvgError::InvalidColor => "invalid_color",
                 logifos_svg::SvgError::InvalidXmlCharacter => "invalid_xml_character",
                 logifos_svg::SvgError::Geometry(_) => "invalid_geometry",
+                logifos_svg::SvgError::Outline(_) => "invalid_outline",
             },
         )
     })?;
