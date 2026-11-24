@@ -82,32 +82,41 @@ impl FontProvider {
             .find(|(id, _)| *id == glyph.resource_id)
             .ok_or_else(|| FontError::new(FontErrorKind::InvalidResources))?
             .1;
-        let bounds = font.glyph_bounds(glyph.glyph_id)?;
-        let mut height = 0.0;
-        let mut depth = 0.0;
-        let ink_bounds = if let Some(b) = bounds {
-            let top = font.scale(f64::from(b.y_max), font_size_px)?;
-            let bottom = font.scale(f64::from(b.y_min), font_size_px)?;
-            height = top.max(0.0);
-            depth = (-bottom).max(0.0);
-            Some(
-                Bounds::new(
-                    glyph.left_side_bearing_px,
-                    height - top,
-                    font.scale(f64::from(b.x_max) - f64::from(b.x_min), font_size_px)?,
-                    top - bottom,
-                )
-                .map_err(|_| FontError::new(FontErrorKind::MetricsUnavailable))?,
-            )
-        } else {
-            None
-        };
-        let metrics = Metrics::new(glyph.advance_px, height, depth)
-            .map_err(|_| FontError::new(FontErrorKind::MetricsUnavailable))?;
-        Ok(MeasuredGlyph {
-            glyph,
-            metrics,
-            ink_bounds,
-        })
+        measured_glyph(font, glyph, font_size_px)
     }
+}
+
+/// Derives a glyph's logical metrics and ink rectangle from its face bounds.
+pub(super) fn measured_glyph(
+    font: &FontFace,
+    glyph: ResolvedGlyph,
+    font_size_px: f64,
+) -> Result<MeasuredGlyph> {
+    let bounds = font.glyph_bounds(glyph.glyph_id)?;
+    let mut height = 0.0;
+    let mut depth = 0.0;
+    let ink_bounds = if let Some(b) = bounds {
+        let top = font.scale(f64::from(b.y_max), font_size_px)?;
+        let bottom = font.scale(f64::from(b.y_min), font_size_px)?;
+        height = top.max(0.0);
+        depth = (-bottom).max(0.0);
+        Some(
+            Bounds::new(
+                glyph.left_side_bearing_px,
+                height - top,
+                font.scale(f64::from(b.x_max) - f64::from(b.x_min), font_size_px)?,
+                top - bottom,
+            )
+            .map_err(|_| FontError::new(FontErrorKind::MetricsUnavailable))?,
+        )
+    } else {
+        None
+    };
+    let metrics = Metrics::new(glyph.advance_px, height, depth)
+        .map_err(|_| FontError::new(FontErrorKind::MetricsUnavailable))?;
+    Ok(MeasuredGlyph {
+        glyph,
+        metrics,
+        ink_bounds,
+    })
 }

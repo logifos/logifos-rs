@@ -1,6 +1,7 @@
 //! Scripts: a base with a raised superscript or lowered subscript, per
 //! MathML Core section 3.4.1 with the OpenType MATH constants.
 
+use super::baseline::{ink_ascent, ink_descent, lowered, raised};
 use super::{LayoutError, Node, PlacedGlyph, ResolvedStyle};
 use crate::font::math::MathConstant;
 use crate::font::FontProvider;
@@ -128,46 +129,5 @@ fn scripted<'a>(
         operator: base.operator,
         italic: correction,
         empty: base.empty && script_empty,
-    })
-}
-
-/// Wraps a script whose baseline rises by `shift` above the row baseline,
-/// reporting the script's own y offset inside the wrapper.
-fn raised(script: BoxTree, shift: f64) -> Result<(BoxTree, f64), crate::GeometryError> {
-    let height = script.metrics().height();
-    let pad = (shift - script.metrics().depth()).max(0.0);
-    let items = if pad > 0.0 {
-        vec![StackItem::Box(script), StackItem::Kern(Kern::new(pad)?)]
-    } else {
-        vec![StackItem::Box(script)]
-    };
-    let wrapper = BoxTree::vbox(items, height + shift)?;
-    Ok((wrapper, 0.0))
-}
-
-/// Wraps a script whose baseline drops by `shift` below the row baseline,
-/// reporting the script's own y offset inside the wrapper.
-fn lowered(script: BoxTree, shift: f64) -> Result<(BoxTree, f64), crate::GeometryError> {
-    let height = script.metrics().height();
-    let pad = (shift - height).max(0.0);
-    let items = if pad > 0.0 {
-        vec![StackItem::Kern(Kern::new(pad)?), StackItem::Box(script)]
-    } else {
-        vec![StackItem::Box(script)]
-    };
-    let wrapper = BoxTree::vbox(items, (height - shift).max(0.0))?;
-    Ok((wrapper, pad))
-}
-
-/// The ink's rise above the baseline; 0 for a box without ink.
-fn ink_ascent(tree: &BoxTree) -> f64 {
-    tree.ink_bounds()
-        .map_or(0.0, |b| tree.metrics().baseline() - b.origin().y())
-}
-
-/// The ink's drop below the baseline; 0 for a box without ink.
-fn ink_descent(tree: &BoxTree) -> f64 {
-    tree.ink_bounds().map_or(0.0, |b| {
-        b.origin().y() + b.height() - tree.metrics().baseline()
     })
 }

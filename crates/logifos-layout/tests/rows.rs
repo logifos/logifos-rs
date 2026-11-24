@@ -88,6 +88,15 @@ fn provider(bytes: &[u8]) -> FontProvider {
 fn render(formula: &Formula, level: u8) -> Layout {
     layout(formula, &mut provider(&font()), options(level)).unwrap()
 }
+/// The support builder's font with stretch data: vertical constructions for
+/// glyph 2 ('√') — variants g2 (800u) and g3 (1200u) plus a three-part
+/// assembly g3/g4(extender)/g5 — and every glyph a 600u-advance triangle
+/// spanning −200..700 units. `x_top` overrides glyph 1's ink top.
+fn stretch_font(x_top: i16) -> Vec<u8> {
+    let mut b = support::FontBuilder::new(&[('x', 1), ('√', 2), ('z', 3)], 250, true);
+    put16(b.tables.get_mut(b"glyf").unwrap(), 8, x_top as u16);
+    b.finish()
+}
 fn close(actual: f64, expected: f64) {
     assert!(
         (actual - expected).abs() < 1e-10,
@@ -524,6 +533,157 @@ fn nested_scripts_use_the_cramped_superscript_constant() {
         5.4 + value(&mut fonts, MathConstant::SuperscriptShiftUpCramped, 14.4),
     );
     close(inner_wrapper.metrics().baseline(), 6.9552);
+}
+
+#[test]
+fn sqrt_selects_a_covering_variant_and_wraps_the_radicand() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&stretch_font(700));
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    let gap = unit(MathConstant::RadicalVerticalGap);
+    let rule = unit(MathConstant::RadicalRuleThickness);
+    let extra = unit(MathConstant::RadicalExtraAscender);
+    // 'x': advance 10.8 with ink 12.6 above and 3.6 below the baseline; the
+    // target 21.456px is covered by the g3 variant (1200u = 21.6px).
+    let ascent = 12.6f64.max(12.6 + gap + rule + extra);
+    let extent = 1200.0 * scale;
+    let formula = Formula::Sqrt(Box::new(symbol("x")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    let metrics = result.tree.metrics();
+    close(metrics.width(), 21.6);
+    close(metrics.baseline(), ascent);
+    close(metrics.depth(), extent + extra - ascent);
+    assert_eq!(result.glyphs.len(), 2);
+    assert_eq!(result.glyphs[0].glyph.glyph_id, 3);
+    close(result.glyphs[0].font_size_px, 18.0);
+    // The surd piece hangs below the extra ascender with its baseline at the
+    // slot bottom; the radicand keeps the row baseline after the surd.
+    close(result.glyphs[0].origin.x(), 0.0);
+    close(result.glyphs[0].origin.y(), extra + extent);
+    close(result.glyphs[1].origin.x(), 10.8);
+    close(result.glyphs[1].origin.y(), ascent);
+    // The overbar rides the radicand width, centered rule thicknesses below
+    // the content top; its zero advance keeps the row at surd + radicand.
+    let wrapper = result.tree.children()[0].node().children()[1].node();
+    close(wrapper.metrics().baseline(), ascent - extra);
+    close(wrapper.metrics().width(), 10.8);
+    assert_eq!(snapshot(&result), include_str!("snapshots/sqrt-row.txt"));
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn sqrt_grows_the_assembly_extender_to_the_target() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&stretch_font(1400));
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    let gap = unit(MathConstant::RadicalVerticalGap);
+    let rule = unit(MathConstant::RadicalRuleThickness);
+    let extra = unit(MathConstant::RadicalExtraAscender);
+    // 'x' ink top 1400: ascent 25.2, descent 3.6; the target 34.056px exceeds
+    // the natural 1600u assembly, so the 600u extender repeats
+    // ceil((target - 1000u)/600u) = 2 times: parts g3, g4, g4, g5.
+    let ascent = 25.2f64.max(25.2 + gap + rule + extra);
+    let target = rule + gap + 28.8;
+    let extent = 2200.0 * scale; // 39.6: 500 + 2x600 + 500 units
+    let overlap = (extent - target) / 3.0;
+    // The stretched box spans its slots' union, not the raw part total.
+    let stretched = extent - 3.0 * overlap;
+    let formula = Formula::Sqrt(Box::new(symbol("x")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    let metrics = result.tree.metrics();
+    close(metrics.width(), 21.6);
+    close(metrics.baseline(), ascent);
+    close(metrics.depth(), stretched + extra - ascent);
+    assert_eq!(result.glyphs.len(), 5);
+    for (glyph, id) in result.glyphs.iter().zip([3u16, 4, 4, 5, 1]) {
+        assert_eq!(glyph.glyph.glyph_id, id);
+    }
+    // Piece baselines stack at slot bottoms: each slot grows by its extent
+    // less the shared overlap, starting under the extra ascender.
+    let mut slot = 0.0;
+    for glyph in &result.glyphs[..4] {
+        let piece_extent = if glyph.glyph.glyph_id == 4 { 10.8 } else { 9.0 };
+        close(glyph.origin.y(), extra + slot + piece_extent);
+        slot += piece_extent - overlap;
+    }
+    close(result.glyphs[4].origin.x(), 10.8);
+    close(result.glyphs[4].origin.y(), ascent);
+    assert_eq!(
+        snapshot(&result),
+        include_str!("snapshots/sqrt-assembly-row.txt")
+    );
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn root_raises_the_index_by_the_percent_schedule() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&stretch_font(700));
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    let gap = unit(MathConstant::RadicalVerticalGap);
+    let rule = unit(MathConstant::RadicalRuleThickness);
+    let extra = unit(MathConstant::RadicalExtraAscender);
+    let kern_before = unit(MathConstant::RadicalKernBeforeDegree);
+    // Index 'z' at level two (10.8px): 6.48 wide, 7.56 tall, 2.16 deep.
+    let index_ascent = 7.56;
+    let index_width = 6.48;
+    // The fixture overrides the last constant record: KernAfterDegree -120u,
+    // which the max(-index width) clamp keeps.
+    let kern_after = unit(MathConstant::RadicalKernAfterDegree).max(-index_width);
+    let percent = f64::from(
+        fonts
+            .primary()
+            .math
+            .constants
+            .radical_degree_bottom_raise_percent,
+    ) / 100.0;
+    // B: the sqrt row of 'x' — width 21.6, ascent 20.52, depth 3.744.
+    let b_ascent = 12.6f64.max(12.6 + gap + rule + extra);
+    let b_depth = 1200.0 * scale + extra - b_ascent;
+    // The index top rides -B.depth + percent x B.block above the baseline.
+    let index_top = -b_depth + percent * (b_ascent + b_depth) + index_ascent;
+    let formula = Formula::Root(Box::new(symbol("x")), Box::new(symbol("z")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    let metrics = result.tree.metrics();
+    close(
+        metrics.width(),
+        kern_before + index_width + kern_after + 21.6,
+    );
+    close(metrics.baseline(), index_top.max(b_ascent));
+    // The spec descent formula loses to B's own depth in this fixture.
+    close(
+        metrics.depth(),
+        (b_depth - percent * (b_ascent + b_depth) + index_ascent)
+            .max(b_depth)
+            .max(1200.0 * scale + extra - b_ascent),
+    );
+    assert_eq!(result.glyphs.len(), 3);
+    for (glyph, id) in result.glyphs.iter().zip([3u16, 3, 1]) {
+        assert_eq!(glyph.glyph.glyph_id, id);
+    }
+    for (glyph, size) in result.glyphs.iter().zip([10.8, 18.0, 18.0]) {
+        close(glyph.font_size_px, size);
+    }
+    // The index wrapper's raised baseline: top minus one index height.
+    let wrapper_offset_y = metrics.baseline() - index_top;
+    close(result.glyphs[0].origin.x(), kern_before);
+    close(result.glyphs[0].origin.y(), wrapper_offset_y + index_ascent);
+    let b_x = kern_before + index_width + kern_after;
+    close(result.glyphs[1].origin.x(), b_x);
+    close(result.glyphs[1].origin.y(), extra + 1200.0 * scale);
+    close(result.glyphs[2].origin.x(), b_x + 10.8);
+    close(result.glyphs[2].origin.y(), metrics.baseline());
+    assert_eq!(snapshot(&result), include_str!("snapshots/root-row.txt"));
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
 }
 
 #[test]

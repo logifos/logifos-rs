@@ -237,6 +237,32 @@ fn decode_node(
                 _ => Formula::Subscript(pair.0, pair.1),
             })
         }
+        "Math::Function::Sqrt" => {
+            closed(fields, &["parameter_one"], &fields_path)?;
+            let radicand = decode_value(
+                required(fields, "parameter_one", &fields_path)?,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            Ok(Formula::Sqrt(Box::new(radicand)))
+        }
+        "Math::Function::Root" => {
+            closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            let radicand = decode_value(
+                required(fields, "parameter_one", &fields_path)?,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            let index = decode_value(
+                required(fields, "parameter_two", &fields_path)?,
+                &pointer(&fields_path, "parameter_two"),
+                depth + 1,
+                budget,
+            )?;
+            Ok(Formula::Root(Box::new(radicand), Box::new(index)))
+        }
         _ => {
             let text = operator_text(class)
                 .ok_or_else(|| refusal(WireErrorCode::UnsupportedClass, &pointer(path, "class")))?;
@@ -285,11 +311,13 @@ fn encode_node(
         }
         Formula::Fraction(first, second)
         | Formula::Superscript(first, second)
-        | Formula::Subscript(first, second) => {
+        | Formula::Subscript(first, second)
+        | Formula::Root(first, second) => {
             let class = match node {
                 Formula::Fraction(..) => "Math::Function::Frac",
                 Formula::Superscript(..) => "Math::Function::Power",
-                _ => "Math::Function::Base",
+                Formula::Subscript(..) => "Math::Function::Base",
+                _ => "Math::Function::Root",
             };
             let first = encode_node(
                 first,
@@ -307,6 +335,15 @@ fn encode_node(
                 class,
                 json!({"parameter_one": first, "parameter_two": second}),
             )
+        }
+        Formula::Sqrt(radicand) => {
+            let first = encode_node(
+                radicand,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            ("Math::Function::Sqrt", json!({"parameter_one": first}))
         }
     };
     Ok(json!({"class": class, "fields": fields}))

@@ -50,13 +50,19 @@ impl LayoutOptions {
 }
 
 impl ResolvedStyle {
-    /// MathML Core section 3.4.4: a scripted child gains one level and
-    /// compact displaystyle. `cramped` sets math-shift compact, which msub
-    /// applies to its subscript; other scripts inherit the caller's shift.
-    pub fn raise(&self, fonts: &mut FontProvider, cramped: bool) -> Result<Self, LayoutError> {
+    /// MathML Core section 3.4.4: a scripted child gains its depth's levels
+    /// and compact displaystyle. `cramped` sets math-shift compact, which
+    /// msub applies to its subscript; other scripts inherit the caller's
+    /// shift.
+    pub fn raise(
+        &self,
+        fonts: &mut FontProvider,
+        levels: u8,
+        cramped: bool,
+    ) -> Result<Self, LayoutError> {
         let script_level = self
             .script_level
-            .checked_add(1)
+            .checked_add(levels)
             .ok_or(LayoutError::InvalidOptions)?;
         let font_size_px = self.base_font_size_px * schedule(fonts, script_level)?;
         if font_size_px <= 0.0 || !font_size_px.is_finite() {

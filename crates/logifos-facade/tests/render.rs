@@ -19,7 +19,8 @@ fn parse_model() -> Value {
 }
 
 fn font() -> Vec<u8> {
-    support::FontBuilder::new(&[('x', 1), ('+', 2), ('1', 3)], 250, true).finish()
+    // '√' shares glyph 2, whose MATH table carries the vertical construction.
+    support::FontBuilder::new(&[('x', 1), ('+', 2), ('1', 3), ('√', 2)], 250, true).finish()
 }
 
 fn font_entry(font: &[u8]) -> Value {
@@ -97,6 +98,37 @@ fn render_refuses_a_corrupt_font() {
     font[200] ^= 0xff;
     let reply = request_json(&render_request(&model, Some(&font)));
     assert_eq!(reply["error"]["code"], "INVALID_FONT");
+}
+
+#[test]
+fn render_lays_out_a_sqrt_through_the_wire() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><msqrt><mi>x</mi></msqrt></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    assert_eq!(svg.matches("<path").count(), 2, "two glyph paths: {svg}");
+    // The surd variant (glyph 3) hangs below the row baseline (27.36px =
+    // 16.8 ink + 3.48 gap + 3.528 rule + 3.552 extra ascender); its piece
+    // baseline sits one slot bottom lower, and the rule overlays 'x'.
+    let glyphs_start = svg.find("<g id=\"glyphs\">").expect("glyph layer");
+    let layer = &svg[glyphs_start..];
+    assert_eq!(
+        layer,
+        concat!(
+            "<g id=\"glyphs\"><path d=\"M0 37.152 L12 15.552000000000003 L0 37.152 Z\"/>",
+            "<path d=\"M14.4 32.16 L26.4 10.559999999999999 L14.4 32.16 Z\"/>",
+            "</g></g></svg>",
+        ),
+        "glyph layer bytes: {svg}"
+    );
 }
 
 #[test]

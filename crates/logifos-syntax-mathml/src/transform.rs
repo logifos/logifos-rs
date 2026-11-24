@@ -75,13 +75,15 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// `mi`, `mn` and `mtext` become symbols with their decoded text preserved exactly;
 /// Formula has one shared text/identifier class. `mo` accepts only `+`, `-`, `=`,
 /// `*` and `×`, with no trimming, substitution or symbol fallback. `mfrac`, `msub`
-/// and `msup` require exactly two element operands in source order.
+/// and `msup` require exactly two element operands in source order. `msqrt`
+/// wraps every child in one radicand; `mroot` takes base then index and falls
+/// back to a row outside its two-child arity.
 ///
 /// Only XML whitespace between operands is insignificant. Namespace declarations
 /// identify names and carry no Formula presentation data. Every non-namespace
 /// attribute, comment, other element, nested token markup and non-whitespace text
 /// outside tokens refuses the entire conversion. No partial tree is returned.
-/// Radicals, fences, tables, combined scripts, under/over constructs, style,
+/// Fences, tables, combined scripts, under/over constructs, style,
 /// spacing, enclosure, semantics and annotations therefore remain unsupported.
 /// Names in either the MathML namespace or no namespace are accepted.
 ///
@@ -166,7 +168,7 @@ impl Transformer {
                 element,
                 location,
             )),
-            "math" | "mrow" | "mfrac" | "msub" | "msup" => {
+            "math" | "mrow" | "mfrac" | "msub" | "msup" | "msqrt" | "mroot" => {
                 let mut children = Vec::new();
                 for (index, node) in element.children.iter().enumerate() {
                     let path = format!("{location}/children/{index}");
@@ -188,7 +190,19 @@ impl Transformer {
                 }
                 match element.name.local.as_str() {
                     "math" | "mrow" => Ok(Formula::Sequence(children)),
+                    "msqrt" => Ok(Formula::Sqrt(Box::new(Formula::Sequence(children)))),
+                    "mroot" if children.len() == 2 => {
+                        let mut children = children.into_iter();
+                        let base = children.next().unwrap();
+                        let index = children.next().unwrap();
+                        Ok(Formula::Root(Box::new(base), Box::new(index)))
+                    }
                     _ => {
+                        // Core 3.3.3: mroot outside its two-child arity lays
+                        // out as a row.
+                        if element.name.local.as_str() == "mroot" {
+                            return Ok(Formula::Sequence(children));
+                        }
                         let [first, second]: [Formula; 2] = children.try_into().map_err(|_| {
                             refusal(TransformErrorKind::InvalidStructure, element, location)
                         })?;

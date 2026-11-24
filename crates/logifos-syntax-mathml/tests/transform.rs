@@ -17,6 +17,10 @@ fn symbol(text: &str) -> Formula {
     Formula::Symbol(text.into())
 }
 
+fn operator(text: &str) -> Formula {
+    Formula::Operator(text.into())
+}
+
 fn refused(source: &str, kind: TransformErrorKind, name: &str, location: &str) -> TransformError {
     let document = parse(source).unwrap();
     let error = transform(&document).unwrap_err();
@@ -158,11 +162,42 @@ fn namespace_prefixes_do_not_change_formula() {
 }
 
 #[test]
-fn radicals_refuse() {
-    unsupported(&[
-        ("msqrt", "<msqrt><mi>x</mi></msqrt>"),
-        ("mroot", "<mroot><mi>x</mi><mn>3</mn></mroot>"),
-    ]);
+fn radicals_map_the_radicand_and_index() {
+    assert_eq!(
+        converted("<math><msqrt><mi>x</mi><mo>+</mo><mn>1</mn></msqrt></math>"),
+        Formula::Sequence(vec![Formula::Sqrt(Box::new(Formula::Sequence(vec![
+            symbol("x"),
+            operator("+"),
+            symbol("1"),
+        ])))])
+    );
+    assert_eq!(
+        converted("<math><msqrt/></math>"),
+        Formula::Sequence(vec![Formula::Sqrt(Box::new(Formula::Sequence(vec![])))])
+    );
+    assert_eq!(
+        converted("<math><mroot><mi>x</mi><mn>3</mn></mroot></math>"),
+        Formula::Sequence(vec![Formula::Root(
+            Box::new(symbol("x")),
+            Box::new(symbol("3")),
+        )])
+    );
+}
+
+#[test]
+fn mroot_outside_its_arity_becomes_a_row() {
+    assert_eq!(
+        converted("<math><mroot><mi>x</mi></mroot></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![symbol("x")])])
+    );
+    assert_eq!(
+        converted("<math><mroot><mi>a</mi><mn>3</mn><mn>4</mn></mroot></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![
+            symbol("a"),
+            symbol("3"),
+            symbol("4")
+        ])])
+    );
 }
 
 #[test]
@@ -421,9 +456,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:msqrt><mi>y</mi></m:msqrt></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:munder><mi>y</mi><mo>^</mo></m:munder></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "msqrt",
+        "munder",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));
