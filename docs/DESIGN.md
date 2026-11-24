@@ -75,16 +75,18 @@ the MathML Core §4.5 script-level schedule and the OpenType MATH
 percentages into `ResolvedStyle`.
 
 **Current.** Sequences, tokens (mi/mn/mo glyph placement with italics
-correction) and operator spacing (a validated operator set with MathML
-spacing classes B/C/D) lay out. Fractions, sub/superscripts and radicals
-refuse typed (`LayoutError::UnsupportedConstruct`) — the next layout work,
-driven by the MATH table constants already parsed.
+correction), operator spacing (a validated operator set with MathML
+spacing classes B/C/D) and fractions lay out. Fractions follow MathML
+Core §4.2: axis-aligned rule at the MATH `FractionRuleThickness`,
+children centered, shifts grown to keep the minimum gaps, with the
+display variants selected by `LayoutOptions::display`. Sub/superscripts
+and radicals refuse typed (`LayoutError::UnsupportedConstruct`) — the
+next layout work, driven by the MATH table constants already parsed.
 
-**Target.** Fractions (rule thickness, axis centering), scripts (shift
-computation from MATH constants), radicals (closure construction and
-assembly stretching), tables (row/column alignment), stretchy delimiters
-(glyph assembly with min connector overlap — the `StretchShape` machinery
-is already typed).
+**Target.** Scripts (shift computation from MATH constants), radicals
+(closure construction and assembly stretching), tables (row/column
+alignment), stretchy delimiters (glyph assembly with min connector
+overlap — the `StretchShape` machinery is already typed).
 
 ## 5. The painter — `logifos-svg`
 

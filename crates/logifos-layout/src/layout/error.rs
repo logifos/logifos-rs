@@ -5,7 +5,6 @@ use std::fmt;
 /// Recognized Formula constructs whose geometry is not supported yet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Construct {
-    Fraction,
     Superscript,
     Subscript,
 }
