@@ -631,6 +631,7 @@ fn placed_glyph(
         },
         origin,
         font_size_px: 16.0,
+        color: None,
     }
 }
 
@@ -791,4 +792,31 @@ fn repeated_emissions_have_no_cross_document_state() {
         );
     }
     parse(&expected).assert_viewport([0.0, 0.0, 2.75, 4.0]);
+}
+
+#[test]
+fn colored_glyphs_fill_their_own_path_only() {
+    use logifos_layout::layout::MathColor;
+    let outline = || {
+        Some(font_outline_px(vec![vec![
+            point_px(0.0, 0.0, true),
+            point_px(2.0, 0.0, true),
+            point_px(1.0, 2.0, true),
+        ]]))
+    };
+    let plain = placed_glyph(Point::new(0.0, 2.0).unwrap(), outline());
+    let red = PlacedGlyph {
+        color: Some(MathColor::Red),
+        ..placed_glyph(Point::new(4.0, 2.0).unwrap(), outline())
+    };
+    let tree = BoxTree::leaf(Metrics::new(6.0, 2.0, 0.0).unwrap(), None);
+    let document = emit(&tree, &[plain, red], &SvgOptions::default()).unwrap();
+    assert_eq!(
+        document
+            .as_str()
+            .matches("<path fill=\"#ff0000\" d=")
+            .count(),
+        1
+    );
+    assert_eq!(document.as_str().matches("<path d=").count(), 1);
 }

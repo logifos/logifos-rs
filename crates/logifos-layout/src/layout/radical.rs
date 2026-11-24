@@ -104,6 +104,7 @@ pub(super) fn root<'a>(
         operator_font_size_px: None,
         italic: 0.0,
         empty: false,
+        right_space: None,
     })
 }
 
@@ -152,7 +153,7 @@ fn surd_row<'a>(
         StackItem::Box(radicand.tree),
     ])?;
 
-    let mut glyphs = stretched_pieces(&surd, '√', extra, style.font_size_px)?;
+    let mut glyphs = stretched_pieces(&surd, '√', extra, style.font_size_px, style.color)?;
     let leaf_offset = tree.children()[0].offset();
     for glyph in &mut glyphs {
         glyph.origin = glyph.origin.translated(leaf_offset)?;
@@ -170,6 +171,7 @@ fn surd_row<'a>(
             operator_font_size_px: None,
             italic: 0.0,
             empty: false,
+            right_space: None,
         },
         rule,
         extra,
@@ -183,6 +185,7 @@ pub(super) fn stretched_pieces(
     character: char,
     extra: f64,
     font_size_px: f64,
+    color: Option<logifos_model::MathColor>,
 ) -> Result<Vec<PlacedGlyph>, LayoutError> {
     let mut glyphs = Vec::with_capacity(surd.pieces.len());
     let mut slot = 0.0;
@@ -193,6 +196,7 @@ pub(super) fn stretched_pieces(
             glyph: piece.glyph.clone(),
             origin: Point::new(0.0, y)?,
             font_size_px,
+            color,
         });
         slot = add(add(slot, *extent)?, -surd.overlap_px)?;
     }

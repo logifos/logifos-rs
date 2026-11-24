@@ -20,15 +20,14 @@ pub(super) fn validate(text: &str) -> Result<(), LayoutError> {
     if text.len() > 16 {
         return Err(LayoutError::ResourceLimit);
     }
-    // Large operators need display-size variants and movable limits, which
-    // layout does not implement; everything else in the dictionary is spacing.
-    if text.is_empty() || !operator::is_operator_text(text) || large(text) {
+    // Empty operators lay out as nothing; large ones as display variants.
+    if !operator::is_operator_text(text) {
         return Err(LayoutError::UnsupportedOperator(text.to_owned()));
     }
     Ok(())
 }
 
-fn large(text: &str) -> bool {
+pub(super) fn large(text: &str) -> bool {
     [Form::Prefix, Form::Infix, Form::Postfix]
         .into_iter()
         .any(|form| operator::category(text, form).is_large())
@@ -44,7 +43,13 @@ pub(super) fn form(index: usize, count: usize) -> Form {
     }
 }
 
-pub(super) fn space(text: &str, form: Form, size: f64) -> (f64, f64) {
+/// The spacing in pixels; an explicit rspace replaces the trailing space.
+pub(super) fn space(text: &str, form: Form, size: f64, right: Option<f64>) -> (f64, f64) {
+    let (lead, trail) = dictionary_space(text, form, size);
+    (lead, right.unwrap_or(trail))
+}
+
+fn dictionary_space(text: &str, form: Form, size: f64) -> (f64, f64) {
     // Core 3.2.4.2: the dictionary category supplies the leading space in
     // 1/18 em on each side. Fences are category F or G: no space on either side.
     if is_fence(text) {

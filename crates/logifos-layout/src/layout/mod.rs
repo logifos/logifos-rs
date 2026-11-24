@@ -10,8 +10,10 @@ mod scripts;
 mod style;
 mod table;
 mod token;
+mod variant;
 
 pub use error::LayoutError;
+pub use logifos_model::MathColor;
 pub use style::{LayoutOptions, ResolvedStyle};
 
 use crate::font::{FontProvider, ResolvedGlyph};
@@ -26,6 +28,8 @@ pub struct PlacedGlyph {
     /// Baseline origin in the root box's top-left coordinate system.
     pub origin: Point,
     pub font_size_px: f64,
+    /// Explicit mathcolor in effect for this glyph; `None` inherits the paint.
+    pub color: Option<logifos_model::MathColor>,
 }
 
 /// Geometry plus the font and glyph information needed by a later painter.
@@ -70,6 +74,8 @@ struct Node<'a> {
     operator_font_size_px: Option<f64>,
     italic: f64,
     empty: bool,
+    /// Explicit rspace of the operator this node embellishes, in pixels.
+    right_space: Option<f64>,
 }
 
 struct Budget {
@@ -108,6 +114,13 @@ fn build<'a>(
             return Err(LayoutError::InvalidOptions);
         }
         style = style.presentation(*hints, fonts)?;
+        if let Some(space) = hints.right_space {
+            // Core 3.2.4: rspace in 1/18 em of the operator's own size.
+            let mut node = build_construct(content, fonts, style, budget, depth)?;
+            let size = node.operator_font_size_px.unwrap_or(style.font_size_px);
+            node.right_space = Some(size * space.units() / 18.0);
+            return Ok(node);
+        }
         (content.as_ref(), style)
     } else {
         (formula, style)
@@ -159,6 +172,10 @@ fn build_construct<'a>(
         Formula::Operator(text) => {
             operator::validate(text)?;
             token::token(text, Some(text), fonts, style, budget)
+        }
+        Formula::Fraction(..) | Formula::Sqrt(_) | Formula::Root(..) if style.color.is_some() => {
+            // Rules carry no color, so a colored rule would paint wrongly.
+            Err(LayoutError::NotLaidOutYet)
         }
         Formula::Fraction(numerator, denominator) => {
             // Core 3.3.2: compact children, auto-add depth only when the

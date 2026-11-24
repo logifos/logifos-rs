@@ -1,6 +1,6 @@
 use super::LayoutError;
 use crate::font::FontProvider;
-use logifos_model::{MathDisplay, PresentationStyle, ScriptLevel};
+use logifos_model::{MathColor, MathDisplay, MathVariant, PresentationStyle, ScriptLevel};
 
 /// Inherited options for this call, before explicit Formula hints.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -25,6 +25,10 @@ pub struct ResolvedStyle {
     pub display: bool,
     /// MathML math-shift compact; selects the cramped superscript constant.
     pub cramped: bool,
+    /// The inherited mathcolor; glyphs carry it to the painter.
+    pub color: Option<MathColor>,
+    /// The inherited mathvariant, applied to symbol text.
+    pub variant: Option<MathVariant>,
 }
 
 impl LayoutOptions {
@@ -46,6 +50,8 @@ impl LayoutOptions {
             script_level: i16::from(self.script_level),
             display: self.display,
             cramped: false,
+            color: None,
+            variant: None,
         })
     }
 }
@@ -56,16 +62,15 @@ impl ResolvedStyle {
         hints: PresentationStyle,
         fonts: &mut FontProvider,
     ) -> Result<Self, LayoutError> {
-        // Syntax can preserve these attributes before geometry/painting can
-        // implement them. Never silently render them with default semantics.
-        if hints.math_variant.is_some()
-            || hints.math_color.is_some()
-            || hints.right_space.is_some()
-            || hints.accent.is_some()
-        {
-            return Err(LayoutError::NotLaidOutYet);
-        }
+        // accent only changes over-script placement, and the only constructs
+        // that own it (Over, UnderOver) still refuse layout as a whole.
         let mut style = self;
+        if hints.math_variant.is_some() {
+            style.variant = hints.math_variant;
+        }
+        if hints.math_color.is_some() {
+            style.color = hints.math_color;
+        }
         if let Some(display) = hints.display {
             style.display = display == MathDisplay::Block;
         }

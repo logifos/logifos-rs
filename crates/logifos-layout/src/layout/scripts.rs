@@ -130,5 +130,6 @@ fn scripted<'a>(
         operator_font_size_px: base.operator_font_size_px,
         italic: correction,
         empty: base.empty && script_empty,
+        right_space: base.right_space,
     })
 }

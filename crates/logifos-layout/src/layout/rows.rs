@@ -30,6 +30,7 @@ pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, Layout
         operator_font_size_px: None,
         italic: 0.0,
         empty,
+        right_space: None,
     })
 }
 
@@ -55,12 +56,14 @@ pub(super) fn row<'a>(
         .map(
             |node| match node.operator.filter(|t| operator::is_fence(t)) {
                 Some(text) => {
+                    let color = node.glyphs.first().and_then(|glyph| glyph.color);
                     let mut stretched = stretched_fence(
                         text,
                         ink_ascent,
                         ink_descent,
                         fonts,
                         node.operator_font_size_px.unwrap_or(style.font_size_px),
+                        color,
                     )?;
                     // Invisible embellished operators still stretch and space,
                     // but re-layout must not restore their painted output.
@@ -83,6 +86,14 @@ pub(super) fn row<'a>(
     } else {
         None
     };
+    let core_space = if core.is_some() {
+        children
+            .iter()
+            .find(|node| !node.empty)
+            .and_then(|node| node.right_space)
+    } else {
+        None
+    };
     let core_style = if core.is_some() {
         children
             .iter()
@@ -101,6 +112,7 @@ pub(super) fn row<'a>(
                     text,
                     operator::form(index, count),
                     node.operator_font_size_px.unwrap_or(style.font_size_px),
+                    node.right_space,
                 )
             })
         } else {
@@ -120,6 +132,7 @@ pub(super) fn row<'a>(
     let mut node = stack(parts)?;
     node.operator = core;
     node.operator_font_size_px = core_style;
+    node.right_space = core_space;
     node.italic = previous_italic;
     Ok(node)
 }
@@ -132,6 +145,7 @@ fn stretched_fence<'a>(
     descent: f64,
     fonts: &mut FontProvider,
     font_size_px: f64,
+    color: Option<crate::layout::MathColor>,
 ) -> Result<Node<'a>, LayoutError> {
     let ch = text.chars().next().unwrap_or('(');
     let stretched =
@@ -140,7 +154,7 @@ fn stretched_fence<'a>(
         Metrics::new(stretched.advance_px, ascent.max(0.0), descent.max(0.0))?,
         None,
     );
-    let glyphs = radical::stretched_pieces(&stretched, ch, 0.0, font_size_px)?;
+    let glyphs = radical::stretched_pieces(&stretched, ch, 0.0, font_size_px, color)?;
     Ok(Node {
         tree,
         glyphs,
@@ -148,6 +162,7 @@ fn stretched_fence<'a>(
         operator_font_size_px: Some(font_size_px),
         italic: 0.0,
         empty: false,
+        right_space: None,
     })
 }
 
@@ -157,6 +172,7 @@ pub(super) fn finish(node: Node<'_>, style: ResolvedStyle) -> Result<Node<'_>, L
             text,
             operator::form(0, 1),
             node.operator_font_size_px.unwrap_or(style.font_size_px),
+            node.right_space,
         )
     });
     let trailing = node.italic;

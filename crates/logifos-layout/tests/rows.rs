@@ -826,12 +826,10 @@ fn unit_of(fonts: &mut FontProvider, constant: logifos_layout::font::math::MathC
 
 #[test]
 fn unsupported_operators_and_missing_glyphs_refuse_typed() {
-    for text in ["", "∑", "∫", " + "] {
-        assert_eq!(
-            layout(&operator(text), &mut provider(&font()), options(0)).unwrap_err(),
-            LayoutError::UnsupportedOperator(text.into())
-        );
-    }
+    assert_eq!(
+        layout(&operator(" + "), &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::UnsupportedOperator(" + ".into())
+    );
     let error = layout(&symbol("q"), &mut provider(&font()), options(0)).unwrap_err();
     assert!(matches!(error,LayoutError::Font(ref e) if e.kind == FontErrorKind::MissingGlyph));
     assert_eq!(error.code(), "MISSING_GLYPH");
@@ -1231,43 +1229,17 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
 
 #[test]
 fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
-    use logifos_model::{MathColor, MathSpace, MathVariant, PresentationStyle};
-    for (hints, content) in [
-        (
-            PresentationStyle {
-                math_variant: Some(MathVariant::Bold),
-                ..Default::default()
-            },
-            Formula::Style(vec![symbol("x")]),
-        ),
-        (
-            PresentationStyle {
-                math_color: Some(MathColor::Red),
-                ..Default::default()
-            },
-            Formula::Style(vec![symbol("x")]),
-        ),
-        (
-            PresentationStyle {
-                right_space: Some(MathSpace::Thick),
-                ..Default::default()
-            },
-            operator("+"),
-        ),
-        (
-            PresentationStyle {
-                accent: Some(true),
-                ..Default::default()
-            },
-            Formula::Over(Box::new(symbol("x")), Box::new(symbol("y"))),
-        ),
-    ] {
-        let formula = sequence(vec![styled(content, hints)]);
-        assert_eq!(
-            layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
-            LayoutError::NotLaidOutYet
-        );
-    }
+    use logifos_model::PresentationStyle;
+    let hints = PresentationStyle {
+        accent: Some(true),
+        ..Default::default()
+    };
+    let content = Formula::Over(Box::new(symbol("x")), Box::new(symbol("y")));
+    let formula = sequence(vec![styled(content, hints)]);
+    assert_eq!(
+        layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::NotLaidOutYet
+    );
 }
 
 #[test]
@@ -1291,4 +1263,141 @@ fn explicit_center_is_preserved_without_changing_default_table_geometry() {
         layout(&invalid, &mut provider(&font()), options(0)).unwrap_err(),
         LayoutError::InvalidOptions
     );
+}
+
+#[test]
+fn display_large_operator_takes_the_tall_variant_centred_on_the_axis() {
+    let bytes = {
+        let mut b = support::FontBuilder::new(&[('x', 1), ('∑', 2), ('+', 1)], 250, true);
+        put16(b.tables.get_mut(b"glyf").unwrap(), 8, 700);
+        b.finish()
+    };
+    let display = LayoutOptions {
+        display: true,
+        ..options(0)
+    };
+    // DisplayOperatorMinHeight 1100u = 19.8px selects the 1200u (21.6px)
+    // variant; the axis is 250u = 4.5px.
+    let result = layout(&operator("∑"), &mut provider(&bytes), display).unwrap();
+    close(result.tree.metrics().height(), 4.5 + 10.8);
+    close(result.tree.metrics().depth(), 10.8 - 4.5);
+    assert_eq!(result.glyphs.len(), 1);
+    assert_eq!(result.glyphs[0].glyph.glyph_id, 3);
+    close(result.glyphs[0].origin.y(), 21.6);
+    // Inline style keeps the natural glyph.
+    let inline = layout(&operator("∑"), &mut provider(&bytes), options(0)).unwrap();
+    assert_eq!(inline.glyphs[0].glyph.glyph_id, 2);
+    let again = layout(&operator("∑"), &mut provider(&bytes), display).unwrap();
+    assert_eq!(result, again);
+}
+
+#[test]
+fn empty_operators_lay_out_as_nothing() {
+    let alone = layout(&operator(""), &mut provider(&font()), options(0)).unwrap();
+    assert!(alone.glyphs.is_empty());
+    close(alone.tree.metrics().width(), 0.0);
+    let plain = sequence(vec![symbol("x")]);
+    let with = sequence(vec![symbol("x"), operator("")]);
+    let a = layout(&plain, &mut provider(&font()), options(0)).unwrap();
+    let b = layout(&with, &mut provider(&font()), options(0)).unwrap();
+    close(a.tree.metrics().width(), b.tree.metrics().width());
+    assert_eq!(a.glyphs.len(), b.glyphs.len());
+}
+
+#[test]
+fn math_color_reaches_glyphs_in_scope_and_refuses_uncolorable_rules() {
+    use logifos_layout::layout::MathColor;
+    use logifos_model::PresentationStyle;
+    let red = PresentationStyle {
+        math_color: Some(MathColor::Red),
+        ..Default::default()
+    };
+    let formula = sequence(vec![
+        symbol("x"),
+        styled(Formula::Style(vec![symbol("x")]), red),
+    ]);
+    let result = layout(&formula, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(result.glyphs[0].color, None);
+    assert_eq!(result.glyphs[1].color, Some(MathColor::Red));
+    // Geometry is unchanged by color.
+    let plain = sequence(vec![symbol("x"), Formula::Style(vec![symbol("x")])]);
+    assert_eq!(
+        result.tree,
+        layout(&plain, &mut provider(&font()), options(0))
+            .unwrap()
+            .tree
+    );
+    // A rule cannot carry color, so it must not be painted uncolored.
+    let rule = styled(
+        Formula::Style(vec![Formula::Sqrt(Box::new(symbol("x")))]),
+        red,
+    );
+    assert_eq!(
+        layout(&rule, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::NotLaidOutYet
+    );
+}
+
+#[test]
+fn rspace_replaces_only_the_trailing_operator_space() {
+    use logifos_model::{MathSpace, PresentationStyle};
+    let thick = PresentationStyle {
+        right_space: Some(MathSpace::Thick),
+        ..Default::default()
+    };
+    let with = |op: Formula| sequence(vec![symbol("x"), op, symbol("x")]);
+    let plain = layout(&with(operator("+")), &mut provider(&font()), options(0)).unwrap();
+    let spaced = layout(
+        &with(styled(operator("+"), thick)),
+        &mut provider(&font()),
+        options(0),
+    )
+    .unwrap();
+    // The infix + has 4/18 em on each side; rspace 5/18 em at 18px is 5px.
+    close(
+        spaced.tree.metrics().width() - plain.tree.metrics().width(),
+        5.0 - 4.0,
+    );
+    assert_eq!(spaced.glyphs[1].origin, plain.glyphs[1].origin);
+    assert_eq!(spaced.glyphs[2].origin.y(), plain.glyphs[2].origin.y());
+    close(
+        spaced.glyphs[2].origin.x() - plain.glyphs[2].origin.x(),
+        1.0,
+    );
+}
+
+#[test]
+fn mathvariant_selects_the_styled_character_and_inherits() {
+    use logifos_model::{MathVariant, PresentationStyle};
+    let hints = |variant| PresentationStyle {
+        math_variant: Some(variant),
+        ..Default::default()
+    };
+    let italic = styled(
+        Formula::Style(vec![symbol("x"), operator("(")]),
+        hints(MathVariant::Italic),
+    );
+    let result = layout(&italic, &mut provider(&support::font()), options(0)).unwrap();
+    // 'x' becomes U+1D465 (glyph 4); the operator keeps its own character.
+    assert_eq!(result.glyphs[0].character, '\u{1d465}');
+    assert_eq!(result.glyphs[0].glyph.glyph_id, 4);
+    assert_eq!(result.glyphs[1].character, '(');
+    let normal = styled(
+        Formula::Style(vec![styled(
+            Formula::Style(vec![symbol("x")]),
+            hints(MathVariant::Normal),
+        )]),
+        hints(MathVariant::Italic),
+    );
+    assert_eq!(
+        layout(&normal, &mut provider(&support::font()), options(0))
+            .unwrap()
+            .glyphs[0]
+            .character,
+        'x'
+    );
+    // A face without the styled glyph refuses rather than substituting.
+    let bold = styled(Formula::Style(vec![symbol("x")]), hints(MathVariant::Bold));
+    let error = layout(&bold, &mut provider(&support::font()), options(0)).unwrap_err();
+    assert_eq!(error.code(), "MISSING_GLYPH");
 }
