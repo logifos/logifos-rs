@@ -56,6 +56,36 @@ mspace, mtext, mstyle, merror) with the MathJax mml3-style implied-mrow
 semantics, then LaTeX and AsciiMath syntax crates behind the same
 transform contract.
 
+### Scripts and distinct tokens
+
+The conservative transform and writer also preserve these syntax-only kinds:
+
+| MathML | Formula | Preserved data |
+| --- | --- | --- |
+| `munder`, `mover`, `munderover` | `Under`, `Over`, `UnderOver` | Base and ordered limit operands |
+| `msubsup` | `SubSup` | Base, subscript, superscript |
+| `mmultiscripts` | `MultiScripts` | Base, ordered postscript pairs, optional prescript pairs |
+| `mspace` without attributes | `Space` | A distinct space with default dimensions |
+| `ms` without attributes | `StringLiteral` | Exact decoded text and the string token kind |
+
+A multiscript `ScriptPair` has separate optional subscript and superscript
+slots. An absent slot writes an explicit `none` placeholder; an empty row
+remains a present `Sequence`. `prescripts: None` omits `mprescripts`, while
+`Some([])` retains an explicitly empty boundary. Markers are accepted only
+inside multiscripts, have no presentation attributes and contain only XML
+whitespace. Missing bases, unpaired slots, repeated separators and nonempty
+markers refuse typed. These malformed multiscripts remain outside the
+supported subset rather than using Core's row fallback. `msubsup` follows
+Core's row semantics outside its three-child arity.
+
+Every accepted tree writes canonical MathML that parses and transforms into
+an equal Formula. Namespace checks, syntax-node and depth budgets also apply
+to markers. Dimensions, custom quotes and other presentation attributes
+remain typed refusals. The pinned wire subset has no mappings for these
+kinds: encoding returns `UnsupportedClass` at the owning path. Layout returns
+`NotLaidOutYet` before visiting their children; no script layout algorithm is
+implied by syntax coverage.
+
 ## 4. The layout engine — `logifos-layout`
 
 **Model.** Formula lowers to a **box tree**: `BoxKind::{Leaf, Rule, HBox,
@@ -95,11 +125,23 @@ the surd stretches vertically to rule + gap + radicand ink height
 (variant or extender-grown assembly with min-connector overlap), the
 overbar rides the radicand at a zero advance, and the mroot index
 raises by the bottom-raise percent two levels up. Both set math-shift
-compact; the index is also compact displaystyle.
+compact; the index is also compact displaystyle. Tables follow §3.5's
+inline-table semantics: a column grid of baseline-aligned rows, mtd's
+0.4em/0.5ex padding (ex from OS/2 sxHeight with the CSS fallback),
+cells centered per column, and the whole table's center on the math
+axis; ragged rows leave trailing cells empty. mtable sets math-style
+compact. Upstream table options refuse (the tree carries no styling).
 
-**Target.** Tables (row/column alignment), stretchy delimiters
-(horizontal glyph assembly with min connector overlap — the
-`expand_stretch` machinery already stretches vertically).
+**Delimiters.** The vertical fence delimiters — `(` `)` `[` `]` `{` `}`
+`|` `‖` `⌈` `⌉` `⌊` `⌋` `⟨` `⟩` — are accepted operators with zero
+spacing (Core's dictionary category F) that stretch along the block
+axis: each row re-lays its fences at the other children's ink extents
+(Core 3.3.1.1's two-phase pass) through the same variant/assembly
+stretch machinery as radicals. On the wire they keep their plurimath
+`Math::Symbols::Paren::*` classes.
+
+**Target.** Horizontal (inline-axis) operator stretching and stretchy
+attr handling; `expand_stretch` is already direction-general.
 
 ## 5. The painter — `logifos-svg`
 
@@ -108,9 +150,19 @@ walks the tree (depth-first, stable ids), paints rules as `<rect>`, then
 paints the glyph layer: one `<path>` per placed glyph, TrueType quadratics
 with implied on-curve midpoints (including across each contour's wrap),
 flipped into top-left coordinates around the glyph's baseline origin.
-Contourless glyphs paint nothing. The output is byte-stable: fixed numeric
-formatting, lowercase color, no timestamps, boxes first and a trailing
-`glyphs` group last.
+Contourless glyphs paint nothing. The painter first converts the backend's
+pixel-scaled TrueType points into `outline::GlyphOutline`: ordered, closed
+`PathCommand::{MoveTo, LineTo, QuadTo, CubicTo, Close}` contours. The typed
+outline also accepts synthetic cubic segments without depending on a font
+encoding. `to_svg_path` places endpoints and controls at the baseline origin
+and flips y once; invalid contour order, non-finite input and placement
+overflow return typed errors with no partial output.
+
+The output is byte-stable: shortest round-trip binary64 numbers without
+quantization, normalized negative zero, lowercase color, no timestamps,
+boxes first and a trailing `glyphs` group last. Path data uses absolute
+`M`/`L`/`Q`/`C`/`Z` commands, single spaces between numbers and after drawing
+commands, and no space after `Z`. Contour order and winding are preserved.
 
 **Target.** CFF cubic paths when Fontisan adds charstring decoding,
 glyph paths positioned inside their owning box groups (paint-order

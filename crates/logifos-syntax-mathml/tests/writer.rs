@@ -38,6 +38,10 @@ fn fresh_constructs_roundtrip_with_exact_formula_equality() {
         "<math><msqrt/></math>",
         "<math><mroot><msqrt><mi>x</mi></msqrt><mn>3</mn></mroot></math>",
         "<math><msqrt><mfrac><mi>a</mi><mi>b</mi></mfrac></msqrt><mroot><mi>r</mi><mi>n</mi></mroot></math>",
+        "<math><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mi>a</mi></mtd></mtr></mtable></math>",
+        "<math><mtable><mtr><mtd><mtable><mtr><mtd><mi>n</mi></mtd></mtr></mtable></mtd></mtr></mtable></math>",
+        "<math><mo>(</mo><mi>x</mi><mo>)</mo></math>",
+        "<math><mo>\u{2308}</mo><mfrac><mi>a</mi><mi>b</mi></mfrac><mo>\u{2309}</mo></math>",
         "<math><mtext> &lt;&amp;&gt;\"' &#xD;\n\tα&#x301;&#x1D6FC;&#xA0; </mtext></math>",
         "<math><mi>a<![CDATA[<&]]>b&amp;lt;</mi></math>",
         "<math>\r\n<mrow>\t<mn>1</mn>\n<mi>x</mi></mrow> </math>",
@@ -112,7 +116,7 @@ fn only_sequence_radicands_roundtrip_through_msqrt() {
 
 #[test]
 fn unsupported_operators_refuse_at_the_exact_formula_path() {
-    for text in ["", "−", "÷", "∑", " + ", "++", "\u{2062}", "("] {
+    for text in ["", "−", "÷", "∑", " + ", "++", "\u{2062}"] {
         let formula = Formula::Sequence(vec![Formula::Fraction(
             Box::new(symbol("x")),
             Box::new(Formula::Superscript(

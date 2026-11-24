@@ -151,7 +151,7 @@ fn surd_row<'a>(
         StackItem::Box(radicand.tree),
     ])?;
 
-    let mut glyphs = surd_pieces(&surd, extra, style.font_size_px)?;
+    let mut glyphs = stretched_pieces(&surd, '√', extra, style.font_size_px)?;
     let leaf_offset = tree.children()[0].offset();
     for glyph in &mut glyphs {
         glyph.origin = glyph.origin.translated(leaf_offset)?;
@@ -174,10 +174,11 @@ fn surd_row<'a>(
     ))
 }
 
-/// Places the surd pieces in the leaf's coordinates: piece baselines sit at
-/// their slot bottoms below the extra ascender.
-fn surd_pieces(
+/// Places the stretched pieces in the leaf's coordinates: piece baselines
+/// sit at their slot bottoms below `extra`, shared with fence stretching.
+pub(super) fn stretched_pieces(
     surd: &StretchedGlyph,
+    character: char,
     extra: f64,
     font_size_px: f64,
 ) -> Result<Vec<PlacedGlyph>, LayoutError> {
@@ -186,7 +187,7 @@ fn surd_pieces(
     for (piece, extent) in surd.pieces.iter().zip(&surd.extents) {
         let y = add(add(extra, slot)?, *extent)?;
         glyphs.push(PlacedGlyph {
-            character: '√',
+            character,
             glyph: piece.glyph.clone(),
             origin: Point::new(0.0, y)?,
             font_size_px,

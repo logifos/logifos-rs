@@ -201,44 +201,75 @@ fn mroot_outside_its_arity_becomes_a_row() {
 }
 
 #[test]
-fn fences_refuse_instead_of_becoming_symbols() {
+fn fences_become_stretchy_operators() {
     unsupported(&[("mfenced", "<mfenced><mi>x</mi></mfenced>")]);
-    for token in ["(", ")", "[", "]", "|"] {
-        refused(
-            &format!("<math><mo>{token}</mo></math>"),
-            TransformErrorKind::UnsupportedOperator,
-            "mo",
-            "/root/children/0",
+    let expected = |token: &str| Formula::Sequence(vec![Formula::Operator(token.into())]);
+    for token in ["(", ")", "[", "]", "{", "}", "|"] {
+        assert_eq!(
+            converted(&format!("<math><mo>{token}</mo></math>")),
+            expected(token)
+        );
+    }
+    for (token, escaped) in [
+        ("\u{2016}", "&#x2016;"),
+        ("\u{2308}", "&#x2308;"),
+        ("\u{2309}", "&#x2309;"),
+        ("\u{230a}", "&#x230a;"),
+        ("\u{230b}", "&#x230b;"),
+        ("\u{27e8}", "&#x27e8;"),
+        ("\u{27e9}", "&#x27e9;"),
+    ] {
+        assert_eq!(
+            converted(&format!("<math><mo>{escaped}</mo></math>")),
+            expected(token)
         );
     }
 }
 
 #[test]
-fn tables_alignment_and_labels_refuse() {
-    unsupported(&[
-        (
-            "mtable",
-            "<mtable><mtr><mtd><mi>x</mi></mtd></mtr></mtable>",
+fn tables_map_rows_of_anonymous_row_cells() {
+    assert_eq!(
+        converted(
+            "<math><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mi>a</mi><mo>+</mo></mtd></mtr></mtable></math>"
         ),
-        ("mtr", "<mtr/>"),
-        ("mtd", "<mtd/>"),
+        Formula::Sequence(vec![Formula::Table(vec![
+            vec![
+                Formula::Sequence(vec![symbol("1")]),
+                Formula::Sequence(vec![symbol("2")]),
+            ],
+            vec![Formula::Sequence(vec![symbol("a"), operator("+")])],
+        ])])
+    );
+    assert_eq!(
+        converted("<math><mtable/></math>"),
+        Formula::Sequence(vec![Formula::Table(vec![])])
+    );
+}
+
+#[test]
+fn loose_table_content_refuses_at_the_offending_element() {
+    unsupported(&[
         ("mlabeledtr", "<mlabeledtr/>"),
         ("maligngroup", "<maligngroup/>"),
         ("malignmark", "<malignmark/>"),
     ]);
+    refused(
+        "<math><mtable><mtd><mi>x</mi></mtd></mtable></math>",
+        TransformErrorKind::UnsupportedElement,
+        "mtd",
+        "/root/children/0/children/0",
+    );
+    refused(
+        "<math><mtable><mtr><mi>x</mi></mtr></mtable></math>",
+        TransformErrorKind::UnsupportedElement,
+        "mi",
+        "/root/children/0/children/0/children/0",
+    );
 }
 
 #[test]
-fn combined_scripts_and_multiscripts_refuse() {
-    unsupported(&[
-        (
-            "msubsup",
-            "<msubsup><mi>x</mi><mi>i</mi><mn>2</mn></msubsup>",
-        ),
-        ("mmultiscripts", "<mmultiscripts/>"),
-        ("mprescripts", "<mprescripts/>"),
-        ("none", "<none/>"),
-    ]);
+fn standalone_multiscript_markers_refuse() {
+    unsupported(&[("mprescripts", "<mprescripts/>"), ("none", "<none/>")]);
 }
 
 #[test]
@@ -249,7 +280,6 @@ fn style_wrappers_refuse_even_without_attributes() {
 #[test]
 fn spacing_padding_phantoms_and_enclosures_refuse() {
     unsupported(&[
-        ("mspace", "<mspace/>"),
         ("mpadded", "<mpadded><mi>x</mi></mpadded>"),
         ("mphantom", "<mphantom><mi>x</mi></mphantom>"),
         ("menclose", "<menclose><mi>x</mi></menclose>"),
@@ -269,11 +299,10 @@ fn semantics_and_annotations_refuse() {
 }
 
 #[test]
-fn actions_errors_string_tokens_and_glyphs_refuse() {
+fn actions_errors_and_glyphs_refuse() {
     unsupported(&[
         ("maction", "<maction><mi>x</mi></maction>"),
         ("merror", "<merror><mi>x</mi></merror>"),
-        ("ms", "<ms>quoted</ms>"),
         ("mglyph", "<mglyph/>"),
     ]);
 }

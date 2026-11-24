@@ -93,7 +93,11 @@ fn render(formula: &Formula, level: u8) -> Layout {
 /// assembly g3/g4(extender)/g5 — and every glyph a 600u-advance triangle
 /// spanning −200..700 units. `x_top` overrides glyph 1's ink top.
 fn stretch_font(x_top: i16) -> Vec<u8> {
-    let mut b = support::FontBuilder::new(&[('x', 1), ('√', 2), ('z', 3)], 250, true);
+    let mut b = support::FontBuilder::new(
+        &[('x', 1), ('√', 2), ('(', 2), (')', 2), ('z', 3)],
+        250,
+        true,
+    );
     put16(b.tables.get_mut(b"glyf").unwrap(), 8, x_top as u16);
     b.finish()
 }
@@ -1006,4 +1010,121 @@ fn signed_italic_correction_is_retained_and_applied_once() {
     .unwrap();
     close(result.glyphs[1].origin.x(), 8.55);
     close(result.tree.metrics().width(), 21.15);
+}
+
+#[test]
+fn tables_center_cells_on_the_math_axis_with_mtd_padding() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    let axis = unit(MathConstant::AxisHeight);
+    // mtd padding: 0.4em horizontal, 0.5ex vertical over OS/2 sxHeight 450
+    // (ex = 450 units = 8.1px at 18px).
+    let horizontal_pad = 7.2;
+    let vertical_pad = 4.05;
+    let formula = Formula::Table(vec![
+        vec![
+            Formula::Sequence(vec![symbol("x")]),
+            Formula::Sequence(vec![symbol("y")]),
+        ],
+        vec![
+            Formula::Sequence(vec![symbol("y")]),
+            Formula::Sequence(vec![symbol("x")]),
+        ],
+    ]);
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    let metrics = result.tree.metrics();
+    // Padded widths: x 9 + 14.4 = 23.4, y 12.6 + 14.4 = 27.0; both columns
+    // take the larger 27.0, so the grid is 54 wide.
+    close(metrics.width(), 54.0);
+    // Padded rows: height max(10.8, 14.4) + 4.05 = 18.45 above the baseline;
+    // depth max(1.8, 5.4) + 4.05 = 9.45 below it.
+    let row_height = 14.4 + vertical_pad;
+    let row_depth = 5.4 + vertical_pad;
+    let total = 2.0 * (row_height + row_depth);
+    close(metrics.baseline(), total / 2.0 + axis);
+    close(metrics.depth(), total - (total / 2.0 + axis));
+    // Cells baseline-align within each row and center in their column.
+    // Row 0: x then y; row 1: y then x.
+    let row_baseline_1 = row_height + row_depth;
+    close(
+        result.glyphs[0].origin.x(),
+        (27.0 - 23.4) / 2.0 + horizontal_pad,
+    );
+    close(result.glyphs[0].origin.y(), row_height);
+    close(result.glyphs[1].origin.x(), 27.0 + horizontal_pad);
+    close(result.glyphs[1].origin.y(), row_height);
+    close(result.glyphs[2].origin.x(), horizontal_pad);
+    close(result.glyphs[2].origin.y(), row_baseline_1 + row_height);
+    close(
+        result.glyphs[3].origin.x(),
+        27.0 + (27.0 - 23.4) / 2.0 + horizontal_pad,
+    );
+    close(result.glyphs[3].origin.y(), row_baseline_1 + row_height);
+    // The math-style compact rule: a fraction in a cell must equal the
+    // direct non-display level-zero fraction.
+    let mut fonts = provider(&font());
+    let direct = layout(
+        &Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y"))),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    let fraction = Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
+    let inside = layout(
+        &Formula::Table(vec![vec![Formula::Sequence(vec![fraction])]]),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    // finish hbox > table vbox > row hbox > padded wrapper > the cell's own
+    // row hbox > the fraction's own tree.
+    let cell_box = inside.tree.children()[0].node().children()[0]
+        .node()
+        .children()[0]
+        .node()
+        .children()[0]
+        .node()
+        .children()[0]
+        .node();
+    assert_eq!(cell_box, direct.tree.children()[0].node());
+    assert_eq!(snapshot(&result), include_str!("snapshots/table-grid.txt"));
+    let mut fonts = provider(&font());
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn fences_stretch_to_the_row_ink_extents() {
+    let mut fonts = provider(&stretch_font(700));
+    let formula = sequence(vec![operator("("), symbol("x"), operator(")")]);
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    // 'x' (600u advance, ink 12.6 above and 3.6 below the baseline) makes
+    // the fences re-lay at a 16.2px target, which the g3 variant (21.6px)
+    // covers; all three children carry the 600u advance of 10.8px.
+    let metrics = result.tree.metrics();
+    close(metrics.width(), 10.8 + 10.8 + 0.45 + 10.8);
+    close(metrics.height(), 12.6);
+    close(metrics.depth(), 3.6);
+    assert_eq!(result.glyphs.len(), 3);
+    for glyph in [
+        result.glyphs[0].glyph.glyph_id,
+        result.glyphs[2].glyph.glyph_id,
+    ] {
+        assert_eq!(glyph, 3);
+    }
+    // The stretched piece's baseline sits at its slot bottom (21.6px from
+    // the leaf top); 'x' keeps the row baseline, with its italic correction
+    // kerning into the non-slanted closing fence.
+    close(result.glyphs[0].origin.x(), 0.0);
+    close(result.glyphs[0].origin.y(), 21.6);
+    close(result.glyphs[1].origin.x(), 10.8);
+    close(result.glyphs[1].origin.y(), 12.6);
+    close(result.glyphs[2].origin.x(), 22.05);
+    close(result.glyphs[2].origin.y(), 21.6);
+    assert_eq!(snapshot(&result), include_str!("snapshots/fence-row.txt"));
+    let mut fonts = provider(&stretch_font(700));
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
 }

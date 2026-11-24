@@ -19,8 +19,14 @@ fn parse_model() -> Value {
 }
 
 fn font() -> Vec<u8> {
-    // '√' shares glyph 2, whose MATH table carries the vertical construction.
-    support::FontBuilder::new(&[('x', 1), ('+', 2), ('1', 3), ('√', 2)], 250, true).finish()
+    // '√', '(' and ')' share glyph 2, whose MATH table carries the vertical
+    // construction.
+    support::FontBuilder::new(
+        &[('x', 1), ('+', 2), ('1', 3), ('√', 2), ('(', 2), (')', 2)],
+        250,
+        true,
+    )
+    .finish()
 }
 
 fn font_entry(font: &[u8]) -> Value {
@@ -132,6 +138,36 @@ fn render_lays_out_a_sqrt_through_the_wire() {
 }
 
 #[test]
+fn render_lays_out_a_table_through_the_wire() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><mtable><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    assert_eq!(svg.matches("<path").count(), 1, "one glyph path: {svg}");
+    // The 1x1 table centers its cell on the math axis (6px at 24px); with
+    // the 0.4em/0.5ex padding over the ex fallback (12px), the glyph's
+    // baseline lands 22.8px down and 9.6px right.
+    let glyphs_start = svg.find("<g id=\"glyphs\">").expect("glyph layer");
+    let layer = &svg[glyphs_start..];
+    assert_eq!(
+        layer,
+        concat!(
+            "<g id=\"glyphs\"><path d=\"M9.600000000000001 27.6 L21.6 6 L9.600000000000001 27.6 Z\"/>",
+            "</g></g></svg>",
+        ),
+        "glyph layer bytes: {svg}"
+    );
+}
+
+#[test]
 fn render_lays_out_a_subscript_through_the_wire() {
     let request = json!({
         "abi_version": 1, "schema_version": 1,
@@ -157,6 +193,38 @@ fn render_lays_out_a_subscript_through_the_wire() {
         concat!(
             "<g id=\"glyphs\"><path d=\"M0 21.6 L12 0 L0 21.6 Z\"/>",
             "<path d=\"M14.4 31.560000000000002 L24 14.280000000000001 L14.4 31.560000000000002 Z\"/>",
+            "</g></g></svg>",
+        ),
+        "glyph layer bytes: {svg}"
+    );
+}
+
+#[test]
+fn render_stretches_fences_to_the_row_extents_through_the_wire() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><mo>(</mo><mi>x</mi><mo>)</mo></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    assert_eq!(svg.matches("<path").count(), 3, "three glyph paths: {svg}");
+    // 'x' ink spans 16.8 above and 4.8 below the baseline at 24px, so the
+    // fences re-lay at a 21.6px target covered by the g3 variant (28.8px);
+    // x's 0.6px italic correction kerns into the closing fence.
+    let glyphs_start = svg.find("<g id=\"glyphs\">").expect("glyph layer");
+    let layer = &svg[glyphs_start..];
+    assert_eq!(
+        layer,
+        concat!(
+            "<g id=\"glyphs\"><path d=\"M0 33.6 L12 12 L0 33.6 Z\"/>",
+            "<path d=\"M14.4 21.6 L26.4 0 L14.4 21.6 Z\"/>",
+            "<path d=\"M29.400000000000002 33.6 L41.400000000000006 12 L29.400000000000002 33.6 Z\"/>",
             "</g></g></svg>",
         ),
         "glyph layer bytes: {svg}"

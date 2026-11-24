@@ -8,6 +8,7 @@ mod radical;
 mod rows;
 mod scripts;
 mod style;
+mod table;
 mod token;
 
 pub use error::LayoutError;
@@ -97,11 +98,15 @@ fn build<'a>(
                 .iter()
                 .map(|child| build(child, fonts, style, budget, depth + 1))
                 .collect::<Result<Vec<_>, _>>()?;
-            rows::row(children, style)
+            rows::row(children, fonts, style)
         }
-        Formula::Under(..) | Formula::Over(..) | Formula::UnderOver(..) => {
-            Err(LayoutError::NotLaidOutYet)
-        }
+        Formula::Under(..)
+        | Formula::Over(..)
+        | Formula::UnderOver(..)
+        | Formula::SubSup(..)
+        | Formula::MultiScripts { .. }
+        | Formula::Space
+        | Formula::StringLiteral(_) => Err(LayoutError::NotLaidOutYet),
         Formula::Symbol(text) => token::token(text, None, fonts, style, budget),
         Formula::Operator(text) => {
             operator::validate(text)?;
@@ -144,6 +149,22 @@ fn build<'a>(
             let raised = style.raise(fonts, 2, true)?;
             let index = build(index, fonts, raised, budget, depth + 1)?;
             radical::root(radicand, index, fonts, style)
+        }
+        Formula::Table(rows) => {
+            // mtable sets math-style compact (Core 3.5 stylesheet rules).
+            let style = ResolvedStyle {
+                display: false,
+                ..style
+            };
+            let mut built = Vec::with_capacity(rows.len());
+            for row in rows {
+                let mut cells = Vec::with_capacity(row.len());
+                for cell in row {
+                    cells.push(build(cell, fonts, style, budget, depth + 1)?);
+                }
+                built.push(cells);
+            }
+            table::table(built, fonts, style)
         }
     }
 }
