@@ -52,10 +52,10 @@ pub extern "C" fn logifos_schema_version() -> u32 {
     logifos_facade::SCHEMA_VERSION
 }
 
-/// Returns transport feature bits, not a claim that rendering is implemented.
+/// Returns transport feature bits; RENDER advertises the facade's MathML-to-SVG op.
 #[no_mangle]
 pub extern "C" fn logifos_features() -> u64 {
-    FEATURE_BUFFER_V1 | FEATURE_JSON_V1
+    FEATURE_BUFFER_V1 | FEATURE_JSON_V1 | FEATURE_RENDER
 }
 
 /// Returns a static NUL-terminated package version; never free or modify it.

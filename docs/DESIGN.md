@@ -65,10 +65,16 @@ draws nothing: it produces geometry plus placed glyphs for a painter.
 
 **Fonts.** `FontProvider` takes hash-pinned font resources (id + sha256 +
 bytes; every resource verified before any glyph resolves) and a fallback
-order. Metrics and the **OpenType MATH table** are read through the
-in-crate sfnt reader, which is **Fontisan-backed** (`fontisan::sfnt`) —
-this is the multi-font seam: different fonts are different pinned
-resources, never a bundled constant.
+order. Metrics, the **OpenType MATH table** and **TrueType glyph outline
+points** are read through the in-crate sfnt reader, which is
+**Fontisan-backed** (`fontisan::sfnt`) — this is the multi-font seam:
+different fonts are different pinned resources, never a bundled constant.
+Outline points decode for every glyph at load (simple glyphs and depth-capped
+composites), so a malformed glyph is an `InvalidFont` before any layout runs,
+and a glyf face that claims ink bounds without contours refuses to load —
+the painter's invariant "no contours, no ink" is enforced upstream. CFF/CFF2
+faces carry no decoded points yet and are a typed gap (`OutlinesUnavailable`),
+not a silent blank.
 
 **Style.** `LayoutOptions { font_size_px, script_level }` resolves through
 the MathML Core §4.5 script-level schedule and the OpenType MATH
@@ -90,18 +96,18 @@ overlap — the `StretchShape` machinery is already typed).
 
 ## 5. The painter — `logifos-svg`
 
-**Current.** `emit(&BoxTree, &SvgOptions { color, title })` walks the tree
-(depth-first, stable ids), paints rules as `<rect>`, escapes titles as XML
-1.0 character data, and emits byte-stable output: fixed numeric formatting,
-lowercase color, no timestamps. Glyph outlines are not yet painted — the
-painter refuses any ink-bearing leaf whose outline cannot be drawn
-(`SvgError::UnsupportedLeaf`); TrueType path decoding lands in Fontisan
-(the outline byte ranges are already located and validated) and flows
-through `PlacedGlyph` into a `<path>` layer.
+**Current.** `emit(&BoxTree, &[PlacedGlyph], &SvgOptions { color, title })`
+walks the tree (depth-first, stable ids), paints rules as `<rect>`, then
+paints the glyph layer: one `<path>` per placed glyph, TrueType quadratics
+with implied on-curve midpoints (including across each contour's wrap),
+flipped into top-left coordinates around the glyph's baseline origin.
+Contourless glyphs paint nothing. The output is byte-stable: fixed numeric
+formatting, lowercase color, no timestamps, boxes first and a trailing
+`glyphs` group last.
 
-**Target.** Deterministic `<path>` emission for every glyph (TrueType
-quadratics with implied midpoints, then CFF cubics when Fontisan adds
-charstring decoding), ink-extent viewports, optional title.
+**Target.** CFF cubic paths when Fontisan adds charstring decoding,
+glyph paths positioned inside their owning box groups (paint-order
+fidelity for overlapping ink), ink-extent viewports, optional title.
 
 ## 6. The facade — `logifos-facade`
 

@@ -306,7 +306,7 @@ fn validates_every_resource_even_when_unused() {
 }
 
 #[test]
-fn nonfinite_sizes_and_unimplemented_paths_refuse() {
+fn nonfinite_sizes_refuse_and_glyf_points_decode() {
     let b = font();
     let face = FontFace::load(&b, 0).unwrap();
     for size in [0.0, -1.0, f64::INFINITY, f64::NAN, 4097.0] {
@@ -317,9 +317,15 @@ fn nonfinite_sizes_and_unimplemented_paths_refuse() {
     }
     assert!(face.scale(f64::MAX, 4096.0).is_err());
     assert!(face.scale(f64::NAN, 16.0).is_err());
+    let outline = face.outline(1).unwrap().unwrap();
+    assert_eq!(outline.contours.len(), 1);
     assert_eq!(
-        face.outline(1).unwrap_err().kind,
-        FontErrorKind::OutlinesUnavailable
+        outline.contours[0]
+            .points
+            .iter()
+            .map(|p| (p.x, p.y, p.on_curve))
+            .collect::<Vec<_>>(),
+        vec![(0, -200, true), (500, 700, true), (0, -200, true)]
     );
 }
 

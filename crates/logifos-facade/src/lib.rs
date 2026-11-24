@@ -1,5 +1,4 @@
 //! Shared versioned JSON boundary for native and WASM transports.
-//! Only negotiation is implemented; parse, transform and rendering refuse.
 
 mod wire;
 
@@ -41,14 +40,22 @@ pub fn limits() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use logifos_model::FORMULA_CONTRACT;
 
     #[test]
-    fn negotiation_advertises_transport_only() {
+    fn negotiation_advertises_parse_and_render() {
         let reply = request_json(br#"{"abi_version":1,"schema_version":1,"op":"negotiate"}"#);
         assert_eq!(reply["ok"], true);
-        assert_eq!(reply["result"]["outputs"], json!([]));
-        assert_eq!(reply["result"]["implemented_operations"], json!([]));
-        assert!(reply["result"]["formula_contract"].is_null());
+        assert_eq!(reply["result"]["outputs"], json!(["svg"]));
+        assert_eq!(
+            reply["result"]["implemented_operations"],
+            json!(["negotiate", "parse", "render"])
+        );
+        assert_eq!(
+            reply["result"]["formula_contract"]["origin"],
+            FORMULA_CONTRACT.origin
+        );
+        assert!(reply["result"]["syntax_contract"].is_null());
     }
     #[test]
     fn structured_refusals_do_not_echo_caller_data() {
@@ -59,7 +66,7 @@ mod tests {
             (br#"{"abi_version":1,"schema_version":2,"op":"negotiate"}"#, "UNSUPPORTED_SCHEMA"),
             (br#"{"abi_version":1,"schema_version":1,"op":"private-value"}"#, "INVALID_REQUEST"),
             (br#"{"abi_version":1,"schema_version":1,"op":"negotiate","options":{"private-value":true}}"#, "UNKNOWN_OPTION"),
-            (br#"{"abi_version":1,"schema_version":1,"op":"parse","format":"mathml","source":"\u03b1"}"#, "NOT_IMPLEMENTED"),
+            (br#"{"abi_version":1,"schema_version":1,"op":"parse","format":"mathml","source":"\u03b1"}"#, "INVALID_SOURCE"),
         ] {
             let reply = request_json(input);
             assert_eq!(reply["ok"], false);
@@ -80,11 +87,13 @@ mod tests {
     }
 
     #[test]
-    fn negotiates_without_claiming_render_support() {
+    fn negotiates_with_render_support() {
         let reply = request_json(br#"{"abi_version":1,"schema_version":1,"op":"negotiate"}"#);
         assert_eq!(reply["ok"], true);
-        assert_eq!(reply["result"]["implemented_operations"], json!([]));
-        assert_eq!(reply["result"]["outputs"], json!([]));
+        assert!(reply["result"]["implemented_operations"]
+            .as_array()
+            .is_some_and(|ops| ops.contains(&json!("render"))));
+        assert_eq!(reply["result"]["outputs"], json!(["svg"]));
     }
 
     #[test]
@@ -107,11 +116,15 @@ mod tests {
 
     #[test]
     fn native_bytes_use_the_identical_wire_boundary() {
-        let request = br#"{"abi_version":1,"schema_version":1,"op":"parse","format":"mathml","source":"<math/>"}"#;
+        let request = br#"{"abi_version":1,"schema_version":1,"op":"parse","format":"mathml","source":"<math><mi>x</mi></math>"}"#;
         assert_eq!(
             request_bytes(request),
             request_json(request).to_string().into_bytes()
         );
-        assert_eq!(request_json(request)["error"]["code"], "NOT_IMPLEMENTED");
+        assert_eq!(request_json(request)["ok"], true);
+        assert_eq!(
+            request_json(request)["result"]["model"]["class"],
+            "Math::Formula"
+        );
     }
 }
