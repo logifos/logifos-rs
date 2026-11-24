@@ -14,12 +14,12 @@ fn run(args: &[String]) -> Result<bool, String> {
         let report = logifos_corpus::canon_report(Path::new(REFERENCE_DIR), &args[1])?;
         print!("{}", logifos_corpus::report_json(&report));
         // The canon report is a diff surface; only a harness error refuses.
-        return Ok(true);
+        return Ok(false);
     }
     if args == ["--reference"] {
         let report = logifos_corpus::replay_reference(Path::new(REFERENCE_DIR))?;
         print!("{}", logifos_corpus::report_json(&report));
-        return Ok(report["totals"]["failure"] == 0);
+        return Ok(report["totals"]["failure"] != 0);
     }
     let (manifest, font) = match args {
         [] => (DEFAULT_MANIFEST, None),

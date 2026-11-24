@@ -361,6 +361,7 @@ pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
         .or_else(|| pin["revision"].as_str())
         .ok_or("invalid renderer pin")?;
     let artifacts = parent.join("canon").join(renderer);
+    let ours = parent.join("canon").join("logifos");
     let listed = listed_corpora(reference)?;
     let mut fonts = grading_font(reference)?;
     let mut shared = Vec::new();
@@ -374,8 +375,13 @@ pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
         let report = run_corpus(corpus, &listed[corpus], &dir, fonts.as_mut(), &mut captures)?;
         total += report["total"].as_u64().unwrap_or(0);
         logifos_renders += report["counts"]["pass"].as_u64().unwrap_or(0);
+        // The emitted renders persist under canon/logifos/ so the visible
+        // review set pairs them with the reference artifacts.
+        std::fs::create_dir_all(&ours).map_err(|_| "logifos canon dir is unwritable")?;
         for (case_id, svg) in captures {
             let name = artifact_name(corpus, &case_id);
+            std::fs::write(ours.join(format!("{name}.svg")), &svg)
+                .map_err(|_| "logifos canon artifact is unwritable")?;
             let ours = svg_record(svg.as_bytes());
             let svg_path = artifacts.join(format!("{name}.svg"));
             let error_path = artifacts.join(format!("{name}.error"));
