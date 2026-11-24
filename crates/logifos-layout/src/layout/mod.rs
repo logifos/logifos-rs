@@ -93,12 +93,22 @@ fn build<'a>(
         return Err(LayoutError::ResourceLimit);
     }
     match formula {
-        Formula::Sequence(children) => {
+        Formula::Sequence(children)
+        | Formula::Style(children)
+        | Formula::ErrorGroup(children)
+        | Formula::Padded(children)
+        | Formula::Phantom(children) => {
             let children = children
                 .iter()
                 .map(|child| build(child, fonts, style, budget, depth + 1))
                 .collect::<Result<Vec<_>, _>>()?;
-            rows::row(children, fonts, style)
+            let mut node = rows::row(children, fonts, style)?;
+            if matches!(formula, Formula::Phantom(_)) {
+                // Retain layout advances while removing glyph and rule ink.
+                node.tree = BoxTree::space(node.tree.metrics());
+                node.glyphs.clear();
+            }
+            Ok(node)
         }
         Formula::Under(..)
         | Formula::Over(..)

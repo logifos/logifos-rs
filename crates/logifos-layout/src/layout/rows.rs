@@ -53,11 +53,21 @@ pub(super) fn row<'a>(
         .into_iter()
         .map(
             |node| match node.operator.filter(|t| operator::is_fence(t)) {
-                Some(text) => stretched_fence(text, ink_ascent, ink_descent, fonts, style),
+                Some(text) => {
+                    let mut stretched =
+                        stretched_fence(text, ink_ascent, ink_descent, fonts, style)?;
+                    // Invisible embellished operators still stretch and space,
+                    // but re-layout must not restore their painted output.
+                    if node.tree.ink_bounds().is_none() && node.glyphs.is_empty() {
+                        stretched.tree = BoxTree::space(stretched.tree.metrics());
+                        stretched.glyphs.clear();
+                    }
+                    Ok(stretched)
+                }
                 None => Ok(node),
             },
         )
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<Result<Vec<_>, LayoutError>>()?;
     let count = children.iter().filter(|node| !node.empty).count();
     let core = if count == 1 {
         children

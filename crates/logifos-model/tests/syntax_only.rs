@@ -19,6 +19,10 @@ fn syntax_only_nodes_refuse_wire_output_without_inventing_class_mappings() {
                 superscript: None,
             }]),
         },
+        Formula::Style(vec![Formula::Symbol("private".into())]),
+        Formula::ErrorGroup(vec![Formula::Symbol("private".into())]),
+        Formula::Padded(vec![Formula::Symbol("private".into())]),
+        Formula::Phantom(vec![Formula::Symbol("private".into())]),
         Formula::Space,
         Formula::StringLiteral("private".into()),
     ] {

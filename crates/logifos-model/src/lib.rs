@@ -14,6 +14,14 @@ pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPT
 pub enum Formula {
     /// A horizontal run of child formulas (the plain sequence).
     Sequence(Vec<Formula>),
+    /// An attribute-free MathML style group with inherited presentation.
+    Style(Vec<Formula>),
+    /// An attribute-free MathML error group.
+    ErrorGroup(Vec<Formula>),
+    /// An attribute-free MathML padded group with unchanged dimensions.
+    Padded(Vec<Formula>),
+    /// A row whose contents contribute dimensions but no painted output.
+    Phantom(Vec<Formula>),
     /// A fraction: numerator over denominator.
     Fraction(Box<Formula>, Box<Formula>),
     /// Base with a superscript (power) child.

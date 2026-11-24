@@ -76,7 +76,7 @@ fn typed_refusals_and_integrity_failures_are_counted_without_skips() {
         ("bad-xml", b"<math>"),
         ("unsafe", b"<!DOCTYPE math><math/>"),
         ("style", b"<math mathcolor='red'/>"),
-        ("error", b"<math><merror/></math>"),
+        ("enclosure", b"<math><menclose/></math>"),
         ("broken", b"<math/>"),
     ]);
     corpus.manifest["cases"][5]["sha256"] = json!("0".repeat(64));
@@ -263,4 +263,43 @@ fn canonical_corpus_reaches_svg_with_a_pinned_font() {
         .unwrap();
     assert_eq!(cli.status.code(), Some(0));
     assert_eq!(logifos_json::decode(&cli.stdout).unwrap(), report);
+}
+
+#[test]
+fn presentation_containers_complete_the_grading_pipeline() {
+    let bytes = font_support::FontBuilder::new(&[('x', 1)], 250, false).finish();
+    let hash = font_support::digest(&bytes);
+    let mut fonts = FontProvider::new(
+        &[FontResource {
+            id: "test",
+            sha256: &hash,
+            bytes: &bytes,
+            face_index: 0,
+        }],
+        &["test"],
+    )
+    .unwrap();
+    let corpus = Corpus::new(&[
+        ("style", b"<math><mstyle><mi>x</mi></mstyle></math>"),
+        ("error", b"<math><merror><mi>x</mi></merror></math>"),
+        ("padding", b"<math><mpadded><mi>x</mi></mpadded></math>"),
+        ("phantom", b"<math><mphantom><mfrac><mi>x</mi><mi>x</mi></mfrac></mphantom></math>"),
+        ("semantics", b"<math><semantics><mi>x</mi><annotation encoding='text/plain'>meaning</annotation></semantics></math>"),
+        ("missing", b"<math><semantics/></math>"),
+        ("annotation-first", b"<math><semantics><annotation/><mi>x</mi></semantics></math>"),
+        ("attributes", b"<math><mpadded width='2em'><mi>x</mi></mpadded></math>"),
+        ("hidden-missing-glyph", b"<math><mphantom><mi>q</mi></mphantom></math>"),
+    ]);
+    let report = grade(&corpus.path(), Some(&mut fonts)).unwrap();
+    assert_eq!(report["counts"], json!({"pass":5,"refusal":4,"failure":0}));
+    assert_eq!(report["stage_counts"]["emit:pass:complete"], 5);
+    assert_eq!(
+        report["categories"]["refusal:transform:invalid_structure"],
+        2
+    );
+    assert_eq!(
+        report["categories"]["refusal:transform:unsupported_attribute"],
+        1
+    );
+    assert_eq!(report["categories"]["refusal:layout:MISSING_GLYPH"], 1);
 }

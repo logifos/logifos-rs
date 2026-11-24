@@ -95,11 +95,16 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// boundary; malformed pairs and nonempty markers refuse typed. `none` is
 /// accepted only in multiscript slots. Attribute-free `mspace` and `ms` retain
 /// their distinct kinds; dimensions and custom quotes remain unsupported.
-/// Fences, style, enclosure, semantics and annotations remain unsupported.
+/// Attribute-free `mstyle`, `merror`, `mpadded` and `mphantom` preserve their
+/// row-like container kinds. `semantics` transforms only its first element;
+/// subsequent element subtrees, including annotations and their attributes,
+/// are ignored. A missing first element or an annotation first element refuses.
+/// Fences, enclosure and standalone annotations remain unsupported.
 /// Names in either the MathML namespace or no namespace are accepted.
 ///
 /// Traversal is bounded by the shared model's root-inclusive depth and node
-/// limits, also counting syntax text nodes and insignificant whitespace. These
+/// limits, also counting syntax text nodes and insignificant whitespace in
+/// presentation content. Ignored semantics subtrees are not traversed. These
 /// checks apply to manually constructed syntax trees as well as parsed input.
 pub fn transform(document: &MathmlDocument) -> Result<Formula, TransformError> {
     for (comments, path) in [
@@ -184,6 +189,16 @@ impl Transformer {
     ) -> Result<Formula, TransformError> {
         self.check_element(element, location, depth)?;
         match element.name.local.as_str() {
+            "semantics" => self.semantics(element, location, depth),
+            "mstyle" | "merror" | "mpadded" | "mphantom" => {
+                let children = self.row_like(element, location, depth)?;
+                Ok(match element.name.local.as_str() {
+                    "mstyle" => Formula::Style(children),
+                    "merror" => Formula::ErrorGroup(children),
+                    "mpadded" => Formula::Padded(children),
+                    _ => Formula::Phantom(children),
+                })
+            }
             "mmultiscripts" => self.multiscripts(element, location, depth),
             "mspace" => {
                 self.empty_element(element, location, depth)?;
@@ -270,6 +285,38 @@ impl Transformer {
         }
     }
 
+    fn semantics(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Formula, TransformError> {
+        let mut first = None;
+        for (index, node) in element.children.iter().enumerate() {
+            let path = format!("{location}/children/{index}");
+            match node {
+                Node::Element(child) if first.is_none() => {
+                    if matches!(child.name.local.as_str(), "annotation" | "annotation-xml") {
+                        return Err(refusal(TransformErrorKind::InvalidStructure, child, &path));
+                    }
+                    first = Some(self.element(child, &path, depth + 1)?);
+                }
+                Node::Element(_) => {}
+                Node::Text(text) if text.chars().all(xml_whitespace) => {
+                    self.visit(element, &path, depth + 1)?;
+                }
+                Node::Text(_) | Node::Comment(_) => {
+                    return Err(refusal(
+                        TransformErrorKind::UnsupportedContent,
+                        element,
+                        &path,
+                    ));
+                }
+            }
+        }
+        first.ok_or_else(|| refusal(TransformErrorKind::InvalidStructure, element, location))
+    }
+
     fn check_element(
         &mut self,
         element: &Element,
@@ -305,25 +352,7 @@ impl Transformer {
         location: &str,
         depth: usize,
     ) -> Result<Formula, TransformError> {
-        let mut children = Vec::new();
-        for (index, node) in element.children.iter().enumerate() {
-            let path = format!("{location}/children/{index}");
-            match node {
-                Node::Element(child) => {
-                    children.push(self.element(child, &path, depth + 1)?);
-                }
-                Node::Text(text) if text.chars().all(xml_whitespace) => {
-                    self.visit(element, &path, depth + 1)?;
-                }
-                Node::Text(_) | Node::Comment(_) => {
-                    return Err(refusal(
-                        TransformErrorKind::UnsupportedContent,
-                        element,
-                        &path,
-                    ));
-                }
-            }
-        }
+        let children = self.row_like(element, location, depth)?;
         match element.name.local.as_str() {
             "math" | "mrow" => Ok(Formula::Sequence(children)),
             "munder" | "mover" | "munderover" | "msubsup" => {
