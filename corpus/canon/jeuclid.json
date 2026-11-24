@@ -1,0 +1,7 @@
+{
+  "renderer": "jeuclid",
+  "repository": "https://github.com/rototor/jeuclid",
+  "revision": "1dd19534348ba6e146a8eed293446430e104f603",
+  "built_from": "support/ (its own build-tools plugin) then jeuclid-core",
+  "description": "The reference renderer for the canon comparison: the rototor fork is the only JEuclid line that runs on modern JDKs and Batik. scripts/fetch-canon-jeuclid.sh builds the pinned commit into corpus/canon/jeuclid-env; scripts/render-canon-jeuclid.mjs renders every manifest case into corpus/canon/jeuclid/."
+}
