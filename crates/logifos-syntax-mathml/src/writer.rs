@@ -138,6 +138,7 @@ impl SyntaxBuilder {
         }
         self.visit(location, depth)?;
         let mut children = Vec::new();
+        let mut attributes_elem: Vec<crate::Attribute> = Vec::new();
         let name = match formula {
             Formula::Styled { .. } => unreachable!("handled before syntax allocation"),
             Formula::Sequence(items)
@@ -232,7 +233,21 @@ impl SyntaxBuilder {
                 }
                 name
             }
-            Formula::Space => "mspace",
+            Formula::Space(width, height, depth) => {
+                for (field, length) in [("width", width), ("height", height), ("depth", depth)] {
+                    if let Some(length) = length {
+                        attributes_elem.push(crate::Attribute {
+                            name: QualifiedName {
+                                prefix: None,
+                                local: field.into(),
+                                namespace: None,
+                            },
+                            value: Self::format_length(*length),
+                        });
+                    }
+                }
+                "mspace"
+            }
             Formula::MultiScripts {
                 base,
                 postscripts,
@@ -332,7 +347,9 @@ impl SyntaxBuilder {
                 "mtable"
             }
         };
-        Ok(self.syntax_element(name, children))
+        let mut element = self.syntax_element(name, children);
+        element.attributes = attributes_elem;
+        Ok(element)
     }
 
     fn styled(
@@ -449,6 +466,17 @@ impl SyntaxBuilder {
         }
     }
     /// A finished element with the shared namespace and no attributes.
+    /// Formats an authored length: shortest decimal with its unit.
+    fn format_length(length: logifos_model::Length) -> String {
+        let unit = match length.unit {
+            logifos_model::LengthUnit::Em => "em",
+            logifos_model::LengthUnit::Ex => "ex",
+            logifos_model::LengthUnit::Px => "px",
+            logifos_model::LengthUnit::Percent => "%",
+        };
+        format!("{}{unit}", length.value)
+    }
+
     fn node(&self, name: &str, children: Vec<Node>) -> Element {
         Element {
             name: QualifiedName {
@@ -488,7 +516,15 @@ impl Output {
             self.push(" ")?;
             self.push(&attribute.name.local)?;
             self.push("=\"")?;
-            self.push(&attribute.value)?;
+            for ch in attribute.value.chars() {
+                let mut buffer = [0; 4];
+                self.push(match ch {
+                    '"' => "&quot;",
+                    '&' => "&amp;",
+                    '<' => "&lt;",
+                    _ => ch.encode_utf8(&mut buffer),
+                })?;
+            }
             self.push("\"")?;
         }
         self.push(">")?;

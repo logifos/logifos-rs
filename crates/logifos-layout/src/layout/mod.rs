@@ -225,7 +225,26 @@ fn build_construct<'a>(
         | Formula::ErrorGroup(_)
         | Formula::Padded(_)
         | Formula::Phantom(_) => unreachable!("handled by build"),
-        Formula::Space | Formula::StringLiteral(_) => Err(LayoutError::NotLaidOutYet),
+        Formula::Space(width, height, depth) => {
+            let size = style.font_size_px;
+            let font = fonts.primary();
+            let ex = font.x_height.map_or(size * 0.5, |units| {
+                f64::from(units) * size / f64::from(font.metrics.units_per_em)
+            });
+            let px = |length: &Option<logifos_model::Length>| {
+                length.as_ref().map_or(0.0, |l| l.px(size, ex)).max(0.0)
+            };
+            Ok(Node {
+                operator_font_size_px: None,
+                right_space: None,
+                tree: BoxTree::space(crate::Metrics::new(px(width), px(height), px(depth))?),
+                glyphs: Vec::new(),
+                operator: None,
+                italic: 0.0,
+                empty: false,
+            })
+        }
+        Formula::StringLiteral(_) => Err(LayoutError::NotLaidOutYet),
         Formula::Symbol(text) => token::token(text, None, fonts, style, budget),
         Formula::Operator(text) => {
             operator::validate(text)?;

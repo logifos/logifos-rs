@@ -57,12 +57,12 @@ fn tables_preserve_combined_scripts_multiscripts_and_distinct_tokens() {
             Formula::Sequence(vec![Formula::SubSup(
                 Box::new(symbol("x")),
                 Box::new(Formula::StringLiteral("sub".into())),
-                Box::new(Formula::Space),
+                Box::new(Formula::Space(None, None, None)),
             )]),
             Formula::Sequence(vec![Formula::MultiScripts {
                 base: Box::new(Formula::StringLiteral("base".into())),
                 postscripts: vec![pair(None, Some(symbol("post")))],
-                prescripts: Some(vec![pair(Some(Formula::Space), None)]),
+                prescripts: Some(vec![pair(Some(Formula::Space(None, None, None)), None)]),
             }]),
         ]]),
         body,
@@ -193,15 +193,46 @@ fn strings_and_default_spaces_keep_their_distinct_kinds() {
     ] {
         roundtrip(body, Formula::StringLiteral(text.into()), canonical);
     }
-    roundtrip("<mspace>\n\t</mspace>", Formula::Space, "<mspace></mspace>");
+    roundtrip(
+        "<mspace>\n\t</mspace>",
+        Formula::Space(None, None, None),
+        "<mspace></mspace>",
+    );
+    // Authored extents round-trip through serialized attributes; invalid
+    // values resolve to absent and percentages stay authored (Core 3.2.5).
+    use logifos_model::{Length, LengthUnit};
+    let length = |value: f64, unit: LengthUnit| Some(Length { value, unit });
+    roundtrip(
+        "<mspace width='1em' height='2ex' depth='3px'/>",
+        Formula::Space(
+            length(1.0, LengthUnit::Em),
+            length(2.0, LengthUnit::Ex),
+            length(3.0, LengthUnit::Px),
+        ),
+        "<mspace width=\"1em\" height=\"2ex\" depth=\"3px\"></mspace>",
+    );
+    roundtrip(
+        "<mspace width='0.5em'/>",
+        Formula::Space(length(0.5, LengthUnit::Em), None, None),
+        "<mspace width=\"0.5em\"></mspace>",
+    );
+    roundtrip(
+        "<mspace width='50%'/>",
+        Formula::Space(length(50.0, LengthUnit::Percent), None, None),
+        "<mspace width=\"50%\"></mspace>",
+    );
+    roundtrip(
+        "<mspace width='2'/>",
+        Formula::Space(None, None, None),
+        "<mspace></mspace>",
+    );
 }
 
 #[test]
 fn dimensions_quotes_and_presentation_attributes_refuse() {
+    // mspace's width/height/depth are authored extents (Core 3.2.5), not
+    // refusals; ms and the script shifts keep refusing.
     for (name, attribute) in [
-        ("mspace", "width"),
-        ("mspace", "height"),
-        ("mspace", "depth"),
         ("ms", "lquote"),
         ("ms", "rquote"),
         ("msubsup", "subscriptshift"),
