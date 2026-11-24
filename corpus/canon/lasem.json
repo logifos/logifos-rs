@@ -1,0 +1,7 @@
+{
+  "renderer": "lasem",
+  "repository": "https://github.com/plurimath/lasem-ruby",
+  "revision": "9fa47d952c0f68a0d89c9f743d99cf044c51fe92",
+  "revision_kind": "the vendored Lasem C submodule the gem builds against",
+  "description": "The incumbent renderer. scripts/fetch-canon-lasem.sh builds the vendored Lasem C library and the gem's extension (a modern bison is required; Xcode's cannot parse the itex2MML grammar flags); scripts/render-canon-lasem.mjs renders every manifest case into corpus/canon/lasem/."
+}
