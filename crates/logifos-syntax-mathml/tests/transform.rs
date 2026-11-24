@@ -255,7 +255,7 @@ fn loose_table_content_refuses_at_the_offending_element() {
 }
 
 #[test]
-fn combined_multiscripts_and_limits_refuse() {
+fn combined_scripts_and_multiscripts_refuse() {
     unsupported(&[
         (
             "msubsup",
@@ -264,9 +264,6 @@ fn combined_multiscripts_and_limits_refuse() {
         ("mmultiscripts", "<mmultiscripts/>"),
         ("mprescripts", "<mprescripts/>"),
         ("none", "<none/>"),
-        ("munder", "<munder><mi>x</mi><mi>i</mi></munder>"),
-        ("mover", "<mover><mi>x</mi><mi>i</mi></mover>"),
-        ("munderover", "<munderover/>"),
     ]);
 }
 
@@ -482,9 +479,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:munder><mi>y</mi><mo>^</mo></m:munder></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mstyle><mi>y</mi><mo>^</mo></m:mstyle></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "munder",
+        "mstyle",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));

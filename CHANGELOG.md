@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+The SVG painter exposes validated glyph-local move, line, quadratic, cubic and
+close commands, consuming the existing Fontisan-backed TrueType contours.
+Path emission preserves deterministic number formatting and contour order and
+refuses non-finite coordinates or placement overflow without partial output.
+
 The repository contains an unpublished Rust workspace with six crates for JSON
 requests, formula models, MathML syntax, layout, SVG output and a request facade.
 JSON decoding checks input size and nesting. The model converts sequences and

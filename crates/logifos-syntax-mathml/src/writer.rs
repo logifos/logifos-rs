@@ -29,7 +29,8 @@ pub struct WriteError {
     pub kind: WriteErrorKind,
     /// Formula path: the root is empty, sequences use `/children/N`, fractions
     /// use `/numerator` and `/denominator`, scripts use `/base` and `/script`,
-    /// radicals use `/radicand` and `/index`.
+    /// radicals use `/radicand` and `/index`, and under/over constructs use
+    /// `/base`, `/under` and `/over`.
     /// An output byte-limit refusal identifies the whole document (empty path).
     pub location: String,
 }
@@ -67,6 +68,7 @@ fn refusal(kind: WriteErrorKind, location: &str) -> WriteError {
 /// number and text tokens. Operators retain their exact supported spelling.
 /// No attributes or inherited styles can be supplied by the current Formula
 /// model; the transform refuses those inputs before writing is possible.
+/// Under/over constructs retain their distinct elements and ordered operands.
 ///
 /// Output uses the default MathML namespace, explicit closing tags, no pretty
 /// whitespace, and escaped text (including CR as a character reference). XML
@@ -180,6 +182,31 @@ impl SyntaxBuilder {
                     )?));
                 }
                 name
+            }
+            Formula::Under(base, script) | Formula::Over(base, script) => {
+                let (name, field) = if matches!(formula, Formula::Under(..)) {
+                    ("munder", "under")
+                } else {
+                    ("mover", "over")
+                };
+                for (child, field) in [(base, "base"), (script, field)] {
+                    children.push(Node::Element(self.element(
+                        child,
+                        &format!("{location}/{field}"),
+                        depth + 1,
+                    )?));
+                }
+                name
+            }
+            Formula::UnderOver(base, under, over) => {
+                for (child, field) in [(base, "base"), (under, "under"), (over, "over")] {
+                    children.push(Node::Element(self.element(
+                        child,
+                        &format!("{location}/{field}"),
+                        depth + 1,
+                    )?));
+                }
+                "munderover"
             }
             Formula::Root(radicand, index) => {
                 for (child, field) in [(radicand, "radicand"), (index, "index")] {

@@ -6,6 +6,8 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayoutError {
     UnsupportedOperator(String),
+    /// The Formula construct has syntax support but no layout implementation.
+    NotLaidOutYet,
     InvalidOptions,
     InvalidMathConstants,
     ResourceLimit,
@@ -17,7 +19,7 @@ impl LayoutError {
     /// Stable classification for a future facade adapter.
     pub fn code(&self) -> &'static str {
         match self {
-            Self::UnsupportedOperator(_) => "NOT_IMPLEMENTED",
+            Self::UnsupportedOperator(_) | Self::NotLaidOutYet => "NOT_IMPLEMENTED",
             Self::InvalidOptions => "INVALID_REQUEST",
             Self::InvalidMathConstants => "MISSING_METRICS",
             Self::ResourceLimit => "RESOURCE_LIMIT",
@@ -32,6 +34,7 @@ impl fmt::Display for LayoutError {
         write!(f, "{}: ", self.code())?;
         match self {
             Self::UnsupportedOperator(_) => f.write_str("unsupported operator"),
+            Self::NotLaidOutYet => f.write_str("formula construct is not laid out yet"),
             Self::InvalidOptions => f.write_str("invalid layout size"),
             Self::InvalidMathConstants => f.write_str("invalid script scale percentages"),
             Self::ResourceLimit => f.write_str("layout budget exceeded"),

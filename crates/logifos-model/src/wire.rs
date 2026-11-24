@@ -145,7 +145,8 @@ impl Formula {
     }
 
     /// Converts back to the same supported wire shape without adding defaults.
-    /// Arbitrary operator strings and trees beyond the budgets are refused.
+    /// Syntax-only under/over nodes, arbitrary operator strings and trees
+    /// beyond the budgets are refused.
     pub fn to_wire(&self) -> Result<Value, WireError> {
         encode_node(self, "", 1, &mut Budget::default())
     }
@@ -421,6 +422,11 @@ fn encode_node(
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             ("Math::Formula", json!({"value": values}))
+        }
+        // These syntax-side constructs have no mapping in the pinned subset.
+        // Refuse rather than inventing a class or losing their placement.
+        Formula::Under(..) | Formula::Over(..) | Formula::UnderOver(..) => {
+            return Err(refusal(WireErrorCode::UnsupportedClass, path));
         }
         Formula::Symbol(text) => ("Math::Symbols::Symbol", json!({"value": text})),
         Formula::Operator(text) => {

@@ -100,6 +100,9 @@ fn build<'a>(
                 .collect::<Result<Vec<_>, _>>()?;
             rows::row(children, style)
         }
+        Formula::Under(..) | Formula::Over(..) | Formula::UnderOver(..) => {
+            Err(LayoutError::NotLaidOutYet)
+        }
         Formula::Symbol(text) => token::token(text, None, fonts, style, budget),
         Formula::Operator(text) => {
             operator::validate(text)?;

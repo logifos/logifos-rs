@@ -124,6 +124,7 @@ fn parse_xml(document: &str) -> Parsed {
                     "svg" => &["xmlns", "width", "height", "viewBox"][..],
                     "g" => &["id", "transform", "fill"][..],
                     "rect" => &["x", "y", "width", "height"][..],
+                    "path" => &["d"][..],
                     "title" => &[][..],
                     other => panic!("unexpected SVG element: {other}"),
                 };
@@ -143,7 +144,7 @@ fn parse_xml(document: &str) -> Parsed {
             } => {
                 let index = pending.take().expect("missing start tag");
                 let name = elements[index].name.as_str();
-                assert!(matches!(name, "svg" | "g" | "rect" | "title"));
+                assert!(matches!(name, "svg" | "g" | "rect" | "path" | "title"));
                 if name == "title" {
                     assert!(title.replace(String::new()).is_none(), "duplicate title");
                 }
@@ -217,6 +218,7 @@ fn xml_checks_reject_malformed_documents() {
         "<g fill=\"a\" fill=\"b\"/>",
         "<g fill=\"<\"/>",
         "<g onload=\"x\"/>",
+        "<path d=\"M0 0 Z\" onload=\"x\"/>",
         "<g x:fill=\"a\"/>",
         "<x:g/>",
         "<g></x:g>",
@@ -546,6 +548,66 @@ fn contourless_glyphs_paint_nothing() {
     let document = emit(&tree, &[glyph], &SvgOptions::default()).unwrap();
     assert!(!document.as_str().contains("<path"));
     assert!(!document.as_str().contains("glyphs"));
+}
+
+#[test]
+fn multiple_glyphs_and_contours_keep_exact_paint_order() {
+    let tree = BoxTree::space(Metrics::new(8.0, 8.0, 0.0).unwrap());
+    let glyphs = [
+        placed_glyph(
+            Point::new(1.0, 4.0).unwrap(),
+            Some(font_outline_px(vec![
+                vec![point_px(0.0, 0.0, true), point_px(2.0, 2.0, true)],
+                vec![point_px(0.5, 0.5, true), point_px(1.0, 1.0, true)],
+            ])),
+        ),
+        placed_glyph(Point::default(), None),
+        placed_glyph(
+            Point::new(5.0, 6.0).unwrap(),
+            Some(font_outline_px(vec![vec![
+                point_px(0.0, 0.0, true),
+                point_px(2.0, 1.0, true),
+            ]])),
+        ),
+    ];
+    let expected = concat!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8px\" height=\"8px\" viewBox=\"0 0 8 8\">",
+        "<g fill=\"#000000\"><g id=\"box-0\" transform=\"translate(0 0)\"></g>",
+        "<g id=\"glyphs\"><path d=\"M1 4 L3 2 ZM1.5 3.5 L2 3 Z\"/>",
+        "<path d=\"M5 6 L7 5 Z\"/></g></g></svg>",
+    );
+    for _ in 0..8 {
+        let document = emit(&tree, &glyphs, &SvgOptions::default()).unwrap();
+        assert_eq!(document.as_str(), expected);
+        parse(&document);
+    }
+}
+
+#[test]
+fn invalid_glyph_geometry_refuses_the_whole_document() {
+    use logifos_svg::outline::OutlineError;
+
+    let tree = BoxTree::space(Metrics::default());
+    for (value, origin, expected) in [
+        (f64::NAN, Point::default(), GeometryError::NonFinite),
+        (f64::INFINITY, Point::default(), GeometryError::NonFinite),
+        (
+            f64::MAX,
+            Point::new(f64::MAX, 0.0).unwrap(),
+            GeometryError::Overflow,
+        ),
+    ] {
+        let glyph = placed_glyph(
+            origin,
+            Some(font_outline_px(vec![vec![
+                point_px(0.0, 0.0, true),
+                point_px(value, 0.0, true),
+            ]])),
+        );
+        let error = emit(&tree, &[glyph], &SvgOptions::default()).unwrap_err();
+        assert_eq!(error, SvgError::Outline(OutlineError::Geometry(expected)));
+        assert!(std::error::Error::source(&error).is_some());
+    }
 }
 
 fn placed_glyph(
