@@ -101,6 +101,7 @@ pub(super) fn root<'a>(
         tree,
         glyphs,
         operator: None,
+        operator_font_size_px: None,
         italic: 0.0,
         empty: false,
     })
@@ -166,6 +167,7 @@ fn surd_row<'a>(
             tree,
             glyphs,
             operator: None,
+            operator_font_size_px: None,
             italic: 0.0,
             empty: false,
         },

@@ -136,6 +136,7 @@ pub(super) fn table<'a>(
         tree,
         glyphs,
         operator: None,
+        operator_font_size_px: None,
         italic: 0.0,
         empty: false,
     })

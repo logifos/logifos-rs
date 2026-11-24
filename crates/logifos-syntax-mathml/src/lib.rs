@@ -19,9 +19,9 @@
 //! source namespace declarations, CDATA/reference spelling and whitespace
 //! between operands are not reproduced. `mi`, `mn` and `mtext` share Formula's
 //! symbol variant and serialize as `mi`. These are syntax choices already
-//! erased by the transform, not relaxations of Formula equality. Attributes,
-//! inherited presentation and comments are refused by the transform, never
-//! ignored in round-trip comparisons. A non-sequence Formula root, unsupported
+//! erased by the transform, not relaxations of Formula equality. Explicit
+//! display and script hints on row-like elements survive exact round trips.
+//! Other attributes and comments refuse conversion. A non-sequence Formula root, unsupported
 //! operator, invalid XML character or excessive output returns [`WriteError`].
 //!
 //! The `writer` integration test replays the existing parser case manifest and

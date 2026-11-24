@@ -451,7 +451,8 @@ fn encode_node(
         }
         // These syntax-side constructs have no mapping in the pinned subset.
         // Refuse rather than inventing a class or losing their placement.
-        Formula::Under(..)
+        Formula::Styled { .. }
+        | Formula::Under(..)
         | Formula::Over(..)
         | Formula::UnderOver(..)
         | Formula::SubSup(..)

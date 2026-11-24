@@ -1,5 +1,6 @@
 //! Conservative conversion from syntax into the current Formula vocabulary.
 
+mod presentation;
 mod scripts;
 
 use std::fmt;
@@ -87,15 +88,17 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// rows or cells refuse.
 ///
 /// Only XML whitespace between operands is insignificant. Namespace declarations
-/// identify names and carry no Formula presentation data. Every non-namespace
-/// attribute, comment, other element, nested token markup and non-whitespace text
+/// identify names and carry no Formula presentation data. Row-like elements
+/// preserve validated `displaystyle` and bounded `scriptlevel` hints; the root
+/// also preserves `display`. Other attributes, comments, nested token markup
+/// and non-whitespace text
 /// outside tokens refuses the entire conversion. No partial tree is returned.
 /// `msubsup` preserves base, subscript then superscript, with row semantics at
 /// other arities. Multiscripts preserve paired slots and an optional prescript
 /// boundary; malformed pairs and nonempty markers refuse typed. `none` is
 /// accepted only in multiscript slots. Attribute-free `mspace` and `ms` retain
 /// their distinct kinds; dimensions and custom quotes remain unsupported.
-/// Attribute-free `mstyle`, `merror`, `mpadded` and `mphantom` preserve their
+/// `mstyle`, `merror`, `mpadded` and `mphantom` preserve their
 /// row-like container kinds. `semantics` transforms only its first element;
 /// subsequent element subtrees, including annotations and their attributes,
 /// are ignored. A missing first element or an annotation first element refuses.
@@ -188,6 +191,24 @@ impl Transformer {
         depth: usize,
     ) -> Result<Formula, TransformError> {
         self.check_element(element, location, depth)?;
+        let style = presentation::attributes(element, location)?;
+        let formula = self.content(element, location, depth)?;
+        if style == logifos_model::PresentationStyle::default() {
+            Ok(formula)
+        } else {
+            Ok(Formula::Styled {
+                style,
+                content: Box::new(formula),
+            })
+        }
+    }
+
+    fn content(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Formula, TransformError> {
         match element.name.local.as_str() {
             "semantics" => self.semantics(element, location, depth),
             "mstyle" | "merror" | "mpadded" | "mphantom" => {
@@ -218,11 +239,13 @@ impl Transformer {
                     let row_path = format!("{location}/children/{row_index}");
                     match node {
                         Node::Element(row) if row.name.local.as_str() == "mtr" => {
+                            self.check_element(row, &row_path, depth + 1)?;
                             let mut cells = Vec::new();
                             for (cell_index, cell_node) in row.children.iter().enumerate() {
                                 let cell_path = format!("{row_path}/children/{cell_index}");
                                 match cell_node {
                                     Node::Element(cell) if cell.name.local.as_str() == "mtd" => {
+                                        self.check_element(cell, &cell_path, depth + 2)?;
                                         let children =
                                             self.row_like(cell, &cell_path, depth + 2)?;
                                         cells.push(Formula::Sequence(children));
@@ -334,15 +357,7 @@ impl Transformer {
                 location,
             ));
         }
-        if let Some(attribute) = element.attributes.first() {
-            let mut error = refusal(
-                TransformErrorKind::UnsupportedAttribute,
-                element,
-                &format!("{location}/attributes/0"),
-            );
-            error.attribute = Some(Box::new(attribute.name.clone()));
-            return Err(error);
-        }
+        presentation::attributes(element, location)?;
         Ok(())
     }
 

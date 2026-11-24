@@ -325,9 +325,9 @@ fn inherited_presentation_attributes_refuse_at_their_owner() {
         "mathvariant='normal'",
         "mathsize='12pt'",
         "dir='ltr'",
-        "displaystyle='false'",
-        "scriptlevel='0'",
-        "display='inline'",
+        "displaystyle='invalid'",
+        "scriptlevel='256'",
+        "display='invalid'",
     ] {
         let error = refused(
             &format!("<math {attribute}><mi>x</mi></math>"),
