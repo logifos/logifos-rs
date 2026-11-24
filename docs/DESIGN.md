@@ -65,7 +65,7 @@ The conservative transform and writer also preserve these syntax-only kinds:
 | `munder`, `mover`, `munderover` | `Under`, `Over`, `UnderOver` | Base and ordered limit operands |
 | `msubsup` | `SubSup` | Base, subscript, superscript |
 | `mmultiscripts` | `MultiScripts` | Base, ordered postscript pairs, optional prescript pairs |
-| `mspace` without attributes | `Space` | A distinct space with default dimensions |
+| `mspace` | `Space(width, height, depth)` | Authored extents as `Length` (em, ex, px; percentages stay authored but resolve to zero, invalid to absent — Core 3.2.5) |
 | `ms` without attributes | `StringLiteral` | Exact decoded text and the string token kind |
 
 A multiscript `ScriptPair` has separate optional subscript and superscript

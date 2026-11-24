@@ -19,7 +19,7 @@ fn space_and_string_literal_refuse_layout_without_visiting_their_operands() {
         &["math"],
     )
     .unwrap();
-    for node in [Formula::Space, Formula::StringLiteral("private".into())] {
+    for node in [Formula::StringLiteral("private".into())] {
         for formula in [
             node.clone(),
             Formula::Sequence(vec![node.clone()]),

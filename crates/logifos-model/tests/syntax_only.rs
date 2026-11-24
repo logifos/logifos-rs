@@ -23,7 +23,7 @@ fn syntax_only_nodes_refuse_wire_output_without_inventing_class_mappings() {
         Formula::ErrorGroup(vec![Formula::Symbol("private".into())]),
         Formula::Padded(vec![Formula::Symbol("private".into())]),
         Formula::Phantom(vec![Formula::Symbol("private".into())]),
-        Formula::Space,
+        Formula::Space(None, None, None),
         Formula::StringLiteral("private".into()),
     ] {
         let error = node.to_wire().unwrap_err();

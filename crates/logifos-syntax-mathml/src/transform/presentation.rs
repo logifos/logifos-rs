@@ -71,6 +71,9 @@ pub(super) fn attributes(
                     style.column_align = (value == "center").then_some(ColumnAlign::Center);
                     style.column_align.is_some()
                 }
+                // mspace's extents are content, consumed by the mspace arm
+                // (Core 3.2.5); presentation just admits them here.
+                "width" | "height" | "depth" if element.name.local == "mspace" => true,
                 _ => false,
             };
         if !valid {

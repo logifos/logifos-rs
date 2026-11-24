@@ -15,6 +15,36 @@ pub use presentation::{
 mod wire;
 pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPTH, MAX_NODES};
 
+/// The unit of an authored CSS length.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LengthUnit {
+    Em,
+    Ex,
+    Px,
+    /// A percentage: valid on the attribute but never an mspace extent.
+    Percent,
+}
+
+/// An authored CSS length: value with its unit.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Length {
+    pub value: f64,
+    pub unit: LengthUnit,
+}
+
+impl Length {
+    /// The CSS-pixel extent at a font size and ex height. Percentages
+    /// resolve to zero, per Core's mspace presentational-hint rules.
+    pub fn px(&self, font_size_px: f64, ex_px: f64) -> f64 {
+        match self.unit {
+            LengthUnit::Em => self.value * font_size_px,
+            LengthUnit::Ex => self.value * ex_px,
+            LengthUnit::Px => self.value,
+            LengthUnit::Percent => 0.0,
+        }
+    }
+}
+
 /// The typed formula node shared by syntax, layout and wire conversion.
 /// A stage refuses variants it cannot represent without losing information.
 #[derive(Debug, Clone, PartialEq)]
@@ -52,8 +82,9 @@ pub enum Formula {
         /// Pairs after `mprescripts`; `Some([])` preserves an empty boundary.
         prescripts: Option<Vec<ScriptPair>>,
     },
-    /// An attribute-free MathML space with default dimensions.
-    Space,
+    /// A blank space of authored extents; `None` is an absent attribute,
+    /// which Core resolves to zero (Core 3.2.5).
+    Space(Option<Length>, Option<Length>, Option<Length>),
     /// A string literal, distinct from identifier text and with default quotes.
     StringLiteral(String),
     /// Base with an underscript child, distinct from a subscript.

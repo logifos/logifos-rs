@@ -110,10 +110,11 @@ fn phantom_still_requires_its_contents_to_lay_out() {
             .code(),
         "MISSING_GLYPH"
     );
-    assert_eq!(
-        render("<mphantom><mspace/></mphantom>").unwrap_err(),
-        LayoutError::NotLaidOutYet
-    );
+    // A bare mspace now lays out: authored extents are all absent, which
+    // Core resolves to a zero-sized spacer.
+    let space = render("<mphantom><mspace/></mphantom>").unwrap();
+    assert_eq!(space.tree.metrics(), Default::default());
+    assert!(space.glyphs.is_empty());
 }
 
 #[test]

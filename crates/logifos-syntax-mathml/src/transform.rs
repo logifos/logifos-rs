@@ -5,7 +5,7 @@ mod scripts;
 
 use std::fmt;
 
-use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, Length, LengthUnit, MAX_DEPTH, MAX_NODES};
 
 use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
 
@@ -227,7 +227,17 @@ impl Transformer {
             "mmultiscripts" => self.multiscripts(element, location, depth),
             "mspace" => {
                 self.empty_element(element, location, depth)?;
-                Ok(Formula::Space)
+                let mut extents = [None; 3];
+                for attribute in &element.attributes {
+                    let slot = match attribute.name.local.as_str() {
+                        "width" => 0,
+                        "height" => 1,
+                        "depth" => 2,
+                        _ => continue,
+                    };
+                    extents[slot] = parse_length(&attribute.value);
+                }
+                Ok(Formula::Space(extents[0], extents[1], extents[2]))
             }
             "mi" | "mn" | "mtext" | "mo" | "ms" => self.token(element, location, depth),
             "math" if depth != 1 => Err(refusal(
@@ -488,4 +498,30 @@ impl Transformer {
 
 fn xml_whitespace(character: char) -> bool {
     matches!(character, ' ' | '\t' | '\r' | '\n')
+}
+
+/// Parses a CSS <length-percentage>; invalid values are treated as absent
+/// per Core's error handling, and percentages resolve to zero extents.
+fn parse_length(value: &str) -> Option<Length> {
+    let text = value.trim();
+    if text.is_empty() {
+        return None;
+    }
+    let split = text
+        .find(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-' || c == '+'))
+        .unwrap_or(text.len());
+    let (number, unit) = text.split_at(split);
+    let value: f64 = number.parse().ok()?;
+    if !value.is_finite() {
+        return None;
+    }
+    let unit = match unit {
+        "em" => LengthUnit::Em,
+        "ex" => LengthUnit::Ex,
+        "px" => LengthUnit::Px,
+        "%" => LengthUnit::Percent,
+        "0" => LengthUnit::Px,
+        _ => return None,
+    };
+    Some(Length { value, unit })
 }
