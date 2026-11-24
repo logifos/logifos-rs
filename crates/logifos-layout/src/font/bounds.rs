@@ -16,42 +16,79 @@ pub struct GlyphBounds {
 }
 
 pub(super) fn read(outlines: &Outlines<'_>) -> Result<Option<Vec<Option<GlyphBounds>>>> {
-    if outlines.kind != OutlineKind::Glyf {
-        return Ok(None);
+    if outlines.kind == OutlineKind::Glyf {
+        outlines
+            .glyphs
+            .iter()
+            .map(|bytes| {
+                if bytes.is_empty() {
+                    return Ok(None);
+                }
+                let r = Reader::new(bytes, "glyf");
+                r.range(0, 10, 1)?;
+                let contours = r.i16(0)?;
+                if contours < -1 {
+                    return Err(r.err(0));
+                }
+                if contours == 0 {
+                    return Ok(None);
+                }
+                let bounds = GlyphBounds {
+                    x_min: r.i16(2)?,
+                    y_min: r.i16(4)?,
+                    x_max: r.i16(6)?,
+                    y_max: r.i16(8)?,
+                };
+                if bounds.x_min > bounds.x_max || bounds.y_min > bounds.y_max {
+                    return Err(r.err(2));
+                }
+                Ok(Some(bounds))
+            })
+            .collect::<Result<Vec<_>>>()
+            .map(Some)
+    } else if outlines.kind == OutlineKind::Cff {
+        // CFF carries no per-glyph bounds; control-point bounds over the
+        // interpreted charstring match the glyf header's point-inclusive
+        // definition. A decode failure here is a corrupt table.
+        let mut out = Vec::with_capacity(outlines.count());
+        for i in 0..outlines.count() {
+            let points = outlines
+                .decode_points(i)
+                .map_err(|_| FontError::new(FontErrorKind::InvalidFont))?;
+            out.push(match points {
+                Some(points) => control_bounds(&points)?,
+                None => None,
+            });
+        }
+        Ok(Some(out))
+    } else {
+        Ok(None)
     }
-    outlines
-        .glyphs
-        .iter()
-        .map(|bytes| {
-            if bytes.is_empty() {
-                return Ok(None);
-            }
-            let r = Reader::new(bytes, "glyf");
-            r.range(0, 10, 1)?;
-            let contours = r.i16(0)?;
-            if contours < -1 {
-                return Err(r.err(0));
-            }
-            if contours == 0 {
-                return Ok(None);
-            }
-            let bounds = GlyphBounds {
-                x_min: r.i16(2)?,
-                y_min: r.i16(4)?,
-                x_max: r.i16(6)?,
-                y_max: r.i16(8)?,
-            };
-            if bounds.x_min > bounds.x_max || bounds.y_min > bounds.y_max {
-                return Err(r.err(2));
-            }
-            Ok(Some(bounds))
-        })
-        .collect::<Result<Vec<_>>>()
-        .map(Some)
+}
+
+fn control_bounds(points: &fontisan::sfnt::GlyphOutline) -> Result<Option<GlyphBounds>> {
+    let mut it = points.contours.iter().flat_map(|c| c.points.iter());
+    let Some(first) = it.next() else {
+        return Ok(None);
+    };
+    let (mut x_min, mut y_min, mut x_max, mut y_max) = (first.x, first.y, first.x, first.y);
+    for p in it {
+        x_min = x_min.min(p.x);
+        y_min = y_min.min(p.y);
+        x_max = x_max.max(p.x);
+        y_max = y_max.max(p.y);
+    }
+    let cast = |v: i32| i16::try_from(v).map_err(|_| FontError::new(FontErrorKind::InvalidFont));
+    Ok(Some(GlyphBounds {
+        x_min: cast(x_min)?,
+        y_min: cast(y_min)?,
+        x_max: cast(x_max)?,
+        y_max: cast(y_max)?,
+    }))
 }
 
 impl FontFace {
-    /// `None` means a valid contourless glyph; unavailable CFF bounds refuse.
+    /// `None` means a valid contourless glyph; unavailable CFF2 bounds refuse.
     pub fn glyph_bounds(&self, glyph: u16) -> Result<Option<GlyphBounds>> {
         self.glyph_metrics(glyph)?;
         self.bounds

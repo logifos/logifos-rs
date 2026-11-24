@@ -150,18 +150,21 @@ impl FontFace {
         }
         let bounds = bounds::read(&outlines)?;
         // Every glyph's points decode at load: a malformed glyph is an
-        // InvalidFont instead of a mid-layout failure. CFF/CFF2 faces carry
-        // no decoded points and refuse outlines at selection time.
-        let points = if outlines.kind == OutlineKind::Glyf {
+        // InvalidFont instead of a mid-layout failure. CFF2 faces carry
+        // no decodable points and refuse outlines at selection time.
+        let points = if outlines.kind == OutlineKind::Glyf || outlines.kind == OutlineKind::Cff {
             let mut points = Vec::with_capacity(n);
             for i in 0..n {
                 points.push(outlines.decode_points(i).map_err(upstream)?);
             }
             // A glyph claiming ink bounds without contours could never be
-            // painted; the painter relies on "no contours, no ink".
-            for (i, (bounds, outline)) in bounds.iter().flatten().zip(&points).enumerate() {
-                if bounds.is_some() && outline.is_none() {
-                    return Err(FontError::malformed("glyf", i));
+            // painted; the painter relies on "no contours, no ink". The
+            // bounds claim is a glyf header fact, so the cross-check is too.
+            if outlines.kind == OutlineKind::Glyf {
+                for (i, (bounds, outline)) in bounds.iter().flatten().zip(&points).enumerate() {
+                    if bounds.is_some() && outline.is_none() {
+                        return Err(FontError::malformed("glyf", i));
+                    }
                 }
             }
             Some(points)
@@ -220,7 +223,7 @@ impl FontFace {
     }
 
     /// The glyph's decoded contour points in font units (y up, baseline at
-    /// origin). `None` is a valid contourless glyph; CFF/CFF2 faces refuse.
+    /// origin). `None` is a valid contourless glyph; CFF2 faces refuse.
     pub fn outline(&self, glyph: u16) -> Result<Option<&GlyphOutline>> {
         self.glyph_metrics(glyph)?;
         Ok(self
@@ -243,6 +246,9 @@ pub struct GlyphOutlinePx {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContourPx {
     pub points: Vec<PointPx>,
+    /// TrueType quadratic points when false; Type 2 cubic segments
+    /// `[c1, c2, on]` when true.
+    pub cubic: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -263,6 +269,7 @@ fn scale_outline(outline: &GlyphOutline, scale: f64) -> GlyphOutlinePx {
                 on_curve: p.on_curve,
             })
             .collect(),
+        cubic: c.cubic,
     };
     GlyphOutlinePx {
         contours: outline.contours.iter().map(contour).collect(),
@@ -424,8 +431,8 @@ impl FontProvider {
         for (i, (id, font)) in self.faces.iter().enumerate() {
             if let Some(glyph_id) = font.glyph_id(character) {
                 let metrics = font.glyph_metrics(glyph_id)?;
-                // A CFF face resolves metrics without decoded points; only a
-                // corrupt glyph (or a missing one) refuses the resolution.
+                // Only a corrupt glyph (or a missing one) refuses the
+                // resolution; a contourless glyph resolves with no outline.
                 let outline_px = match font.outline(glyph_id) {
                     Ok(outline) => outline.map(|outline| {
                         scale_outline(outline, font_size_px / f64::from(font.metrics.units_per_em))
@@ -628,8 +635,8 @@ impl FontProvider {
             .ok_or_else(|| FontError::new(FontErrorKind::InvalidResources))?
             .1;
         let metrics = font.glyph_metrics(glyph_id)?;
-        // A CFF face resolves metrics without decoded points; only a corrupt
-        // glyph (or a missing one) refuses the resolution.
+        // Only a corrupt glyph (or a missing one) refuses the resolution; a
+        // contourless glyph resolves with no outline.
         let outline_px = match font.outline(glyph_id) {
             Ok(outline) => outline.map(|outline| {
                 scale_outline(outline, font_size_px / f64::from(font.metrics.units_per_em))

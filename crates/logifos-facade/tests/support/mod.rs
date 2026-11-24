@@ -99,26 +99,13 @@ impl FontBuilder {
             glyf.extend(triangle);
         }
         put32(&mut loca, 24, glyf.len() as u32);
-        let mut cmap = words(&[0, 1, 3, 10]);
-        cmap.extend(12u32.to_be_bytes());
-        cmap.extend(words(&[12, 0]));
-        cmap.extend((16 + characters.len() as u32 * 12).to_be_bytes());
-        cmap.extend(0u32.to_be_bytes());
-        cmap.extend((characters.len() as u32).to_be_bytes());
-        let mut chars = characters.to_vec();
-        chars.sort();
-        for (c, id) in chars {
-            cmap.extend((c as u32).to_be_bytes());
-            cmap.extend((c as u32).to_be_bytes());
-            cmap.extend(u32::from(id).to_be_bytes());
-        }
         Self {
             tables: BTreeMap::from([
                 (*b"head", head),
                 (*b"hhea", hhea),
                 (*b"maxp", maxp),
                 (*b"hmtx", hmtx),
-                (*b"cmap", cmap),
+                (*b"cmap", cmap_table(characters)),
                 (*b"glyf", glyf),
                 (*b"loca", loca),
                 (*b"MATH", math_table(axis, stretch)),
@@ -161,4 +148,122 @@ fn checksum(bytes: &[u8]) -> u32 {
         b[..chunk.len()].copy_from_slice(chunk);
         sum.wrapping_add(u32::from_be_bytes(b))
     })
+}
+
+fn cmap_table(characters: &[(char, u16)]) -> Vec<u8> {
+    let mut cmap = words(&[0, 1, 3, 10]);
+    cmap.extend(12u32.to_be_bytes());
+    cmap.extend(words(&[12, 0]));
+    cmap.extend((16 + characters.len() as u32 * 12).to_be_bytes());
+    cmap.extend(0u32.to_be_bytes());
+    cmap.extend((characters.len() as u32).to_be_bytes());
+    let mut chars = characters.to_vec();
+    chars.sort();
+    for (c, id) in chars {
+        cmap.extend((c as u32).to_be_bytes());
+        cmap.extend((c as u32).to_be_bytes());
+        cmap.extend(u32::from(id).to_be_bytes());
+    }
+    cmap
+}
+
+/// Type 1 cipher encryption of a charstring (R = 4330), with a `len_iv`
+/// byte nonce prepended.
+fn encrypt(plain: &[u8], len_iv: usize) -> Vec<u8> {
+    let mut data: Vec<u8> = (0..len_iv).map(|i| i as u8 ^ 0xa5).collect();
+    data.extend_from_slice(plain);
+    let mut r: u16 = 4330;
+    let mut out = Vec::with_capacity(data.len());
+    for &p in &data {
+        let c = p ^ (r >> 8) as u8;
+        out.push(c);
+        r = (u16::from(c).wrapping_add(r))
+            .wrapping_mul(52845)
+            .wrapping_add(22719);
+    }
+    out
+}
+
+/// An OTF-flavored face: 'x' is a real lenIV-encrypted Type 2 charstring
+/// whose rmoveto, rrcurveto and hlineto make one cubic segment and one line
+/// (font-unit points (0,0) (125,0) (125,125) (125,125) (250,125)); the
+/// coordinates are 125-multiples so 24px/1000upem lands on exact pixels.
+pub fn cff_font() -> Vec<u8> {
+    let mut head = vec![0; 54];
+    put32(&mut head, 0, 0x0001_0000);
+    put32(&mut head, 12, 0x5f0f_3cf5);
+    put16(&mut head, 18, 1000);
+    put16(&mut head, 50, 1);
+    let mut hhea = vec![0; 36];
+    put32(&mut hhea, 0, 0x0001_0000);
+    put16(&mut hhea, 4, 800);
+    put16(&mut hhea, 6, (-200i16) as u16);
+    put16(&mut hhea, 10, 600);
+    put16(&mut hhea, 34, 2);
+    let maxp = vec![0, 0, 0x50, 0, 0, 6];
+    let hmtx = words(&[500, 0, 500, 0, 5, 10, 15, 20]);
+    let glyph_x = [
+        139, 139, 21, // rmoveto 0 0
+        247, 17, 139, 247, 17, 247, 17, 139, 247, 17, 8, // rrcurveto 125 0 125 125 0 125
+        247, 142, 6,  // hlineto 250
+        14, // endchar
+    ];
+    fn index(items: &[&[u8]]) -> Vec<u8> {
+        let mut b = (items.len() as u16).to_be_bytes().to_vec();
+        if items.is_empty() {
+            return b;
+        }
+        b.push(1);
+        let mut off = 1u8;
+        for item in items {
+            b.push(off);
+            off += item.len() as u8;
+        }
+        b.push(off);
+        for item in items {
+            b.extend_from_slice(item);
+        }
+        b
+    }
+    fn operand(v: usize) -> Vec<u8> {
+        debug_assert!((-107..=107).contains(&(v as i64)));
+        vec![v as u8 + 139]
+    }
+    let names = index(&[b"LogifosCFF"]);
+    let strings = index(&[]);
+    let gsubrs = index(&[]);
+    let blank: &[u8] = &[14];
+    let charstrings = index(&[blank, &encrypt(&glyph_x, 4), blank, blank, blank, blank]);
+    // The Private DICT names its lenIV (4) explicitly; the Top DICT's
+    // operands all fit the 1-byte encoding, so sizes are stable.
+    let private = [139 + 4, 20];
+    let topdict_at = 4 + names.len();
+    let charstrings_at = topdict_at + 10 + strings.len() + gsubrs.len();
+    let private_at = charstrings_at + charstrings.len();
+    let mut dict = operand(charstrings_at);
+    dict.push(17);
+    dict.extend(operand(private.len()));
+    dict.extend(operand(private_at));
+    dict.push(18);
+    debug_assert_eq!(index(&[&dict]).len(), 10);
+    let topdict = index(&[&dict]);
+    let mut cff = vec![1u8, 0, 4, 1];
+    cff.extend_from_slice(&names);
+    cff.extend_from_slice(&topdict);
+    cff.extend_from_slice(&strings);
+    cff.extend_from_slice(&gsubrs);
+    cff.extend_from_slice(&charstrings);
+    cff.extend_from_slice(&private);
+    FontBuilder {
+        tables: BTreeMap::from([
+            (*b"head", head),
+            (*b"hhea", hhea),
+            (*b"maxp", maxp),
+            (*b"hmtx", hmtx),
+            (*b"cmap", cmap_table(&[('x', 1)])),
+            (*b"CFF ", cff),
+            (*b"MATH", math_table(250, false)),
+        ]),
+    }
+    .finish()
 }

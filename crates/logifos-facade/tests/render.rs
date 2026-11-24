@@ -200,6 +200,36 @@ fn render_lays_out_a_subscript_through_the_wire() {
 }
 
 #[test]
+fn render_paints_cff_charstring_paths_through_the_wire() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><mi>x</mi></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = support::cff_font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    assert_eq!(svg.matches("<path").count(), 1, "one glyph path: {svg}");
+    // The charstring's cubic surfaces as a C command, the line as L. The
+    // relative rrcurveto ends at font units (250,250): ink 6px above the
+    // baseline, so "M0 6 C3 6 6 3 6 0 L12 0 Z".
+    let glyphs_start = svg.find("<g id=\"glyphs\">").expect("glyph layer");
+    let layer = &svg[glyphs_start..];
+    assert_eq!(
+        layer,
+        concat!(
+            "<g id=\"glyphs\"><path d=\"M0 6 C3 6 6 3 6 0 L12 0 Z\"/>",
+            "</g></g></svg>",
+        ),
+        "glyph layer bytes: {svg}"
+    );
+}
+
+#[test]
 fn render_stretches_fences_to_the_row_extents_through_the_wire() {
     let request = json!({
         "abi_version": 1, "schema_version": 1,

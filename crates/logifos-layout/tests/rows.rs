@@ -956,14 +956,13 @@ fn cff_font() -> Vec<u8> {
     let mut b = builder(&[('x', 1)]);
     b.tables.remove(b"glyf");
     b.tables.remove(b"loca");
-    // CFF 1 header; one Name INDEX; one Top DICT with CharStrings at byte 21;
-    // empty String and Global Subr INDEXes; six endchar programs.
-    let mut cff = vec![
-        1, 0, 4, 4, 0, 1, 1, 1, 2, b'T', 0, 1, 1, 1, 3, 160, 17, 0, 0, 0, 0,
-    ];
-    cff.extend([0, 6, 1, 1, 2, 3, 4, 5, 6, 7]);
-    cff.extend([14; 6]);
-    b.tables.insert(*b"CFF ", cff);
+    // CFF2 header (headerSize 5, topDictLength 2); Top DICT names CharStrings
+    // at byte 7; a uint32-count INDEX of six endchar programs. CFF2 faces
+    // carry no per-glyph bounds, so their metrics refuse at layout.
+    let mut cff2 = vec![2, 0, 5, 0, 2, 139 + 7, 17];
+    cff2.extend([0, 0, 0, 6, 1, 1, 2, 3, 4, 5, 6, 7]);
+    cff2.extend([14; 6]);
+    b.tables.insert(*b"CFF2", cff2);
     b.tables.insert(*b"maxp", vec![0, 0, 0x50, 0, 0, 6]);
     let mut bytes = b.finish();
     bytes[..4].copy_from_slice(b"OTTO");

@@ -163,6 +163,37 @@ fn append_contour(
     if points.len() < 2 {
         return Ok(());
     }
+    if contour.cubic {
+        // Type 2 contours start on the charstring moveto and alternate
+        // on-curve anchors with off-off-on cubic segments; lines surface as
+        // plain on-curve points.
+        commands.push(PathCommand::MoveTo(points[0].0));
+        let mut i = 1;
+        while i < points.len() {
+            if points[i].1 {
+                commands.push(PathCommand::LineTo(points[i].0));
+                i += 1;
+            } else {
+                let Some(&(control1, _)) = points.get(i) else {
+                    return Err(OutlineError::InvalidCommandOrder);
+                };
+                let Some(&(control2, _)) = points.get(i + 1) else {
+                    return Err(OutlineError::InvalidCommandOrder);
+                };
+                let Some(&(to, true)) = points.get(i + 2) else {
+                    return Err(OutlineError::InvalidCommandOrder);
+                };
+                commands.push(PathCommand::CubicTo {
+                    control1,
+                    control2,
+                    to,
+                });
+                i += 3;
+            }
+        }
+        commands.push(PathCommand::Close);
+        return Ok(());
+    }
     let mut expanded = Vec::with_capacity(points.len());
     for (i, &(point, on_curve)) in points.iter().enumerate() {
         expanded.push((point, on_curve));
