@@ -1,5 +1,6 @@
 //! Font-independent, deterministic SVG emission from a validated box tree and
-//! its placed glyphs.
+//! its placed glyphs. The [`outline`] module exposes typed move, line,
+//! quadratic, cubic, and close commands and their SVG path serializer.
 //!
 //! Rules become filled rectangles; placed glyphs become `<path>` data (TrueType
 //! quadratics with implied on-curve midpoints, flipped into top-left
@@ -20,9 +21,12 @@
 //! with negative zero normalized and no rounding or quantization. Equal trees,
 //! glyph lists and options produce equal bytes with the same engine artifact.
 
+pub mod outline;
+
 use std::fmt;
 
-use logifos_layout::font::ContourPx;
+use outline::{GlyphOutline, OutlineError};
+
 use logifos_layout::layout::PlacedGlyph;
 use logifos_layout::{Bounds, BoxKind, BoxTree, GeometryError, Metrics, Point};
 
@@ -53,6 +57,8 @@ pub enum SvgError {
     InvalidXmlCharacter,
     /// Combining logical and ink extents exceeded representable geometry.
     Geometry(GeometryError),
+    /// Invalid outline commands, non-finite points, or glyph placement overflow.
+    Outline(OutlineError),
 }
 
 impl fmt::Display for SvgError {
@@ -61,6 +67,7 @@ impl fmt::Display for SvgError {
             Self::InvalidColor => f.write_str("SVG color must be a six-digit RGB hex string"),
             Self::InvalidXmlCharacter => f.write_str("SVG title contains an invalid XML character"),
             Self::Geometry(error) => write!(f, "SVG viewport: {error}"),
+            Self::Outline(error) => write!(f, "SVG {error}"),
         }
     }
 }
@@ -69,6 +76,7 @@ impl std::error::Error for SvgError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Geometry(error) => Some(error),
+            Self::Outline(error) => Some(error),
             _ => None,
         }
     }
@@ -121,8 +129,8 @@ impl SvgDocument {
 ///
 /// # Errors
 ///
-/// Refuses invalid presentation and viewport arithmetic overflow. No partial
-/// SVG is returned.
+/// Refuses invalid presentation, outline geometry, and arithmetic overflow.
+/// No partial SVG is returned.
 ///
 /// # Examples
 ///
@@ -209,7 +217,7 @@ pub fn emit(
             pending.push(Visit::Open(child.node(), child.offset()));
         }
     }
-    let layer = glyph_layer(glyphs);
+    let layer = glyph_layer(glyphs)?;
     if !layer.is_empty() {
         svg.push_str("<g id=\"glyphs\">");
         svg.push_str(&layer);
@@ -232,86 +240,23 @@ fn number(value: f64) -> String {
     }
 }
 
-/// One `<path>` per placed glyph with contours, in glyph order; implied
-/// on-curve midpoints materialize runs of quadratic off-curve points,
-/// including across the contour's wrap.
-fn glyph_layer(glyphs: &[PlacedGlyph]) -> String {
+/// One `<path>` per placed glyph with contours, in glyph order. Font contour
+/// decoding is separate from command serialization and final placement.
+fn glyph_layer(glyphs: &[PlacedGlyph]) -> Result<String, SvgError> {
     let mut layer = String::new();
     for glyph in glyphs {
         let Some(outline) = &glyph.glyph.outline_px else {
             continue;
         };
-        let mut data = String::new();
-        for contour in &outline.contours {
-            append_contour(&mut data, contour, glyph);
-        }
+        let outline = GlyphOutline::try_from(outline).map_err(SvgError::Outline)?;
+        let data = outline
+            .to_svg_path(glyph.origin)
+            .map_err(SvgError::Outline)?;
         if !data.is_empty() {
             layer.push_str(&format!("<path d=\"{data}\"/>"));
         }
     }
-    layer
-}
-
-/// Appends one contour's subpath: `M`/`L`/`Q` segments in top-left layout
-/// coordinates (the font's y-up points flip around the glyph's baseline).
-fn append_contour(data: &mut String, contour: &ContourPx, glyph: &PlacedGlyph) {
-    if contour.points.len() < 2 {
-        return;
-    }
-    let points = with_implied_midpoints(&contour.points);
-    let Some(start) = points.iter().position(|p| p.on_curve) else {
-        return;
-    };
-    let flip = |p: &logifos_layout::font::PointPx| (glyph.origin.x() + p.x, glyph.origin.y() - p.y);
-    let (x, y) = flip(&points[start]);
-    data.push_str(&format!("M{} {} ", number(x), number(y)));
-    let mut i = (start + 1) % points.len();
-    while i != start {
-        if points[i].on_curve {
-            let (x, y) = flip(&points[i]);
-            data.push_str(&format!("L{} {} ", number(x), number(y)));
-            i = (i + 1) % points.len();
-        } else {
-            let (cx, cy) = flip(&points[i]);
-            let next_index = (i + 1) % points.len();
-            let (x, y) = flip(&points[next_index]);
-            data.push_str(&format!(
-                "Q{} {} {} {} ",
-                number(cx),
-                number(cy),
-                number(x),
-                number(y)
-            ));
-            // A quadratic landing on the start point has closed the contour;
-            // wrapping past it would cycle forever.
-            if next_index == start {
-                break;
-            }
-            i = (next_index + 1) % points.len();
-        }
-    }
-    data.push('Z');
-}
-
-/// Inserts the quadratic midpoint between consecutive off-curve points,
-/// including between the last and first point of the contour.
-fn with_implied_midpoints(
-    points: &[logifos_layout::font::PointPx],
-) -> Vec<logifos_layout::font::PointPx> {
-    let mut expanded = Vec::with_capacity(points.len() * 2);
-    let count = points.len();
-    for (i, p) in points.iter().enumerate() {
-        expanded.push(*p);
-        let next = points[(i + 1) % count];
-        if !p.on_curve && !next.on_curve {
-            expanded.push(logifos_layout::font::PointPx {
-                x: (p.x + next.x) / 2.0,
-                y: (p.y + next.y) / 2.0,
-                on_curve: true,
-            });
-        }
-    }
-    expanded
+    Ok(layer)
 }
 
 fn is_xml_character(value: char) -> bool {

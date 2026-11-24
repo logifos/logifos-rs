@@ -108,9 +108,19 @@ walks the tree (depth-first, stable ids), paints rules as `<rect>`, then
 paints the glyph layer: one `<path>` per placed glyph, TrueType quadratics
 with implied on-curve midpoints (including across each contour's wrap),
 flipped into top-left coordinates around the glyph's baseline origin.
-Contourless glyphs paint nothing. The output is byte-stable: fixed numeric
-formatting, lowercase color, no timestamps, boxes first and a trailing
-`glyphs` group last.
+Contourless glyphs paint nothing. The painter first converts the backend's
+pixel-scaled TrueType points into `outline::GlyphOutline`: ordered, closed
+`PathCommand::{MoveTo, LineTo, QuadTo, CubicTo, Close}` contours. The typed
+outline also accepts synthetic cubic segments without depending on a font
+encoding. `to_svg_path` places endpoints and controls at the baseline origin
+and flips y once; invalid contour order, non-finite input and placement
+overflow return typed errors with no partial output.
+
+The output is byte-stable: shortest round-trip binary64 numbers without
+quantization, normalized negative zero, lowercase color, no timestamps,
+boxes first and a trailing `glyphs` group last. Path data uses absolute
+`M`/`L`/`Q`/`C`/`Z` commands, single spaces between numbers and after drawing
+commands, and no space after `Z`. Contour order and winding are preserved.
 
 **Target.** CFF cubic paths when Fontisan adds charstring decoding,
 glyph paths positioned inside their owning box groups (paint-order
