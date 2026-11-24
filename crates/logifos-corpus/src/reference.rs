@@ -65,9 +65,7 @@ fn katex_cases(dir: &Path) -> Result<Vec<ExtractedCase>, String> {
         .into_iter()
         .next()
         .ok_or("unexpected ss_data.yaml shape")?;
-    let mapping = document
-        .as_hash()
-        .ok_or("unexpected ss_data.yaml shape")?;
+    let mapping = document.as_hash().ok_or("unexpected ss_data.yaml shape")?;
     let tex = yaml_rust2::Yaml::String("tex".into());
     let mut names = BTreeMap::new();
     for (key, value) in mapping {
@@ -75,7 +73,10 @@ fn katex_cases(dir: &Path) -> Result<Vec<ExtractedCase>, String> {
             return Err("unexpected ss_data.yaml shape".into());
         };
         let value_tex = matches!(value, yaml_rust2::Yaml::String(_))
-            || matches!(value.as_hash().and_then(|h| h.get(&tex)), Some(yaml_rust2::Yaml::String(_)));
+            || matches!(
+                value.as_hash().and_then(|h| h.get(&tex)),
+                Some(yaml_rust2::Yaml::String(_))
+            );
         names.insert(name.clone(), value_tex);
     }
     Ok(names
