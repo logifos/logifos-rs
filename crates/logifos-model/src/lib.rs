@@ -8,9 +8,8 @@
 mod wire;
 pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPTH, MAX_NODES};
 
-/// The typed formula node. Variants cover the constructs the layout stage
-/// consumes; the wire conversion maps the plurimath `Math::` classes onto
-/// them by name.
+/// The typed formula node shared by syntax, layout and wire conversion.
+/// A stage refuses variants it cannot represent without losing information.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Formula {
     /// A horizontal run of child formulas (the plain sequence).
@@ -21,6 +20,12 @@ pub enum Formula {
     Superscript(Box<Formula>, Box<Formula>),
     /// Base with a subscript (index) child.
     Subscript(Box<Formula>, Box<Formula>),
+    /// Base with an underscript child, distinct from a subscript.
+    Under(Box<Formula>, Box<Formula>),
+    /// Base with an overscript child, distinct from a superscript.
+    Over(Box<Formula>, Box<Formula>),
+    /// Base, underscript and overscript in MathML source order.
+    UnderOver(Box<Formula>, Box<Formula>, Box<Formula>),
     /// A square root around one radicand child.
     Sqrt(Box<Formula>),
     /// A radicand with an explicit index child.
