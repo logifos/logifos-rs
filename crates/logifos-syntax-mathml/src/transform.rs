@@ -69,7 +69,7 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
     }
 }
 
-/// Transforms a parsed MathML document without extending the shared model.
+/// Transforms a parsed MathML document into the shared Formula model.
 ///
 /// `math` and `mrow` become ordered sequences (including empty or singleton rows).
 /// `mi`, `mn` and `mtext` become symbols with their decoded text preserved exactly;
@@ -77,13 +77,15 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// `*` and `×`, with no trimming, substitution or symbol fallback. `mfrac`, `msub`
 /// and `msup` require exactly two element operands in source order. `msqrt`
 /// wraps every child in one radicand; `mroot` takes base then index and falls
-/// back to a row outside its two-child arity.
+/// back to a row outside its two-child arity. `munder` and `mover` preserve
+/// base then script; `munderover` preserves base, underscript then overscript.
+/// Under/over elements outside their two- or three-child arity become rows.
 ///
 /// Only XML whitespace between operands is insignificant. Namespace declarations
 /// identify names and carry no Formula presentation data. Every non-namespace
 /// attribute, comment, other element, nested token markup and non-whitespace text
 /// outside tokens refuses the entire conversion. No partial tree is returned.
-/// Fences, tables, combined scripts, under/over constructs, style,
+/// Fences, tables, combined sub/sup scripts, style,
 /// spacing, enclosure, semantics and annotations therefore remain unsupported.
 /// Names in either the MathML namespace or no namespace are accepted.
 ///
@@ -168,7 +170,8 @@ impl Transformer {
                 element,
                 location,
             )),
-            "math" | "mrow" | "mfrac" | "msub" | "msup" | "msqrt" | "mroot" => {
+            "math" | "mrow" | "mfrac" | "msub" | "msup" | "msqrt" | "mroot" | "munder"
+            | "mover" | "munderover" => {
                 let mut children = Vec::new();
                 for (index, node) in element.children.iter().enumerate() {
                     let path = format!("{location}/children/{index}");
@@ -190,6 +193,27 @@ impl Transformer {
                 }
                 match element.name.local.as_str() {
                     "math" | "mrow" => Ok(Formula::Sequence(children)),
+                    "munder" | "mover" | "munderover" => {
+                        let arity = if element.name.local == "munderover" {
+                            3
+                        } else {
+                            2
+                        };
+                        if children.len() != arity {
+                            // MathML Core 3.4.2 uses row semantics at other arities.
+                            return Ok(Formula::Sequence(children));
+                        }
+                        let mut children = children.into_iter();
+                        let base = Box::new(children.next().unwrap());
+                        let script = Box::new(children.next().unwrap());
+                        Ok(match element.name.local.as_str() {
+                            "munder" => Formula::Under(base, script),
+                            "mover" => Formula::Over(base, script),
+                            _ => {
+                                Formula::UnderOver(base, script, Box::new(children.next().unwrap()))
+                            }
+                        })
+                    }
                     "msqrt" => Ok(Formula::Sqrt(Box::new(Formula::Sequence(children)))),
                     "mroot" if children.len() == 2 => {
                         let mut children = children.into_iter();
