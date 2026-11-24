@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, Length, LengthUnit, MAX_DEPTH, MAX_NODES};
 
 use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
 
@@ -187,11 +187,22 @@ impl Transformer {
                 location,
             ));
         }
-        if let Some(attribute) = element.attributes.first() {
+        // mspace's extents are content (Core 3.2.5); every other attribute
+        // is presentation the tree cannot carry.
+        let allowed: &[&str] = match element.name.local.as_str() {
+            "mspace" => &["width", "height", "depth"],
+            _ => &[],
+        };
+        let disallowed = element
+            .attributes
+            .iter()
+            .enumerate()
+            .find(|(_, a)| !allowed.contains(&a.name.local.as_str()));
+        if let Some((index, attribute)) = disallowed {
             let mut error = refusal(
                 TransformErrorKind::UnsupportedAttribute,
                 element,
-                &format!("{location}/attributes/0"),
+                &format!("{location}/attributes/{index}"),
             );
             error.attribute = Some(Box::new(attribute.name.clone()));
             return Err(error);
@@ -203,8 +214,12 @@ impl Transformer {
                 element,
                 location,
             )),
-            "math" | "mrow" | "mfrac" | "msub" | "msup" | "msqrt" | "mroot" | "munder"
-            | "mover" | "munderover" => {
+            "math" | "mrow" | "mstyle" => {
+                // mstyle lays out as its row of content (Core 3.3.4).
+                let children = self.row_like(element, location, depth)?;
+                Ok(Formula::Sequence(children))
+            }
+            "mfrac" | "msub" | "msup" | "msqrt" | "mroot" | "munder" | "mover" | "munderover" => {
                 let children = self.row_like(element, location, depth)?;
                 match element.name.local.as_str() {
                     "math" | "mrow" => Ok(Formula::Sequence(children)),
@@ -319,6 +334,34 @@ impl Transformer {
                 }
                 Ok(Formula::Table(rows))
             }
+            "merror" => {
+                let children = self.row_like(element, location, depth)?;
+                Ok(Formula::Error(Box::new(Formula::Sequence(children))))
+            }
+            "mphantom" => {
+                let children = self.row_like(element, location, depth)?;
+                Ok(Formula::Phantom(Box::new(Formula::Sequence(children))))
+            }
+            "mspace" => {
+                if !element.children.is_empty() {
+                    return Err(refusal(
+                        TransformErrorKind::UnsupportedContent,
+                        element,
+                        location,
+                    ));
+                }
+                let mut extents = [None; 3];
+                for attribute in &element.attributes {
+                    let slot = match attribute.name.local.as_str() {
+                        "width" => 0,
+                        "height" => 1,
+                        "depth" => 2,
+                        _ => unreachable!("disallowed attributes refused above"),
+                    };
+                    extents[slot] = parse_length(&attribute.value);
+                }
+                Ok(Formula::Space(extents[0], extents[1], extents[2]))
+            }
             _ => Err(refusal(
                 TransformErrorKind::UnsupportedElement,
                 element,
@@ -371,4 +414,30 @@ impl Transformer {
 
 fn xml_whitespace(character: char) -> bool {
     matches!(character, ' ' | '\t' | '\r' | '\n')
+}
+
+/// Parses a CSS <length-percentage>; invalid values are treated as absent
+/// per Core's error handling, and percentages resolve to zero extents.
+fn parse_length(value: &str) -> Option<Length> {
+    let text = value.trim();
+    if text.is_empty() {
+        return None;
+    }
+    let split = text
+        .find(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-' || c == '+'))
+        .unwrap_or(text.len());
+    let (number, unit) = text.split_at(split);
+    let value: f64 = number.parse().ok()?;
+    if !value.is_finite() {
+        return None;
+    }
+    let unit = match unit {
+        "em" => LengthUnit::Em,
+        "ex" => LengthUnit::Ex,
+        "px" => LengthUnit::Px,
+        "%" => LengthUnit::Percent,
+        "0" => LengthUnit::Px,
+        _ => return None,
+    };
+    Some(Length { value, unit })
 }

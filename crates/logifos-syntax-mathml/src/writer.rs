@@ -129,6 +129,7 @@ impl SyntaxBuilder {
     ) -> Result<Element, WriteError> {
         self.visit(location, depth)?;
         let mut children = Vec::new();
+        let mut attributes_elem: Vec<crate::Attribute> = Vec::new();
         let name = match formula {
             Formula::Sequence(items) => {
                 for (index, child) in items.iter().enumerate() {
@@ -258,6 +259,43 @@ impl SyntaxBuilder {
                 }
                 "msqrt"
             }
+            Formula::Error(child) | Formula::Phantom(child) => {
+                let name = if matches!(formula, Formula::Error(_)) {
+                    "merror"
+                } else {
+                    "mphantom"
+                };
+                // Both wrap the transform's sequence content inline.
+                let Formula::Sequence(items) = &**child else {
+                    return Err(refusal(
+                        WriteErrorKind::InvalidStructure,
+                        &format!("{location}/children"),
+                    ));
+                };
+                for (index, item) in items.iter().enumerate() {
+                    children.push(Node::Element(self.element(
+                        item,
+                        &format!("{location}/children/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                name
+            }
+            Formula::Space(width, height, depth) => {
+                for (field, length) in [("width", width), ("height", height), ("depth", depth)] {
+                    if let Some(length) = length {
+                        attributes_elem.push(crate::Attribute {
+                            name: QualifiedName {
+                                prefix: None,
+                                local: field.into(),
+                                namespace: None,
+                            },
+                            value: Self::format_length(*length),
+                        });
+                    }
+                }
+                "mspace"
+            }
             Formula::Table(rows) => {
                 for (row_index, row) in rows.iter().enumerate() {
                     let row_path = format!("{location}/rows/{row_index}");
@@ -293,10 +331,21 @@ impl SyntaxBuilder {
                 namespace: Some(Arc::clone(&self.namespace)),
             },
             namespaces: Vec::new(),
-            attributes: Vec::new(),
+            attributes: attributes_elem,
             children,
         })
     }
+    /// Formats an authored length: shortest decimal with its unit.
+    fn format_length(length: logifos_model::Length) -> String {
+        let unit = match length.unit {
+            logifos_model::LengthUnit::Em => "em",
+            logifos_model::LengthUnit::Ex => "ex",
+            logifos_model::LengthUnit::Px => "px",
+            logifos_model::LengthUnit::Percent => "%",
+        };
+        format!("{}{unit}", length.value)
+    }
+
     /// A finished element with the shared namespace and no attributes.
     fn node(&self, name: &str, children: Vec<Node>) -> Element {
         Element {
@@ -328,6 +377,21 @@ impl Output {
     fn element(&mut self, element: &Element) -> Result<(), WriteError> {
         self.push("<")?;
         self.push(&element.name.local)?;
+        for attribute in &element.attributes {
+            self.push(" ")?;
+            self.push(&attribute.name.local)?;
+            self.push("=\"")?;
+            for ch in attribute.value.chars() {
+                let mut buffer = [0; 4];
+                self.push(match ch {
+                    '"' => "&quot;",
+                    '&' => "&amp;",
+                    '<' => "&lt;",
+                    _ => ch.encode_utf8(&mut buffer),
+                })?;
+            }
+            self.push("\"")?;
+        }
         for namespace in &element.namespaces {
             self.push(" xmlns=\"")?;
             self.push(&namespace.uri)?;

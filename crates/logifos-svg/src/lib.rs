@@ -189,23 +189,24 @@ pub fn emit(
     ));
 
     enum Visit<'a> {
-        Open(&'a BoxTree, Point),
+        Open(&'a BoxTree, Point, bool),
         Close,
     }
-    let mut pending = vec![Visit::Open(tree, Point::default())];
+    let mut pending = vec![Visit::Open(tree, Point::default(), false)];
     let mut id = 0_usize;
     while let Some(visit) = pending.pop() {
-        let Visit::Open(node, offset) = visit else {
+        let Visit::Open(node, offset, hidden) = visit else {
             svg.push_str("</g>");
             continue;
         };
+        let hidden = hidden || node.kind() == BoxKind::Phantom;
         svg.push_str(&format!(
             "<g id=\"box-{id}\" transform=\"translate({} {})\">",
             number(offset.x()),
             number(offset.y()),
         ));
         id += 1;
-        if node.kind() == BoxKind::Rule && node.ink_bounds().is_some() {
+        if !hidden && node.kind() == BoxKind::Rule && node.ink_bounds().is_some() {
             svg.push_str(&format!(
                 "<rect x=\"0\" y=\"0\" width=\"{}\" height=\"{}\"/>",
                 number(node.metrics().width()),
@@ -214,7 +215,7 @@ pub fn emit(
         }
         pending.push(Visit::Close);
         for child in node.children().iter().rev() {
-            pending.push(Visit::Open(child.node(), child.offset()));
+            pending.push(Visit::Open(child.node(), child.offset(), hidden));
         }
     }
     let layer = glyph_layer(glyphs)?;

@@ -32,10 +32,47 @@ pub enum Formula {
     Root(Box<Formula>, Box<Formula>),
     /// Rows of cells (each an anonymous row) in a table or matrix.
     Table(Vec<Vec<Formula>>),
+    /// An error message, laid out as its row of content (Core 3.3.5).
+    Error(Box<Formula>),
+    /// Content kept at full metrics but never painted (Core 3.3.7).
+    Phantom(Box<Formula>),
+    /// A blank space of authored extents; `None` is an absent attribute,
+    /// which Core resolves to zero (Core 3.2.5).
+    Space(Option<Length>, Option<Length>, Option<Length>),
     /// An operator symbol with an implied spacing class.
     Operator(String),
     /// A text or identifier symbol.
     Symbol(String),
+}
+
+/// The unit of an authored CSS length.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LengthUnit {
+    Em,
+    Ex,
+    Px,
+    /// A percentage: valid on the attribute but never an mspace extent.
+    Percent,
+}
+
+/// An authored CSS length: value with its unit.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Length {
+    pub value: f64,
+    pub unit: LengthUnit,
+}
+
+impl Length {
+    /// The CSS-pixel extent at a font size and ex height. Percentages
+    /// resolve to zero, per Core's mspace presentational-hint rules.
+    pub fn px(&self, font_size_px: f64, ex_px: f64) -> f64 {
+        match self.unit {
+            LengthUnit::Em => self.value * font_size_px,
+            LengthUnit::Ex => self.value * ex_px,
+            LengthUnit::Px => self.value,
+            LengthUnit::Percent => 0.0,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -150,6 +187,40 @@ mod tests {
             Formula::from_wire(minimal.as_object().unwrap()).unwrap(),
             formula
         );
+    }
+
+    #[test]
+    fn merror_and_phantom_shapes_match_the_upstream_fixtures() {
+        let content = json!({"class": "Math::Symbols::Symbol", "fields": {"value": "x"}});
+        let merror = json!({
+            "class": "Math::Function::Merror",
+            "fields": {"parameter_one": content},
+        });
+        let formula = Formula::from_wire(merror.as_object().unwrap()).unwrap();
+        assert_eq!(
+            formula,
+            Formula::Error(Box::new(Formula::Symbol("x".into())))
+        );
+        assert_eq!(formula.to_wire().unwrap(), merror);
+        let phantom = json!({
+            "class": "Math::Function::Phantom",
+            "fields": {"parameter_one": content},
+        });
+        let formula = Formula::from_wire(phantom.as_object().unwrap()).unwrap();
+        assert_eq!(
+            formula,
+            Formula::Phantom(Box::new(Formula::Symbol("x".into())))
+        );
+        assert_eq!(formula.to_wire().unwrap(), phantom);
+        // Authored spacing has no upstream class: the transform is its only
+        // producer, and the wire refuses it typed instead of guessing.
+        assert!(matches!(
+            Formula::Space(None, None, None).to_wire(),
+            Err(crate::WireError {
+                code: crate::WireErrorCode::UnsupportedClass,
+                ..
+            })
+        ));
     }
 
     #[test]

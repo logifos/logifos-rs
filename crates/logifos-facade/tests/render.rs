@@ -230,3 +230,26 @@ fn render_stretches_fences_to_the_row_extents_through_the_wire() {
         "glyph layer bytes: {svg}"
     );
 }
+
+#[test]
+fn render_suppresses_phantom_painting_but_keeps_its_extents() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><mphantom><mi>x</mi></mphantom></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    // The box tree reserves x's full 14.4x21.6 extents while the glyph
+    // layer stays empty: nothing paints, nothing collapses.
+    assert!(!svg.contains("<path"), "no glyph paths: {svg}");
+    assert!(
+        svg.contains("width=\"14.64px\" height=\"21.6px\" viewBox=\"-0.24 0 14.64 21.6\""),
+        "extents kept: {svg}"
+    );
+}

@@ -1,4 +1,4 @@
-use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, Length, LengthUnit, MAX_DEPTH, MAX_NODES};
 use logifos_syntax_mathml::{
     parse, transform, MathmlDocument, Node, TransformError, TransformErrorKind, MATHML_NAMESPACE,
 };
@@ -281,18 +281,93 @@ fn combined_scripts_and_multiscripts_refuse() {
 }
 
 #[test]
-fn style_wrappers_refuse_even_without_attributes() {
-    unsupported(&[("mstyle", "<mstyle><mi>x</mi></mstyle>")]);
+fn mstyle_lays_out_as_its_row_of_content() {
+    assert_eq!(
+        converted("<math><mstyle><mi>x</mi><mo>+</mo><mn>1</mn></mstyle></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![
+            symbol("x"),
+            operator("+"),
+            symbol("1"),
+        ])])
+    );
+    refused(
+        "<math><mstyle displaystyle='true'><mi>x</mi></mstyle></math>",
+        TransformErrorKind::UnsupportedAttribute,
+        "mstyle",
+        "/root/children/0/attributes/0",
+    );
 }
 
 #[test]
-fn spacing_padding_phantoms_and_enclosures_refuse() {
+fn merror_and_mphantom_wrap_their_content() {
+    assert_eq!(
+        converted("<math><merror><mtext>bad</mtext></merror></math>"),
+        Formula::Sequence(vec![Formula::Error(Box::new(Formula::Sequence(vec![
+            symbol("bad")
+        ])))])
+    );
+    assert_eq!(
+        converted("<math><mphantom><mi>x</mi></mphantom></math>"),
+        Formula::Sequence(vec![Formula::Phantom(Box::new(Formula::Sequence(vec![
+            symbol("x")
+        ])))])
+    );
     unsupported(&[
-        ("mspace", "<mspace/>"),
         ("mpadded", "<mpadded><mi>x</mi></mpadded>"),
-        ("mphantom", "<mphantom><mi>x</mi></mphantom>"),
         ("menclose", "<menclose><mi>x</mi></menclose>"),
     ]);
+}
+
+#[test]
+fn mspace_extents_come_from_its_attributes() {
+    assert_eq!(
+        converted("<math><mn>1</mn><mspace width='1em' height='2ex' depth='3px'/></math>"),
+        Formula::Sequence(vec![
+            symbol("1"),
+            Formula::Space(
+                Some(Length {
+                    value: 1.0,
+                    unit: LengthUnit::Em
+                }),
+                Some(Length {
+                    value: 2.0,
+                    unit: LengthUnit::Ex
+                }),
+                Some(Length {
+                    value: 3.0,
+                    unit: LengthUnit::Px
+                }),
+            ),
+        ])
+    );
+    // Absent and invalid attributes resolve to zero; percentages stay
+    // authored but never become extents.
+    assert_eq!(
+        converted("<math><mspace/></math>"),
+        Formula::Sequence(vec![Formula::Space(None, None, None)])
+    );
+    assert_eq!(
+        converted("<math><mspace width='2'/></math>"),
+        Formula::Sequence(vec![Formula::Space(None, None, None)])
+    );
+    assert_eq!(
+        converted("<math><mspace width='50%'/></math>"),
+        Formula::Sequence(vec![Formula::Space(
+            Some(Length {
+                value: 50.0,
+                unit: LengthUnit::Percent
+            }),
+            None,
+            None,
+        )])
+    );
+    // Foreign mspace attributes still refuse.
+    refused(
+        "<math><mspace width='1em' style='color: red'/></math>",
+        TransformErrorKind::UnsupportedAttribute,
+        "mspace",
+        "/root/children/0/attributes/1",
+    );
 }
 
 #[test]
@@ -308,10 +383,9 @@ fn semantics_and_annotations_refuse() {
 }
 
 #[test]
-fn actions_errors_string_tokens_and_glyphs_refuse() {
+fn actions_string_tokens_and_glyphs_refuse() {
     unsupported(&[
         ("maction", "<maction><mi>x</mi></maction>"),
-        ("merror", "<merror><mi>x</mi></merror>"),
         ("ms", "<ms>quoted</ms>"),
         ("mglyph", "<mglyph/>"),
     ]);
@@ -492,9 +566,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mstyle><mi>y</mi><mo>^</mo></m:mstyle></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mpadded><mi>y</mi><mo>^</mo></m:mpadded></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "mstyle",
+        "mpadded",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));

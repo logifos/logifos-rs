@@ -49,6 +49,9 @@ pub enum BoxKind {
     Rule,
     /// A baseline-aligned horizontal stack.
     HBox,
+    /// A subtree kept at full metrics whose painting is suppressed
+    /// (mphantom).
+    Phantom,
     /// A left-aligned vertical stack with an explicit parent baseline.
     VBox,
 }
@@ -100,6 +103,21 @@ impl BoxTree {
     /// Constructs an inkless logical spacer.
     pub fn space(metrics: Metrics) -> Self {
         Self::leaf(metrics, None)
+    }
+
+    /// Wraps a subtree at unchanged metrics and ink; painters suppress it.
+    pub fn phantom(tree: BoxTree) -> Self {
+        let metrics = tree.metrics;
+        let ink_bounds = tree.ink_bounds;
+        Self {
+            kind: BoxKind::Phantom,
+            metrics,
+            ink_bounds,
+            children: vec![PositionedBox {
+                offset: Point::default(),
+                node: tree,
+            }],
+        }
     }
 
     /// Constructs a filled rule, extending from y=0 through height plus depth.

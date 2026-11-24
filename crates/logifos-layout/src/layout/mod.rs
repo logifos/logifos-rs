@@ -146,6 +146,36 @@ fn build<'a>(
             let index = build(index, fonts, raised, budget, depth + 1)?;
             radical::root(radicand, index, fonts, style)
         }
+        // merror lays out as its row of content (Core 3.3.5).
+        Formula::Error(child) => build(child, fonts, style, budget, depth + 1),
+        Formula::Phantom(child) => {
+            let node = build(child, fonts, style, budget, depth + 1)?;
+            Ok(Node {
+                tree: BoxTree::phantom(node.tree),
+                glyphs: Vec::new(),
+                operator: None,
+                italic: 0.0,
+                empty: node.empty,
+            })
+        }
+        Formula::Space(width, height, depth) => {
+            let size = style.font_size_px;
+            let font = fonts.primary();
+            let ex = font.x_height.map_or(size * 0.5, |units| {
+                f64::from(units) * size / f64::from(font.metrics.units_per_em)
+            });
+            let px = |length: &Option<logifos_model::Length>| {
+                length.as_ref().map_or(0.0, |l| l.px(size, ex)).max(0.0)
+            };
+            let tree = BoxTree::space(crate::Metrics::new(px(width), px(height), px(depth))?);
+            Ok(Node {
+                tree,
+                glyphs: Vec::new(),
+                operator: None,
+                italic: 0.0,
+                empty: false,
+            })
+        }
         Formula::Table(rows) => {
             // mtable sets math-style compact (Core 3.5 stylesheet rules).
             let style = ResolvedStyle {

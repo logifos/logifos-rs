@@ -899,6 +899,15 @@ fn missing_math_and_malformed_glyph_metrics_never_become_guesses() {
 
 #[test]
 fn direct_formula_values_are_bounded() {
+    // MAX_DEPTH layout recursion is fat in debug builds; run it on a big stack.
+    let worker = std::thread::Builder::new()
+        .stack_size(64 << 20)
+        .spawn(direct_formula_values_are_bounded_body)
+        .unwrap();
+    worker.join().unwrap();
+}
+
+fn direct_formula_values_are_bounded_body() {
     let mut nested = symbol("x");
     for _ in 0..logifos_model::MAX_DEPTH {
         nested = sequence(vec![nested]);
@@ -1127,4 +1136,42 @@ fn fences_stretch_to_the_row_ink_extents() {
     assert_eq!(snapshot(&result), include_str!("snapshots/fence-row.txt"));
     let mut fonts = provider(&stretch_font(700));
     assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn phantom_keeps_metrics_while_space_carries_its_extents() {
+    use logifos_model::{Length, LengthUnit};
+    let formula = sequence(vec![symbol("x"), Formula::Phantom(Box::new(symbol("y")))]);
+    let result = render(&formula, 0);
+    // The phantom occupies 'y''s full 12.6px advance but places no glyphs.
+    close(result.tree.metrics().width(), 9.0 + 12.6 + 0.45);
+    assert_eq!(result.glyphs.len(), 1);
+    let phantom = result.tree.children()[0].node().children()[1].node();
+    assert_eq!(phantom.kind(), logifos_layout::BoxKind::Phantom);
+    close(phantom.metrics().width(), 12.6);
+    invariants(&result.tree);
+
+    // mspace: 1em wide, 2ex tall (ex = 450 units = 8.1px), 1px deep.
+    let space = sequence(vec![
+        symbol("x"),
+        Formula::Space(
+            Some(Length {
+                value: 1.0,
+                unit: LengthUnit::Em,
+            }),
+            Some(Length {
+                value: 2.0,
+                unit: LengthUnit::Ex,
+            }),
+            Some(Length {
+                value: 1.0,
+                unit: LengthUnit::Px,
+            }),
+        ),
+    ]);
+    let result = render(&space, 0);
+    close(result.tree.metrics().width(), 9.0 + 18.0 + 0.45);
+    close(result.tree.metrics().height(), 10.8f64.max(16.2));
+    close(result.tree.metrics().depth(), 1.8f64.max(1.0));
+    assert!(result.glyphs.len() == 1);
 }

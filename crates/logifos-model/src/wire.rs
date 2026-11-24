@@ -189,7 +189,7 @@ impl Formula {
 impl TryFrom<&Value> for Formula {
     type Error = WireError;
 
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+    fn try_from(value: &Value) -> Result<Self, <Formula as TryFrom<&Value>>::Error> {
         decode_value(value, "", 1, &mut Budget::default())
     }
 }
@@ -297,6 +297,20 @@ fn decode_node(
                 budget,
             )?;
             Ok(Formula::Root(Box::new(radicand), Box::new(index)))
+        }
+        "Math::Function::Merror" | "Math::Function::Phantom" => {
+            closed(fields, &["parameter_one"], &fields_path)?;
+            let child = decode_value(
+                required(fields, "parameter_one", &fields_path)?,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            Ok(if class == "Math::Function::Merror" {
+                Formula::Error(Box::new(child))
+            } else {
+                Formula::Phantom(Box::new(child))
+            })
         }
         "Math::Function::Table" => {
             closed(
@@ -496,6 +510,24 @@ fn encode_node(
             )?;
             ("Math::Function::Sqrt", json!({"parameter_one": first}))
         }
+        Formula::Error(child) => {
+            let first = encode_node(
+                child,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            ("Math::Function::Merror", json!({"parameter_one": first}))
+        }
+        Formula::Phantom(child) => {
+            let first = encode_node(
+                child,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            ("Math::Function::Phantom", json!({"parameter_one": first}))
+        }
         Formula::Table(rows) => {
             let value_path = pointer(&fields_path, "value");
             let mut encoded = Vec::with_capacity(rows.len());
@@ -530,6 +562,9 @@ fn encode_node(
             }
             ("Math::Function::Table", json!({"value": encoded}))
         }
+        // No upstream class carries authored spacing; the transform is the
+        // only producer of Space.
+        Formula::Space(..) => return Err(refusal(WireErrorCode::UnsupportedClass, path)),
     };
     Ok(json!({"class": class, "fields": fields}))
 }

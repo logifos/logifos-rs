@@ -102,6 +102,14 @@ cells centered per column, and the whole table's center on the math
 axis; ragged rows leave trailing cells empty. mtable sets math-style
 compact. Upstream table options refuse (the tree carries no styling).
 
+**Compatibility elements.** `merror` lays out as its row of content
+(Core 3.3.5), `mstyle` as its row when attribute-free (Core 3.3.4 —
+styled mstyle refuses until the model carries presentation state),
+`mphantom` keeps full metrics behind a `BoxKind::Phantom` the painter
+suppresses (Core 3.3.7), and `mspace` carries authored `width`,
+`height` and `depth` as `Length` values (em, ex, px; percentages stay
+authored but resolve to zero, invalid values to absent — Core 3.2.5).
+
 **Delimiters.** The vertical fence delimiters — `(` `)` `[` `]` `{` `}`
 `|` `‖` `⌈` `⌉` `⌊` `⌋` `⟨` `⟩` — are accepted operators with zero
 spacing (Core's dictionary category F) that stretch along the block

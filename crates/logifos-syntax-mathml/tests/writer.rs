@@ -42,6 +42,11 @@ fn fresh_constructs_roundtrip_with_exact_formula_equality() {
         "<math><mtable><mtr><mtd><mtable><mtr><mtd><mi>n</mi></mtd></mtr></mtable></mtd></mtr></mtable></math>",
         "<math><mo>(</mo><mi>x</mi><mo>)</mo></math>",
         "<math><mo>\u{2308}</mo><mfrac><mi>a</mi><mi>b</mi></mfrac><mo>\u{2309}</mo></math>",
+        "<math><merror><mtext>bad</mtext><mo>+</mo></merror></math>",
+        "<math><mphantom><mfrac><mi>a</mi><mi>b</mi></mfrac></mphantom></math>",
+        "<math><mn>1</mn><mspace width='1em' height='2ex' depth='3px'/></math>",
+        "<math><mspace width='0.5em'/></math>",
+        "<math><mstyle><mi>x</mi></mstyle></math>",
         "<math><mtext> &lt;&amp;&gt;\"' &#xD;\n\tα&#x301;&#x1D6FC;&#xA0; </mtext></math>",
         "<math><mi>a<![CDATA[<&]]>b&amp;lt;</mi></math>",
         "<math>\r\n<mrow>\t<mn>1</mn>\n<mi>x</mi></mrow> </math>",
@@ -252,8 +257,16 @@ fn attributes_and_inherited_style_are_typed_refusals_never_dropped() {
             assert!(error.attribute.is_some());
         }
     }
-    let error = transform(&parse("<math><mstyle><mi>x</mi></mstyle></math>").unwrap()).unwrap_err();
-    assert_eq!(error.kind, TransformErrorKind::UnsupportedElement);
+    // Attribute-free mstyle lays out as its row (Core 3.3.4); styled ones
+    // still refuse, as does every attribute on any other element.
+    let error =
+        transform(&parse("<math><mstyle displaystyle='true'><mi>x</mi></mstyle></math>").unwrap())
+            .unwrap_err();
+    assert_eq!(error.kind, TransformErrorKind::UnsupportedAttribute);
+    assert_eq!(
+        transform(&parse("<math><mstyle><mi>x</mi></mstyle></math>").unwrap()).unwrap(),
+        Formula::Sequence(vec![Formula::Sequence(vec![Formula::Symbol("x".into())])])
+    );
 }
 
 #[test]
