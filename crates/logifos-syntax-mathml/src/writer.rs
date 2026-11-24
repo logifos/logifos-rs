@@ -14,7 +14,7 @@ use crate::{
 pub enum WriteErrorKind {
     /// A document requires a sequence root to preserve Formula grouping.
     InvalidStructure,
-    /// The operator is outside the transform's five supported spellings.
+    /// The operator is outside the transform's supported spellings.
     UnsupportedOperator,
     /// Symbol text contains a character prohibited by XML 1.0.
     InvalidCharacter,
@@ -146,7 +146,29 @@ impl SyntaxBuilder {
             }
             Formula::Symbol(text) | Formula::Operator(text) => {
                 let operator = matches!(formula, Formula::Operator(_));
-                if operator && !matches!(text.as_str(), "+" | "-" | "=" | "*" | "×") {
+                if operator
+                    && !matches!(
+                        text.as_str(),
+                        "+" | "-"
+                            | "="
+                            | "*"
+                            | "×"
+                            | "("
+                            | ")"
+                            | "["
+                            | "]"
+                            | "{"
+                            | "}"
+                            | "|"
+                            | "\u{2016}"
+                            | "\u{2308}"
+                            | "\u{2309}"
+                            | "\u{230a}"
+                            | "\u{230b}"
+                            | "\u{27e8}"
+                            | "\u{27e9}"
+                    )
+                {
                     return Err(refusal(WriteErrorKind::UnsupportedOperator, location));
                 }
                 if text.len() > ParseLimits::default().source_bytes - self.text_bytes {

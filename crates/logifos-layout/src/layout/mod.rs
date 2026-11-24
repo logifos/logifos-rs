@@ -98,7 +98,7 @@ fn build<'a>(
                 .iter()
                 .map(|child| build(child, fonts, style, budget, depth + 1))
                 .collect::<Result<Vec<_>, _>>()?;
-            rows::row(children, style)
+            rows::row(children, fonts, style)
         }
         Formula::Under(..) | Formula::Over(..) | Formula::UnderOver(..) => {
             Err(LayoutError::NotLaidOutYet)

@@ -201,14 +201,27 @@ fn mroot_outside_its_arity_becomes_a_row() {
 }
 
 #[test]
-fn fences_refuse_instead_of_becoming_symbols() {
+fn fences_become_stretchy_operators() {
     unsupported(&[("mfenced", "<mfenced><mi>x</mi></mfenced>")]);
-    for token in ["(", ")", "[", "]", "|"] {
-        refused(
-            &format!("<math><mo>{token}</mo></math>"),
-            TransformErrorKind::UnsupportedOperator,
-            "mo",
-            "/root/children/0",
+    let expected = |token: &str| Formula::Sequence(vec![Formula::Operator(token.into())]);
+    for token in ["(", ")", "[", "]", "{", "}", "|"] {
+        assert_eq!(
+            converted(&format!("<math><mo>{token}</mo></math>")),
+            expected(token)
+        );
+    }
+    for (token, escaped) in [
+        ("\u{2016}", "&#x2016;"),
+        ("\u{2308}", "&#x2308;"),
+        ("\u{2309}", "&#x2309;"),
+        ("\u{230a}", "&#x230a;"),
+        ("\u{230b}", "&#x230b;"),
+        ("\u{27e8}", "&#x27e8;"),
+        ("\u{27e9}", "&#x27e9;"),
+    ] {
+        assert_eq!(
+            converted(&format!("<math><mo>{escaped}</mo></math>")),
+            expected(token)
         );
     }
 }
