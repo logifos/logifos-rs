@@ -121,7 +121,7 @@ impl Metrics {
 
 /// Wraps the child so it is horizontally centered in `width`: its glyphs and
 /// its own width are unchanged, its left edge moves to the pad.
-fn centered(tree: BoxTree, width: f64) -> Result<BoxTree, crate::GeometryError> {
+pub(super) fn centered(tree: BoxTree, width: f64) -> Result<BoxTree, crate::GeometryError> {
     let pad = (width - tree.metrics().width()) / 2.0;
     BoxTree::hbox(vec![
         StackItem::Kern(Kern::new(pad)?),

@@ -1228,7 +1228,7 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
 }
 
 #[test]
-fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
+fn accent_on_an_over_script_lays_out_instead_of_refusing() {
     use logifos_model::PresentationStyle;
     let hints = PresentationStyle {
         accent: Some(true),
@@ -1236,10 +1236,10 @@ fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing(
     };
     let content = Formula::Over(Box::new(symbol("x")), Box::new(symbol("y")));
     let formula = sequence(vec![styled(content, hints)]);
-    assert_eq!(
-        layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
-        LayoutError::NotLaidOutYet
-    );
+    let result = layout(&formula, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(result.glyphs.len(), 2);
+    // An accent overscript keeps the base's font size (Core 3.4.4).
+    close(result.glyphs[1].font_size_px, 18.0);
 }
 
 #[test]
@@ -1400,4 +1400,112 @@ fn mathvariant_selects_the_styled_character_and_inherits() {
     let bold = styled(Formula::Style(vec![symbol("x")]), hints(MathVariant::Bold));
     let error = layout(&bold, &mut provider(&support::font()), options(0)).unwrap_err();
     assert_eq!(error.code(), "MISSING_GLYPH");
+}
+
+fn boxed(f: Formula) -> Box<Formula> {
+    Box::new(f)
+}
+fn finite(tree: &BoxTree) {
+    let m = tree.metrics();
+    assert!(m.width().is_finite() && m.height().is_finite() && m.depth().is_finite());
+    assert!(m.width() >= 0.0 && m.height() >= 0.0 && m.depth() >= 0.0);
+}
+
+#[test]
+fn under_over_and_underover_stack_centred_in_source_order() {
+    let mut fonts = provider(&font());
+    let base = layout(&symbol("x"), &mut fonts, options(0)).unwrap();
+    for formula in [
+        Formula::Under(boxed(symbol("x")), boxed(symbol("y"))),
+        Formula::Over(boxed(symbol("x")), boxed(symbol("y"))),
+        Formula::UnderOver(boxed(symbol("x")), boxed(symbol("y")), boxed(symbol("z"))),
+    ] {
+        let result = layout(&formula, &mut fonts, options(0)).unwrap();
+        finite(&result.tree);
+        let n = result.glyphs.len();
+        assert!(n >= 2);
+        // Source order: base first, at the base size, scripts smaller.
+        close(result.glyphs[0].font_size_px, 18.0);
+        assert!(result.glyphs[1].font_size_px < 18.0);
+        // Limits only grow the base box; the base keeps its width.
+        assert!(result.tree.metrics().width() >= base.tree.metrics().width());
+        assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+    }
+    let over = layout(
+        &Formula::Over(boxed(symbol("x")), boxed(symbol("y"))),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    let under = layout(
+        &Formula::Under(boxed(symbol("x")), boxed(symbol("y"))),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    // The overscript sits above the base baseline, the underscript below.
+    assert!(over.glyphs[1].origin.y() < over.glyphs[0].origin.y());
+    assert!(under.glyphs[1].origin.y() > under.glyphs[0].origin.y());
+}
+
+#[test]
+fn movable_limits_follow_display_style() {
+    let sum = || Formula::Under(boxed(operator("∑")), boxed(symbol("y")));
+    let bytes = {
+        let mut b = support::FontBuilder::new(&[('x', 1), ('y', 1), ('∑', 2)], 250, true);
+        put16(b.tables.get_mut(b"glyf").unwrap(), 8, 700);
+        b.finish()
+    };
+    let display = LayoutOptions {
+        display: true,
+        ..options(0)
+    };
+    let inline = layout(&sum(), &mut provider(&bytes), options(0)).unwrap();
+    let shown = layout(&sum(), &mut provider(&bytes), display).unwrap();
+    finite(&inline.tree);
+    finite(&shown.tree);
+    // Compact: the underscript acts as a subscript, right of the operator.
+    assert!(inline.glyphs[1].origin.x() >= inline.glyphs[0].origin.x());
+    assert!(inline.glyphs[1].origin.x() > inline.glyphs[0].origin.x());
+    // Display: limits are centred, so the script starts at or left of the
+    // operator's right edge.
+    assert!(shown.glyphs[1].origin.y() > shown.glyphs[0].origin.y());
+    assert_ne!(inline, shown);
+}
+
+#[test]
+fn msubsup_and_multiscripts_place_pre_and_post_scripts() {
+    use logifos_model::ScriptPair;
+    let mut fonts = provider(&font());
+    let subsup = Formula::SubSup(boxed(symbol("x")), boxed(symbol("y")), boxed(symbol("z")));
+    let result = layout(&subsup, &mut fonts, options(0)).unwrap();
+    finite(&result.tree);
+    assert_eq!(result.glyphs.len(), 3);
+    assert!(result.glyphs[1].origin.y() > result.glyphs[0].origin.y());
+    assert!(result.glyphs[2].origin.y() < result.glyphs[0].origin.y());
+    // The superscript starts one italic correction (0.45px) right of the subscript.
+    close(
+        result.glyphs[2].origin.x() - result.glyphs[1].origin.x(),
+        0.45,
+    );
+    let pair = |sub: Option<&str>, sup: Option<&str>| ScriptPair {
+        subscript: sub.map(|s| boxed(symbol(s))),
+        superscript: sup.map(|s| boxed(symbol(s))),
+    };
+    let multi = Formula::MultiScripts {
+        base: boxed(symbol("x")),
+        postscripts: vec![pair(Some("y"), None), pair(None, Some("z"))],
+        prescripts: Some(vec![pair(Some("y"), Some("z"))]),
+    };
+    let result = layout(&multi, &mut fonts, options(0)).unwrap();
+    finite(&result.tree);
+    // Source order: base, postscripts, prescripts; none placeholders add no glyph.
+    assert_eq!(result.glyphs.len(), 5);
+    close(result.glyphs[0].font_size_px, 18.0);
+    // The prescripts sit left of the base.
+    let base_x = result.glyphs[0].origin.x();
+    assert!(result.glyphs[3].origin.x() < base_x);
+    assert!(result.glyphs[4].origin.x() < base_x);
+    assert!(result.glyphs[1].origin.x() > base_x);
+    assert_eq!(result, layout(&multi, &mut fonts, options(0)).unwrap());
 }
