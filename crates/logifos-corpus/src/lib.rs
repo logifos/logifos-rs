@@ -9,7 +9,7 @@ use pipeline::{Observation, Outcome};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs::File,
     io::Read,
     path::{Component, Path},
@@ -75,7 +75,25 @@ fn input(root: &Path, case: &Value) -> Result<Vec<u8>, &'static str> {
 /// Supply a hash-verified provider to enable layout and SVG emission. Without
 /// one, successful round trips end in an explicit `layout/font_not_configured`
 /// refusal. Expected assertions are not an oracle for this capability report.
-pub fn grade(manifest_path: &Path, mut fonts: Option<&mut FontProvider>) -> Result<Value, String> {
+pub fn grade(manifest_path: &Path, fonts: Option<&mut FontProvider>) -> Result<Value, String> {
+    grade_inner(manifest_path, fonts, &mut BTreeMap::new())
+}
+
+/// Grades a manifest and captures the emitted SVG of every fully passing
+/// case, keyed by case id, for the canon comparison.
+pub fn grade_with_captures(
+    manifest_path: &Path,
+    fonts: Option<&mut FontProvider>,
+    captures: &mut BTreeMap<String, String>,
+) -> Result<Value, String> {
+    grade_inner(manifest_path, fonts, captures)
+}
+
+fn grade_inner(
+    manifest_path: &Path,
+    mut fonts: Option<&mut FontProvider>,
+    captures: &mut BTreeMap<String, String>,
+) -> Result<Value, String> {
     let manifest_bytes = read_bounded(manifest_path)?;
     let manifest = logifos_json::decode(&manifest_bytes)?;
     if manifest["format_version"] != 1 {
@@ -125,12 +143,23 @@ pub fn grade(manifest_path: &Path, mut fonts: Option<&mut FontProvider>) -> Resu
                         "font_pin_mismatch",
                     )]
                 } else {
-                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        pipeline::run(kind, &bytes, fonts.as_deref_mut())
-                    }))
-                    .unwrap_or_else(|_| {
-                        vec![Observation::new("pipeline", Outcome::Failure, "panic")]
-                    })
+                    let mut svg = None;
+                    let observations =
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            pipeline::run_capturing(kind, &bytes, fonts.as_deref_mut(), &mut svg)
+                        }))
+                        .unwrap_or_else(|_| {
+                            svg = None;
+                            vec![Observation::new("pipeline", Outcome::Failure, "panic")]
+                        });
+                    if let Some(last) = observations.last() {
+                        if last.outcome == Outcome::Pass {
+                            if let Some(svg) = svg {
+                                captures.insert(id.to_owned(), svg);
+                            }
+                        }
+                    }
+                    observations
                 }
             }
         };
@@ -179,4 +208,10 @@ pub fn report_json(report: &Value) -> String {
 /// returns the aggregate scoreboard.
 pub fn replay_reference(reference: &Path) -> Result<Value, String> {
     reference::replay_reference(reference)
+}
+
+/// Compares logifos's renders against a reference renderer's artifacts for
+/// the shared reference-corpus cases.
+pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
+    reference::canon_report(reference, renderer)
 }

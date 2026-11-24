@@ -48,9 +48,16 @@ fn passed(stage: &'static str, observations: &mut Vec<Observation>) {
     observations.push(Observation::new(stage, Outcome::Pass, "complete"));
 }
 
-pub(crate) fn run(kind: &str, source: &[u8], fonts: Option<&mut FontProvider>) -> Vec<Observation> {
+/// Runs the pipeline and captures the emitted SVG of a fully passing case,
+/// for the canon comparison against a reference renderer's artifact.
+pub(crate) fn run_capturing(
+    kind: &str,
+    source: &[u8],
+    fonts: Option<&mut FontProvider>,
+    captured: &mut Option<String>,
+) -> Vec<Observation> {
     let mut observations = Vec::new();
-    let result = execute(kind, source, fonts, &mut observations);
+    let result = execute(kind, source, fonts, &mut observations, captured);
     if let Err(observation) = result {
         observations.push(observation);
     }
@@ -62,6 +69,7 @@ fn execute(
     source: &[u8],
     fonts: Option<&mut FontProvider>,
     observations: &mut Vec<Observation>,
+    captured: &mut Option<String>,
 ) -> Result<(), Observation> {
     let refusal = |stage, category| Observation::new(stage, Outcome::Refusal, category);
     if kind == "bootstrap-request" {
@@ -191,6 +199,7 @@ fn execute(
             "nondeterministic_output",
         ));
     }
+    *captured = Some(svg.as_str().to_owned());
     passed("emit", observations);
     Ok(())
 }
