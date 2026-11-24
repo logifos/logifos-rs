@@ -59,17 +59,24 @@ fn walk(dir: &Path, extension: &OsStr) -> Result<Vec<String>, String> {
 fn katex_cases(dir: &Path) -> Result<Vec<ExtractedCase>, String> {
     let relative = "screenshotter/ss_data.yaml";
     let bytes = read_bounded(&dir.join(relative)).map_err(|_| "unreadable corpus entry")?;
-    let data: serde_yaml::Value =
-        serde_yaml::from_slice(&bytes).map_err(|_| "unexpected ss_data.yaml shape")?;
-    let mapping = data.as_mapping().ok_or("unexpected ss_data.yaml shape")?;
+    let text = std::str::from_utf8(&bytes).map_err(|_| "ss_data.yaml is not utf-8")?;
+    let document = yaml_rust2::YamlLoader::load_from_str(text)
+        .map_err(|_| "unexpected ss_data.yaml shape")?
+        .into_iter()
+        .next()
+        .ok_or("unexpected ss_data.yaml shape")?;
+    let mapping = document
+        .as_hash()
+        .ok_or("unexpected ss_data.yaml shape")?;
+    let tex = yaml_rust2::Yaml::String("tex".into());
     let mut names = BTreeMap::new();
     for (key, value) in mapping {
-        let name = key
-            .as_str()
-            .ok_or("unexpected ss_data.yaml shape")?
-            .to_owned();
-        let has_tex = value.is_string() || value.get("tex").is_some_and(|t| t.is_string());
-        names.insert(name, has_tex);
+        let yaml_rust2::Yaml::String(name) = key else {
+            return Err("unexpected ss_data.yaml shape".into());
+        };
+        let value_tex = matches!(value, yaml_rust2::Yaml::String(_))
+            || matches!(value.as_hash().and_then(|h| h.get(&tex)), Some(yaml_rust2::Yaml::String(_)));
+        names.insert(name.clone(), value_tex);
     }
     Ok(names
         .into_iter()
