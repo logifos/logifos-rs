@@ -75,7 +75,7 @@ fn typed_refusals_and_integrity_failures_are_counted_without_skips() {
         ("ok", b"<math><mi>x</mi></math>"),
         ("bad-xml", b"<math>"),
         ("unsafe", b"<!DOCTYPE math><math/>"),
-        ("style", b"<math mathcolor='red'/>"),
+        ("style", b"<math fontsize='2'/>"),
         ("enclosure", b"<math><menclose/></math>"),
         ("broken", b"<math/>"),
     ]);

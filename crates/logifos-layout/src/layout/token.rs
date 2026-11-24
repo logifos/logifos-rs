@@ -26,6 +26,7 @@ pub(super) fn token<'a>(
                     font_size_px: style.font_size_px,
                 }],
                 operator: None,
+                operator_font_size_px: None,
                 italic: 0.0,
                 empty: false,
             },
@@ -35,6 +36,7 @@ pub(super) fn token<'a>(
     }
     let mut node = super::rows::stack(children)?;
     node.operator = operator;
+    node.operator_font_size_px = operator.map(|_| style.font_size_px);
     node.italic = if operator.is_some() { 0.0 } else { italic };
     Ok(node)
 }

@@ -27,6 +27,7 @@ pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, Layout
         tree,
         glyphs,
         operator: None,
+        operator_font_size_px: None,
         italic: 0.0,
         empty,
     })
@@ -54,8 +55,13 @@ pub(super) fn row<'a>(
         .map(
             |node| match node.operator.filter(|t| operator::is_fence(t)) {
                 Some(text) => {
-                    let mut stretched =
-                        stretched_fence(text, ink_ascent, ink_descent, fonts, style)?;
+                    let mut stretched = stretched_fence(
+                        text,
+                        ink_ascent,
+                        ink_descent,
+                        fonts,
+                        node.operator_font_size_px.unwrap_or(style.font_size_px),
+                    )?;
                     // Invisible embellished operators still stretch and space,
                     // but re-layout must not restore their painted output.
                     if node.tree.ink_bounds().is_none() && node.glyphs.is_empty() {
@@ -77,16 +83,28 @@ pub(super) fn row<'a>(
     } else {
         None
     };
+    let core_style = if core.is_some() {
+        children
+            .iter()
+            .find(|node| !node.empty)
+            .and_then(|node| node.operator_font_size_px)
+    } else {
+        None
+    };
     let mut previous_italic = 0.0;
     let mut index = 0;
     let mut parts = Vec::new();
     for node in children {
-        let space = if core.is_none() {
-            node.operator.map_or(0.0, |text| {
-                operator::space(text, index == 0, count > 1, style.font_size_px)
+        let (lead, trail) = if core.is_none() {
+            node.operator.map_or((0.0, 0.0), |text| {
+                operator::space(
+                    text,
+                    operator::form(index, count),
+                    node.operator_font_size_px.unwrap_or(style.font_size_px),
+                )
             })
         } else {
-            0.0
+            (0.0, 0.0)
         };
         let correction = if !node.empty && node.italic == 0.0 {
             previous_italic
@@ -97,10 +115,11 @@ pub(super) fn row<'a>(
             previous_italic = node.italic;
             index += 1;
         }
-        parts.push((node, correction + space, space));
+        parts.push((node, correction + lead, trail));
     }
     let mut node = stack(parts)?;
     node.operator = core;
+    node.operator_font_size_px = core_style;
     node.italic = previous_italic;
     Ok(node)
 }
@@ -112,33 +131,34 @@ fn stretched_fence<'a>(
     ascent: f64,
     descent: f64,
     fonts: &mut FontProvider,
-    style: ResolvedStyle,
+    font_size_px: f64,
 ) -> Result<Node<'a>, LayoutError> {
     let ch = text.chars().next().unwrap_or('(');
-    let stretched = fonts.expand_stretch(
-        ch,
-        Direction::Vertical,
-        add(ascent, descent)?,
-        style.font_size_px,
-    )?;
+    let stretched =
+        fonts.expand_stretch(ch, Direction::Vertical, add(ascent, descent)?, font_size_px)?;
     let tree = BoxTree::leaf(
         Metrics::new(stretched.advance_px, ascent.max(0.0), descent.max(0.0))?,
         None,
     );
-    let glyphs = radical::stretched_pieces(&stretched, ch, 0.0, style.font_size_px)?;
+    let glyphs = radical::stretched_pieces(&stretched, ch, 0.0, font_size_px)?;
     Ok(Node {
         tree,
         glyphs,
         operator: Some(text),
+        operator_font_size_px: Some(font_size_px),
         italic: 0.0,
         empty: false,
     })
 }
 
 pub(super) fn finish(node: Node<'_>, style: ResolvedStyle) -> Result<Node<'_>, LayoutError> {
-    let space = node.operator.map_or(0.0, |text| {
-        operator::space(text, false, false, style.font_size_px)
+    let (lead, trail) = node.operator.map_or((0.0, 0.0), |text| {
+        operator::space(
+            text,
+            operator::form(0, 1),
+            node.operator_font_size_px.unwrap_or(style.font_size_px),
+        )
     });
     let trailing = node.italic;
-    stack(vec![(node, space, space + trailing)])
+    stack(vec![(node, lead, trail + trailing)])
 }

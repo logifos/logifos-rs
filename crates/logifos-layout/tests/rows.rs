@@ -69,6 +69,10 @@ fn font() -> Vec<u8> {
         ('=', 4),
         ('*', 4),
         ('×', 4),
+        ('±', 4),
+        ('≤', 4),
+        ('⋅', 4),
+        (',', 4),
         (' ', 5),
     ])
     .finish()
@@ -209,6 +213,22 @@ fn core_spacing_categories_are_numeric_rules() {
         ("*", 33.45, 12.45, 20.85),
         ("×", 33.45, 12.45, 20.85),
         ("=", 37.45, 14.45, 24.85),
+    ] {
+        let result = render(&sequence(vec![symbol("x"), operator(text), symbol("y")]), 0);
+        close(result.tree.metrics().width(), width);
+        close(result.glyphs[1].origin.x(), op_x);
+        close(result.glyphs[2].origin.x(), y_x);
+    }
+}
+
+#[test]
+fn dictionary_categories_beyond_the_first_five_space_by_figure_26() {
+    // B (4), C (3), the default (5) and the asymmetric separator M (0 | 3).
+    for (text, width, op_x, y_x) in [
+        ("±", 35.45, 13.45, 22.85),
+        ("⋅", 33.45, 12.45, 20.85),
+        ("≤", 37.45, 14.45, 24.85),
+        (",", 30.45, 9.45, 17.85),
     ] {
         let result = render(&sequence(vec![symbol("x"), operator(text), symbol("y")]), 0);
         close(result.tree.metrics().width(), width);
@@ -472,7 +492,8 @@ fn script_children_raise_one_level_and_keep_compact_display() {
     // size the direct level-one call resolves to.
     close(inside.glyphs[0].font_size_px, 18.0);
     for glyph in &inside.glyphs[1..] {
-        close(glyph.font_size_px, direct.style.font_size_px);
+        // Compact fraction children gain a further level (60% at depth two).
+        close(glyph.font_size_px, 10.8);
     }
     // Compact displaystyle: the in-script fraction must equal the direct
     // level-one fraction (which options(1) lays out compact) byte for byte.
@@ -705,11 +726,10 @@ fn fraction_lays_out_its_children_around_the_axis_rule() {
 
     let formula = Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
     let result = layout(&formula, &mut fonts, options(0)).unwrap();
-    // 'x': box 9.0 wide, 10.8 tall, 1.8 deep; 'y': box 12.6 wide, 14.4 tall,
-    // 5.4 deep (hmtx advances and triangle bounds at 18px over 1000upem).
-    let (numerator_height, numerator_depth, numerator_width): (f64, f64, f64) = (10.8, 1.8, 9.0);
+    // Compact fractions raise child depth: 18px * 80% = 14.4px.
+    let (numerator_height, numerator_depth, numerator_width): (f64, f64, f64) = (8.64, 1.44, 7.2);
     let (denominator_height, denominator_depth, denominator_width): (f64, f64, f64) =
-        (14.4, 5.4, 12.6);
+        (11.52, 4.32, 10.08);
     // The gap dominates the fixture's shift constants, so the shifts grow to
     // keep the minimum gaps.
     let shift_up = numerator_depth + rule / 2.0 + gap_numerator;
@@ -780,19 +800,18 @@ fn display_fractions_select_the_display_constants() {
         },
     )
     .unwrap();
-    // The gap constants dominate the fixture's shifts, so switching styles
-    // changes exactly the gap: FractionNumDisplayStyleGapMin (133) and
-    // FractionDenomDisplayStyleGapMin (136) versus 132 and 135.
+    // Display fractions retain level-zero child size; compact fractions use
+    // 80%. The gap constants also change from 132/135 to 133/136.
     let height_delta = unit_of(&mut fonts, MathConstant::FractionNumDisplayStyleGapMin)
         - unit_of(&mut fonts, MathConstant::FractionNumeratorGapMin);
     close(
         display.tree.metrics().baseline() - inline.tree.metrics().baseline(),
-        height_delta * scale,
+        height_delta * scale + (10.8 + 1.8) * 0.2,
     );
     close(height_delta, 1.0);
     close(
         display.tree.metrics().depth() - inline.tree.metrics().depth(),
-        (136.0 - 135.0) * scale,
+        (136.0 - 135.0) * scale + (14.4 + 5.4) * 0.2,
     );
     close(
         display.tree.children()[0].node().children()[1].offset().y(),
@@ -807,7 +826,7 @@ fn unit_of(fonts: &mut FontProvider, constant: logifos_layout::font::math::MathC
 
 #[test]
 fn unsupported_operators_and_missing_glyphs_refuse_typed() {
-    for text in ["", "∑", "++", "−"] {
+    for text in ["", "∑", "∫", " + "] {
         assert_eq!(
             layout(&operator(text), &mut provider(&font()), options(0)).unwrap_err(),
             LayoutError::UnsupportedOperator(text.into())
@@ -1127,4 +1146,149 @@ fn fences_stretch_to_the_row_ink_extents() {
     assert_eq!(snapshot(&result), include_str!("snapshots/fence-row.txt"));
     let mut fonts = provider(&stretch_font(700));
     assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+fn styled(content: Formula, hints: logifos_model::PresentationStyle) -> Formula {
+    Formula::Styled {
+        style: hints,
+        content: Box::new(content),
+    }
+}
+
+#[test]
+fn explicit_depth_inherits_adds_subtracts_and_resets() {
+    use logifos_model::{PresentationStyle, ScriptLevel};
+    let hint = |level| PresentationStyle {
+        script_level: Some(level),
+        ..Default::default()
+    };
+    let formula = styled(
+        sequence(vec![
+            symbol("x"),
+            styled(sequence(vec![symbol("y")]), hint(ScriptLevel::Add(1))),
+            styled(sequence(vec![symbol("z")]), hint(ScriptLevel::Absolute(0))),
+            styled(sequence(vec![symbol("x")]), hint(ScriptLevel::Subtract(2))),
+        ]),
+        hint(ScriptLevel::Absolute(1)),
+    );
+    let result = render(&formula, 0);
+    let sizes: Vec<_> = result.glyphs.iter().map(|g| g.font_size_px).collect();
+    for (actual, expected) in sizes.into_iter().zip([14.4, 10.8, 18.0, 18.0 / 0.71]) {
+        close(actual, expected);
+    }
+}
+
+#[test]
+fn root_display_and_nested_displaystyle_control_fraction_children() {
+    use logifos_model::{MathDisplay, PresentationStyle};
+    let frac = || Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
+    let formula = styled(
+        sequence(vec![
+            frac(),
+            styled(
+                Formula::Style(vec![frac()]),
+                PresentationStyle {
+                    displaystyle: Some(false),
+                    ..Default::default()
+                },
+            ),
+        ]),
+        PresentationStyle {
+            display: Some(MathDisplay::Block),
+            ..Default::default()
+        },
+    );
+    let result = render(&formula, 0);
+    for (glyph, expected) in result.glyphs.iter().zip([18.0, 18.0, 14.4, 14.4]) {
+        close(glyph.font_size_px, expected);
+    }
+    let overridden = styled(
+        sequence(vec![frac()]),
+        PresentationStyle {
+            display: Some(MathDisplay::Block),
+            displaystyle: Some(false),
+            ..Default::default()
+        },
+    );
+    for glyph in render(&overridden, 0).glyphs {
+        close(glyph.font_size_px, 14.4);
+    }
+}
+
+#[test]
+fn effective_depth_outside_bounds_refuses_without_panicking() {
+    use logifos_model::{PresentationStyle, ScriptLevel};
+    let hint = |n| PresentationStyle {
+        script_level: Some(ScriptLevel::Add(n)),
+        ..Default::default()
+    };
+    let formula = styled(sequence(vec![styled(sequence(vec![]), hint(1))]), hint(255));
+    assert_eq!(
+        layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::InvalidOptions
+    );
+}
+
+#[test]
+fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
+    use logifos_model::{MathColor, MathSpace, MathVariant, PresentationStyle};
+    for (hints, content) in [
+        (
+            PresentationStyle {
+                math_variant: Some(MathVariant::Bold),
+                ..Default::default()
+            },
+            Formula::Style(vec![symbol("x")]),
+        ),
+        (
+            PresentationStyle {
+                math_color: Some(MathColor::Red),
+                ..Default::default()
+            },
+            Formula::Style(vec![symbol("x")]),
+        ),
+        (
+            PresentationStyle {
+                right_space: Some(MathSpace::Thick),
+                ..Default::default()
+            },
+            operator("+"),
+        ),
+        (
+            PresentationStyle {
+                accent: Some(true),
+                ..Default::default()
+            },
+            Formula::Over(Box::new(symbol("x")), Box::new(symbol("y"))),
+        ),
+    ] {
+        let formula = sequence(vec![styled(content, hints)]);
+        assert_eq!(
+            layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
+            LayoutError::NotLaidOutYet
+        );
+    }
+}
+
+#[test]
+fn explicit_center_is_preserved_without_changing_default_table_geometry() {
+    use logifos_model::{ColumnAlign, PresentationStyle};
+    let hints = PresentationStyle {
+        column_align: Some(ColumnAlign::Center),
+        ..Default::default()
+    };
+    let plain = Formula::Table(vec![
+        vec![sequence(vec![symbol("x")])],
+        vec![sequence(vec![symbol("y"), symbol("z")])],
+    ]);
+    let explicit = Formula::Table(vec![
+        vec![styled(sequence(vec![symbol("x")]), hints)],
+        vec![sequence(vec![symbol("y"), symbol("z")])],
+    ]);
+    assert_eq!(render(&plain, 0), render(&explicit, 0));
+    let invalid = sequence(vec![styled(sequence(vec![symbol("x")]), hints)]);
+    assert_eq!(
+        layout(&invalid, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::InvalidOptions
+    );
 }

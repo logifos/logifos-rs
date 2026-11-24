@@ -127,6 +127,7 @@ fn scripted<'a>(
         tree,
         glyphs,
         operator: base.operator,
+        operator_font_size_px: base.operator_font_size_px,
         italic: correction,
         empty: base.empty && script_empty,
     })

@@ -66,8 +66,8 @@ fn refusal(kind: WriteErrorKind, location: &str) -> WriteError {
 /// sequences remain explicit `mrow` elements, including empty and singleton
 /// rows. All symbols use `mi`, since Formula does not distinguish identifier,
 /// number and text tokens. Operators retain their exact supported spelling.
-/// No attributes or inherited styles can be supplied by the current Formula
-/// model; the transform refuses those inputs before writing is possible.
+/// Typed presentation hints retain their owning element, including table cells.
+/// Attribute values use canonical case and decimal integer spellings.
 /// Script constructs retain their distinct elements and ordered operands,
 /// including multiscript placeholders and an explicitly empty prescript boundary.
 /// Default spaces and string literals retain their distinct token kinds.
@@ -85,7 +85,11 @@ fn refusal(kind: WriteErrorKind, location: &str) -> WriteError {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub fn write(formula: &Formula) -> Result<String, WriteError> {
-    if !matches!(formula, Formula::Sequence(_)) {
+    let root = match formula {
+        Formula::Styled { content, .. } => content.as_ref(),
+        _ => formula,
+    };
+    if !matches!(root, Formula::Sequence(_)) {
         return Err(refusal(WriteErrorKind::InvalidStructure, ""));
     }
     let mut builder = SyntaxBuilder {
@@ -129,9 +133,13 @@ impl SyntaxBuilder {
         location: &str,
         depth: usize,
     ) -> Result<Element, WriteError> {
+        if let Formula::Styled { style, content } = formula {
+            return self.styled(*style, content, location, depth);
+        }
         self.visit(location, depth)?;
         let mut children = Vec::new();
         let name = match formula {
+            Formula::Styled { .. } => unreachable!("handled before syntax allocation"),
             Formula::Sequence(items)
             | Formula::Style(items)
             | Formula::ErrorGroup(items)
@@ -155,29 +163,7 @@ impl SyntaxBuilder {
             }
             Formula::Symbol(text) | Formula::Operator(text) | Formula::StringLiteral(text) => {
                 let operator = matches!(formula, Formula::Operator(_));
-                if operator
-                    && !matches!(
-                        text.as_str(),
-                        "+" | "-"
-                            | "="
-                            | "*"
-                            | "×"
-                            | "("
-                            | ")"
-                            | "["
-                            | "]"
-                            | "{"
-                            | "}"
-                            | "|"
-                            | "\u{2016}"
-                            | "\u{2308}"
-                            | "\u{2309}"
-                            | "\u{230a}"
-                            | "\u{230b}"
-                            | "\u{27e8}"
-                            | "\u{27e9}"
-                    )
-                {
+                if operator && !logifos_model::operator::is_operator_text(text) {
                     return Err(refusal(WriteErrorKind::UnsupportedOperator, location));
                 }
                 if text.len() > ParseLimits::default().source_bytes - self.text_bytes {
@@ -312,6 +298,18 @@ impl SyntaxBuilder {
                         // transform's sequence cells reparse equal.
                         let cell_path = format!("{row_path}/cells/{cell_index}");
                         self.visit(&cell_path, depth + 2)?;
+                        let (cell, style) = match cell {
+                            Formula::Styled { style, content } => {
+                                if !style.valid_for(content, false, true) {
+                                    return Err(refusal(
+                                        WriteErrorKind::InvalidStructure,
+                                        &cell_path,
+                                    ));
+                                }
+                                (content.as_ref(), Some(*style))
+                            }
+                            _ => (cell, None),
+                        };
                         let Formula::Sequence(items) = cell else {
                             return Err(refusal(WriteErrorKind::InvalidStructure, &cell_path));
                         };
@@ -323,7 +321,11 @@ impl SyntaxBuilder {
                                 depth + 3,
                             )?));
                         }
-                        cells.push(Node::Element(self.node("mtd", content)));
+                        let mut element = self.node("mtd", content);
+                        if let Some(style) = style {
+                            Self::style_attributes(&mut element, style);
+                        }
+                        cells.push(Node::Element(element));
                     }
                     children.push(Node::Element(self.node("mtr", cells)));
                 }
@@ -331,6 +333,80 @@ impl SyntaxBuilder {
             }
         };
         Ok(self.syntax_element(name, children))
+    }
+
+    fn styled(
+        &mut self,
+        style: logifos_model::PresentationStyle,
+        content: &Formula,
+        location: &str,
+        depth: usize,
+    ) -> Result<Element, WriteError> {
+        if !style.valid_for(content, depth == 1, false) {
+            return Err(refusal(WriteErrorKind::InvalidStructure, location));
+        }
+        let mut element = self.element(content, location, depth)?;
+        Self::style_attributes(&mut element, style);
+        Ok(element)
+    }
+
+    fn style_attributes(element: &mut Element, style: logifos_model::PresentationStyle) {
+        use logifos_model::{MathColor, MathDisplay, ScriptLevel};
+        let mut attribute = |name: &str, value: String| {
+            element.attributes.push(crate::Attribute {
+                name: QualifiedName {
+                    prefix: None,
+                    local: name.into(),
+                    namespace: None,
+                },
+                value,
+            });
+        };
+        if let Some(display) = style.display {
+            attribute(
+                "display",
+                match display {
+                    MathDisplay::Block => "block",
+                    MathDisplay::Inline => "inline",
+                }
+                .into(),
+            );
+        }
+        if let Some(displaystyle) = style.displaystyle {
+            attribute("displaystyle", displaystyle.to_string());
+        }
+        if let Some(level) = style.script_level {
+            attribute(
+                "scriptlevel",
+                match level {
+                    ScriptLevel::Absolute(n) => n.to_string(),
+                    ScriptLevel::Add(n) => format!("+{n}"),
+                    ScriptLevel::Subtract(n) => format!("-{n}"),
+                },
+            );
+        }
+        if let Some(variant) = style.math_variant {
+            attribute("mathvariant", variant.as_str().into());
+        }
+        if let Some(color) = style.math_color {
+            attribute(
+                "mathcolor",
+                match color {
+                    MathColor::Red => "red",
+                    MathColor::Blue => "blue",
+                }
+                .into(),
+            );
+        }
+        if let Some(space) = style.right_space {
+            attribute("rspace", space.as_str().into());
+        }
+        if let Some(accent) = style.accent {
+            attribute("accent", accent.to_string());
+        }
+        if style.column_align.is_some() {
+            attribute("columnalign", "center".into());
+        }
     }
 
     fn script_pairs(
@@ -388,7 +464,7 @@ impl SyntaxBuilder {
 }
 
 // Only serializes syntax constructed above: fixed names, one root namespace,
-// no attributes or comments. This is not a general-purpose XML serializer.
+// validated enum/boolean/integer attributes and no comments. Not a general XML serializer.
 struct Output(String);
 
 impl Output {
@@ -406,6 +482,13 @@ impl Output {
         for namespace in &element.namespaces {
             self.push(" xmlns=\"")?;
             self.push(&namespace.uri)?;
+            self.push("\"")?;
+        }
+        for attribute in &element.attributes {
+            self.push(" ")?;
+            self.push(&attribute.name.local)?;
+            self.push("=\"")?;
+            self.push(&attribute.value)?;
             self.push("\"")?;
         }
         self.push(">")?;

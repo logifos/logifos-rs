@@ -102,11 +102,16 @@ fn other_arities_use_core_row_semantics_without_losing_children() {
 }
 
 #[test]
-fn presentation_attributes_still_refuse_at_their_owner() {
+fn unsupported_presentation_attributes_refuse_at_their_owner() {
     for name in ["munder", "mover", "munderover"] {
-        for attribute in ["accent", "accentunder", "displaystyle", "mathcolor"] {
+        for (attribute, value) in [
+            ("accent", "invalid"),
+            ("accentunder", "false"),
+            ("displaystyle", "false"),
+            ("mathcolor", "false"),
+        ] {
             let error =
-                transform(&parse(format!("<math><{name} {attribute}='false'/></math>")).unwrap())
+                transform(&parse(format!("<math><{name} {attribute}='{value}'/></math>")).unwrap())
                     .unwrap_err();
             assert_eq!(error.kind, TransformErrorKind::UnsupportedAttribute);
             assert_eq!(error.element.local, name);
@@ -155,7 +160,7 @@ fn foreign_under_over_elements_refuse_despite_known_local_names() {
 #[test]
 fn writer_refusals_name_each_under_over_operand() {
     let valid = Box::new(symbol("x"));
-    let invalid = Box::new(Formula::Operator("private".into()));
+    let invalid = Box::new(Formula::Operator("pri vate".into()));
     for (node, field) in [
         (Formula::Under(invalid.clone(), valid.clone()), "base"),
         (Formula::Under(valid.clone(), invalid.clone()), "under"),

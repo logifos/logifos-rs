@@ -50,6 +50,11 @@ pub fn layout(
         glyphs: 0,
     };
     let node = build(formula, fonts, style, &mut budget, 1)?;
+    let style = if let Formula::Styled { style: hints, .. } = formula {
+        style.presentation(*hints, fonts)?
+    } else {
+        style
+    };
     let node = rows::finish(node, style)?;
     Ok(Layout {
         tree: node.tree,
@@ -62,6 +67,7 @@ struct Node<'a> {
     tree: BoxTree,
     glyphs: Vec<PlacedGlyph>,
     operator: Option<&'a str>,
+    operator_font_size_px: Option<f64>,
     italic: f64,
     empty: bool,
 }
@@ -92,6 +98,20 @@ fn build<'a>(
     if depth > MAX_DEPTH || budget.nodes > MAX_NODES {
         return Err(LayoutError::ResourceLimit);
     }
+    let (formula, style) = if let Formula::Styled {
+        style: hints,
+        content,
+    } = formula
+    {
+        let mut style = style;
+        if !hints.valid_for(content, depth == 1, false) {
+            return Err(LayoutError::InvalidOptions);
+        }
+        style = style.presentation(*hints, fonts)?;
+        (content.as_ref(), style)
+    } else {
+        (formula, style)
+    };
     match formula {
         Formula::Sequence(children)
         | Formula::Style(children)
@@ -110,6 +130,24 @@ fn build<'a>(
             }
             Ok(node)
         }
+        _ => build_construct(formula, fonts, style, budget, depth),
+    }
+}
+
+fn build_construct<'a>(
+    formula: &'a Formula,
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+    budget: &mut Budget,
+    depth: usize,
+) -> Result<Node<'a>, LayoutError> {
+    match formula {
+        Formula::Styled { .. }
+        | Formula::Sequence(_)
+        | Formula::Style(_)
+        | Formula::ErrorGroup(_)
+        | Formula::Padded(_)
+        | Formula::Phantom(_) => unreachable!("handled by build"),
         Formula::Under(..)
         | Formula::Over(..)
         | Formula::UnderOver(..)
@@ -123,8 +161,20 @@ fn build<'a>(
             token::token(text, Some(text), fonts, style, budget)
         }
         Formula::Fraction(numerator, denominator) => {
-            let numerator = build(numerator, fonts, style, budget, depth + 1)?;
-            let denominator = build(denominator, fonts, style, budget, depth + 1)?;
+            // Core 3.3.2: compact children, auto-add depth only when the
+            // fraction is already compact, and a cramped denominator.
+            let child_style = style.raise(fonts, u8::from(!style.display), style.cramped)?;
+            let numerator = build(numerator, fonts, child_style, budget, depth + 1)?;
+            let denominator = build(
+                denominator,
+                fonts,
+                ResolvedStyle {
+                    cramped: true,
+                    ..child_style
+                },
+                budget,
+                depth + 1,
+            )?;
             fraction::fraction(numerator, denominator, fonts, style)
         }
         Formula::Superscript(base, script) => {
@@ -170,6 +220,19 @@ fn build<'a>(
             for row in rows {
                 let mut cells = Vec::with_capacity(row.len());
                 for cell in row {
+                    let cell = match cell {
+                        Formula::Styled {
+                            style: hints,
+                            content,
+                        } => {
+                            if !hints.valid_for(content, false, true) {
+                                return Err(LayoutError::InvalidOptions);
+                            }
+                            // Explicit center matches the table's existing alignment.
+                            content.as_ref()
+                        }
+                        _ => cell,
+                    };
                     cells.push(build(cell, fonts, style, budget, depth + 1)?);
                 }
                 built.push(cells);

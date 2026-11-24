@@ -5,6 +5,13 @@
 //! layout and rendering stages consume only this tree, so adding a syntax
 //! never touches them.
 
+pub mod operator;
+
+mod presentation;
+pub use presentation::{
+    ColumnAlign, MathColor, MathDisplay, MathSpace, MathVariant, PresentationStyle, ScriptLevel,
+};
+
 mod wire;
 pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPTH, MAX_NODES};
 
@@ -14,6 +21,12 @@ pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPT
 pub enum Formula {
     /// A horizontal run of child formulas (the plain sequence).
     Sequence(Vec<Formula>),
+    /// Presentation attributes on a retained element. The wrapper
+    /// shares its content's syntax depth; nested wrappers are invalid.
+    Styled {
+        style: PresentationStyle,
+        content: Box<Formula>,
+    },
     /// An attribute-free MathML style group with inherited presentation.
     Style(Vec<Formula>),
     /// An attribute-free MathML error group.

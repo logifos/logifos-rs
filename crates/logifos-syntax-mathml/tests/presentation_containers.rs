@@ -103,10 +103,10 @@ fn presentation_names_accept_mathml_namespaces_and_refuse_foreign_ones() {
 }
 
 #[test]
-fn attributes_on_presentation_containers_still_refuse() {
+fn unsupported_attributes_on_presentation_containers_still_refuse() {
     for name in CONTAINERS.into_iter().chain(["semantics"]) {
         for attribute in [
-            "mathcolor='red'",
+            "mathcolor='chartreuse'",
             "width='2em'",
             "data-note='keep'",
             "f:flag='yes' xmlns:f='urn:foreign'",
@@ -138,7 +138,7 @@ fn row_like_content_keeps_exact_refusal_paths() {
                 "<annotation>meaning</annotation>",
                 TransformErrorKind::UnsupportedElement,
             ),
-            ("<mo>^</mo>", TransformErrorKind::UnsupportedOperator),
+            ("<mo>a b</mo>", TransformErrorKind::UnsupportedOperator),
         ] {
             refused(
                 &format!("<{name}><mi>x</mi>{content}</{name}>"),
@@ -227,12 +227,12 @@ fn container_writing_reports_invalid_descendants() {
     for name in CONTAINERS {
         let error = write(&Formula::Sequence(vec![container(
             name,
-            vec![Formula::Operator("private".into())],
+            vec![Formula::Operator("pri vate".into())],
         )]))
         .unwrap_err();
         assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
         assert_eq!(error.location, "/children/0/children/0");
-        assert!(!error.to_string().contains("private"));
+        assert!(!error.to_string().contains("pri vate"));
     }
 }
 

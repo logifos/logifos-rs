@@ -45,6 +45,19 @@ fn unsupported(elements: &[(&str, &str)]) {
 }
 
 #[test]
+fn dictionary_operators_keep_their_exact_spelling() {
+    for text in [
+        "≤", "±", "→", "∑", "∫", "¯", ",", "lim", "..", "−", "\u{2004}", "",
+    ] {
+        assert_eq!(
+            converted(&format!("<math><mo>{text}</mo></math>")),
+            Formula::Sequence(vec![Formula::Operator(text.into())]),
+            "{text:?}"
+        );
+    }
+}
+
+#[test]
 fn implicit_row_retains_token_order_and_symbol_identity() {
     assert_eq!(
         converted("<math><mi>q</mi><mo>+</mo><mn>17</mn><mtext> units </mtext><mi>+</mi></math>"),
@@ -320,14 +333,14 @@ fn foreign_namespace_elements_refuse_despite_known_local_name() {
 #[test]
 fn inherited_presentation_attributes_refuse_at_their_owner() {
     for attribute in [
-        "mathcolor='red'",
+        "mathcolor='chartreuse'",
         "mathbackground='white'",
-        "mathvariant='normal'",
+        "mathvariant='unknown'",
         "mathsize='12pt'",
         "dir='ltr'",
-        "displaystyle='false'",
-        "scriptlevel='0'",
-        "display='inline'",
+        "displaystyle='invalid'",
+        "scriptlevel='256'",
+        "display='invalid'",
     ] {
         let error = refused(
             &format!("<math {attribute}><mi>x</mi></math>"),
@@ -404,7 +417,7 @@ fn namespaced_metadata_and_unknown_attributes_refuse() {
 
 #[test]
 fn unsupported_operator_text_is_never_coerced() {
-    for text in ["−", "÷", "∑", " + ", "++", "", "\u{2062}"] {
+    for text in [" + ", "\u{2062}", "a b"] {
         refused(
             &format!("<math><mo>{text}</mo></math>"),
             TransformErrorKind::UnsupportedOperator,
