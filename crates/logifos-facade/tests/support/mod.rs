@@ -167,27 +167,11 @@ fn cmap_table(characters: &[(char, u16)]) -> Vec<u8> {
     cmap
 }
 
-/// Type 1 cipher encryption of a charstring (R = 4330), with a `len_iv`
-/// byte nonce prepended.
-fn encrypt(plain: &[u8], len_iv: usize) -> Vec<u8> {
-    let mut data: Vec<u8> = (0..len_iv).map(|i| i as u8 ^ 0xa5).collect();
-    data.extend_from_slice(plain);
-    let mut r: u16 = 4330;
-    let mut out = Vec::with_capacity(data.len());
-    for &p in &data {
-        let c = p ^ (r >> 8) as u8;
-        out.push(c);
-        r = (u16::from(c).wrapping_add(r))
-            .wrapping_mul(52845)
-            .wrapping_add(22719);
-    }
-    out
-}
-
-/// An OTF-flavored face: 'x' is a real lenIV-encrypted Type 2 charstring
-/// whose rmoveto, rrcurveto and hlineto make one cubic segment and one line
-/// (font-unit points (0,0) (125,0) (125,125) (125,125) (250,125)); the
-/// coordinates are 125-multiples so 24px/1000upem lands on exact pixels.
+/// An OTF-flavored face: 'x' is a real Type 2 charstring (stored
+/// unencrypted in the CharStrings INDEX) whose rmoveto, rrcurveto and
+/// hlineto make one cubic segment and one line (font-unit points (0,0)
+/// (125,0) (125,125) (125,125) (250,125)); the coordinates are
+/// 125-multiples so 24px/1000upem lands on exact pixels.
 pub fn cff_font() -> Vec<u8> {
     let mut head = vec![0; 54];
     put32(&mut head, 0, 0x0001_0000);
@@ -233,8 +217,8 @@ pub fn cff_font() -> Vec<u8> {
     let strings = index(&[]);
     let gsubrs = index(&[]);
     let blank: &[u8] = &[14];
-    let charstrings = index(&[blank, &encrypt(&glyph_x, 4), blank, blank, blank, blank]);
-    // The Private DICT names its lenIV (4) explicitly; the Top DICT's
+    let charstrings = index(&[blank, &glyph_x, blank, blank, blank, blank]);
+    // A minimal valid Private DICT (defaultWidthX 4); the Top DICT's
     // operands all fit the 1-byte encoding, so sizes are stable.
     let private = [139 + 4, 20];
     let topdict_at = 4 + names.len();
