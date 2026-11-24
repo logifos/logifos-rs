@@ -252,7 +252,8 @@ fn attributes_and_inherited_style_are_typed_refusals_never_dropped() {
             assert!(error.attribute.is_some());
         }
     }
-    let error = transform(&parse("<math><mstyle><mi>x</mi></mstyle></math>").unwrap()).unwrap_err();
+    let error =
+        transform(&parse("<math><menclose><mi>x</mi></menclose></math>").unwrap()).unwrap_err();
     assert_eq!(error.kind, TransformErrorKind::UnsupportedElement);
 }
 

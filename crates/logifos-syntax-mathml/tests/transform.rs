@@ -273,23 +273,13 @@ fn standalone_multiscript_markers_refuse() {
 }
 
 #[test]
-fn style_wrappers_refuse_even_without_attributes() {
-    unsupported(&[("mstyle", "<mstyle><mi>x</mi></mstyle>")]);
+fn enclosures_refuse() {
+    unsupported(&[("menclose", "<menclose><mi>x</mi></menclose>")]);
 }
 
 #[test]
-fn spacing_padding_phantoms_and_enclosures_refuse() {
+fn standalone_annotations_refuse() {
     unsupported(&[
-        ("mpadded", "<mpadded><mi>x</mi></mpadded>"),
-        ("mphantom", "<mphantom><mi>x</mi></mphantom>"),
-        ("menclose", "<menclose><mi>x</mi></menclose>"),
-    ]);
-}
-
-#[test]
-fn semantics_and_annotations_refuse() {
-    unsupported(&[
-        ("semantics", "<semantics><mi>x</mi></semantics>"),
         ("annotation", "<annotation>meaning</annotation>"),
         (
             "annotation-xml",
@@ -299,10 +289,9 @@ fn semantics_and_annotations_refuse() {
 }
 
 #[test]
-fn actions_errors_and_glyphs_refuse() {
+fn actions_and_glyphs_refuse() {
     unsupported(&[
         ("maction", "<maction><mi>x</mi></maction>"),
-        ("merror", "<merror><mi>x</mi></merror>"),
         ("mglyph", "<mglyph/>"),
     ]);
 }
@@ -482,9 +471,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mstyle><mi>y</mi><mo>^</mo></m:mstyle></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:menclose><mi>y</mi><mo>^</mo></m:menclose></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "mstyle",
+        "menclose",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));

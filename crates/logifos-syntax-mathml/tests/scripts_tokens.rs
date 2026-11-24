@@ -311,7 +311,7 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
         }
     }
     for content in [
-        "<mpadded/>",
+        "<menclose/>",
         "<mo>private</mo>",
         "<!--private-->",
         "private",

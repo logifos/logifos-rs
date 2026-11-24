@@ -456,6 +456,10 @@ fn encode_node(
         | Formula::UnderOver(..)
         | Formula::SubSup(..)
         | Formula::MultiScripts { .. }
+        | Formula::Style(_)
+        | Formula::ErrorGroup(_)
+        | Formula::Padded(_)
+        | Formula::Phantom(_)
         | Formula::Space
         | Formula::StringLiteral(_) => {
             return Err(refusal(WireErrorCode::UnsupportedClass, path));

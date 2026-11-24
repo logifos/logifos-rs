@@ -132,7 +132,11 @@ impl SyntaxBuilder {
         self.visit(location, depth)?;
         let mut children = Vec::new();
         let name = match formula {
-            Formula::Sequence(items) => {
+            Formula::Sequence(items)
+            | Formula::Style(items)
+            | Formula::ErrorGroup(items)
+            | Formula::Padded(items)
+            | Formula::Phantom(items) => {
                 for (index, child) in items.iter().enumerate() {
                     children.push(Node::Element(self.element(
                         child,
@@ -140,10 +144,13 @@ impl SyntaxBuilder {
                         depth + 1,
                     )?));
                 }
-                if depth == 1 {
-                    "math"
-                } else {
-                    "mrow"
+                match formula {
+                    Formula::Style(_) => "mstyle",
+                    Formula::ErrorGroup(_) => "merror",
+                    Formula::Padded(_) => "mpadded",
+                    Formula::Phantom(_) => "mphantom",
+                    _ if depth == 1 => "math",
+                    _ => "mrow",
                 }
             }
             Formula::Symbol(text) | Formula::Operator(text) | Formula::StringLiteral(text) => {
