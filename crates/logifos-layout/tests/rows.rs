@@ -93,7 +93,11 @@ fn render(formula: &Formula, level: u8) -> Layout {
 /// assembly g3/g4(extender)/g5 — and every glyph a 600u-advance triangle
 /// spanning −200..700 units. `x_top` overrides glyph 1's ink top.
 fn stretch_font(x_top: i16) -> Vec<u8> {
-    let mut b = support::FontBuilder::new(&[('x', 1), ('√', 2), ('z', 3)], 250, true);
+    let mut b = support::FontBuilder::new(
+        &[('x', 1), ('√', 2), ('(', 2), (')', 2), ('z', 3)],
+        250,
+        true,
+    );
     put16(b.tables.get_mut(b"glyf").unwrap(), 8, x_top as u16);
     b.finish()
 }
@@ -1089,5 +1093,38 @@ fn tables_center_cells_on_the_math_axis_with_mtd_padding() {
     assert_eq!(cell_box, direct.tree.children()[0].node());
     assert_eq!(snapshot(&result), include_str!("snapshots/table-grid.txt"));
     let mut fonts = provider(&font());
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn fences_stretch_to_the_row_ink_extents() {
+    let mut fonts = provider(&stretch_font(700));
+    let formula = sequence(vec![operator("("), symbol("x"), operator(")")]);
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    // 'x' (600u advance, ink 12.6 above and 3.6 below the baseline) makes
+    // the fences re-lay at a 16.2px target, which the g3 variant (21.6px)
+    // covers; all three children carry the 600u advance of 10.8px.
+    let metrics = result.tree.metrics();
+    close(metrics.width(), 10.8 + 10.8 + 0.45 + 10.8);
+    close(metrics.height(), 12.6);
+    close(metrics.depth(), 3.6);
+    assert_eq!(result.glyphs.len(), 3);
+    for glyph in [
+        result.glyphs[0].glyph.glyph_id,
+        result.glyphs[2].glyph.glyph_id,
+    ] {
+        assert_eq!(glyph, 3);
+    }
+    // The stretched piece's baseline sits at its slot bottom (21.6px from
+    // the leaf top); 'x' keeps the row baseline, with its italic correction
+    // kerning into the non-slanted closing fence.
+    close(result.glyphs[0].origin.x(), 0.0);
+    close(result.glyphs[0].origin.y(), 21.6);
+    close(result.glyphs[1].origin.x(), 10.8);
+    close(result.glyphs[1].origin.y(), 12.6);
+    close(result.glyphs[2].origin.x(), 22.05);
+    close(result.glyphs[2].origin.y(), 21.6);
+    assert_eq!(snapshot(&result), include_str!("snapshots/fence-row.txt"));
+    let mut fonts = provider(&stretch_font(700));
     assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
 }

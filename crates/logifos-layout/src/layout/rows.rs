@@ -1,5 +1,9 @@
+use super::radical;
 use super::{operator, LayoutError, Node, ResolvedStyle};
-use crate::{BoxTree, Kern, StackItem};
+use crate::font::math::Direction;
+use crate::font::FontProvider;
+use crate::geometry::add;
+use crate::{BoxTree, Kern, Metrics, StackItem};
 
 pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, LayoutError> {
     let empty = parts.iter().all(|(node, _, _)| node.empty);
@@ -30,8 +34,30 @@ pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, Layout
 
 pub(super) fn row<'a>(
     children: Vec<Node<'a>>,
+    fonts: &mut FontProvider,
     style: ResolvedStyle,
 ) -> Result<Node<'a>, LayoutError> {
+    // Core 3.3.1.1: the fences (stretchy operators with block stretch axis)
+    // re-lay at the other children's ink extents; with only fences present
+    // the constraint is (0, 0).
+    let mut ink_ascent = 0.0f64;
+    let mut ink_descent = 0.0f64;
+    for node in &children {
+        if node.operator.is_some_and(operator::is_fence) {
+            continue;
+        }
+        ink_ascent = ink_ascent.max(super::baseline::ink_ascent(&node.tree));
+        ink_descent = ink_descent.max(super::baseline::ink_descent(&node.tree));
+    }
+    let children = children
+        .into_iter()
+        .map(
+            |node| match node.operator.filter(|t| operator::is_fence(t)) {
+                Some(text) => stretched_fence(text, ink_ascent, ink_descent, fonts, style),
+                None => Ok(node),
+            },
+        )
+        .collect::<Result<Vec<_>, _>>()?;
     let count = children.iter().filter(|node| !node.empty).count();
     let core = if count == 1 {
         children
@@ -67,6 +93,36 @@ pub(super) fn row<'a>(
     node.operator = core;
     node.italic = previous_italic;
     Ok(node)
+}
+
+/// Re-lays one fence as a vertically stretched glyph box spanning the row's
+/// ink extents, replacing its natural-size token.
+fn stretched_fence<'a>(
+    text: &'a str,
+    ascent: f64,
+    descent: f64,
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+) -> Result<Node<'a>, LayoutError> {
+    let ch = text.chars().next().unwrap_or('(');
+    let stretched = fonts.expand_stretch(
+        ch,
+        Direction::Vertical,
+        add(ascent, descent)?,
+        style.font_size_px,
+    )?;
+    let tree = BoxTree::leaf(
+        Metrics::new(stretched.advance_px, ascent.max(0.0), descent.max(0.0))?,
+        None,
+    );
+    let glyphs = radical::stretched_pieces(&stretched, ch, 0.0, style.font_size_px)?;
+    Ok(Node {
+        tree,
+        glyphs,
+        operator: Some(text),
+        italic: 0.0,
+        empty: false,
+    })
 }
 
 pub(super) fn finish(node: Node<'_>, style: ResolvedStyle) -> Result<Node<'_>, LayoutError> {

@@ -153,6 +153,28 @@ mod tests {
     }
 
     #[test]
+    fn fence_operators_keep_their_paren_classes() {
+        let lround = json!({"class": "Math::Symbols::Paren::Lround", "fields": {"value": null}});
+        let formula = Formula::from_wire(lround.as_object().unwrap()).unwrap();
+        assert_eq!(formula, Formula::Operator("(".into()));
+        assert_eq!(formula.to_wire().unwrap(), lround);
+        // Both square-bracket classes carry the same character; decoding
+        // collapses them, encoding uses the primary spelling.
+        for class in ["Lsquare", "Lbrack"] {
+            let wire = json!({
+                "class": format!("Math::Symbols::Paren::{class}"),
+                "fields": {"value": null},
+            });
+            assert_eq!(
+                Formula::from_wire(wire.as_object().unwrap()).unwrap(),
+                Formula::Operator("[".into())
+            );
+        }
+        let back = json!({"class": "Math::Symbols::Paren::Lsquare", "fields": {"value": null}});
+        assert_eq!(Formula::Operator("[".into()).to_wire().unwrap(), back);
+    }
+
+    #[test]
     fn tables_refuse_fences_and_options_the_tree_cannot_carry() {
         let rows = json!({"class": "Math::Function::Tr", "fields": {"parameter_one": []}});
         let fence = json!({

@@ -100,11 +100,18 @@ inline-table semantics: a column grid of baseline-aligned rows, mtd's
 0.4em/0.5ex padding (ex from OS/2 sxHeight with the CSS fallback),
 cells centered per column, and the whole table's center on the math
 axis; ragged rows leave trailing cells empty. mtable sets math-style
-compact. Upstream fence parens and table options refuse until the
-stretchy-delimiter work.
+compact. Upstream table options refuse (the tree carries no styling).
 
-**Target.** Stretchy delimiters (horizontal glyph assembly with min
-connector overlap — `expand_stretch` already stretches vertically).
+**Delimiters.** The vertical fence delimiters — `(` `)` `[` `]` `{` `}`
+`|` `‖` `⌈` `⌉` `⌊` `⌋` `⟨` `⟩` — are accepted operators with zero
+spacing (Core's dictionary category F) that stretch along the block
+axis: each row re-lays its fences at the other children's ink extents
+(Core 3.3.1.1's two-phase pass) through the same variant/assembly
+stretch machinery as radicals. On the wire they keep their plurimath
+`Math::Symbols::Paren::*` classes.
+
+**Target.** Horizontal (inline-axis) operator stretching and stretchy
+attr handling; `expand_stretch` is already direction-general.
 
 ## 5. The painter — `logifos-svg`
 
