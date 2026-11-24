@@ -348,6 +348,7 @@ fn execute(
             let options_layout = LayoutOptions {
                 font_size_px,
                 script_level: 0,
+                display: options.get("display") == Some(&json!("block")),
             };
             let laid = layout_formula(&formula, &mut provider, options_layout)
                 .map_err(|_e| fail("LAYOUT_FAILED", ""))?;
