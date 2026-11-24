@@ -1,2 +1,5 @@
 # Snapshot assertions compare exact LF bytes on every platform.
 /crates/logifos-layout/tests/snapshots/*.txt text eol=lf
+# Corpus inputs and grading snapshots are hashed byte-for-byte on every platform.
+/corpus/** text eol=lf
+/crates/logifos-corpus/tests/*.json text eol=lf
