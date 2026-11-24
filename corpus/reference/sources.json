@@ -1,0 +1,40 @@
+{
+  "comment": "Reference-renderer test suites adopted as grading corpora. Each entry pins the upstream repository, the audited revision, and the subpath copied into corpus/reference/<id>. Fetch with scripts/fetch-reference-corpus.sh.",
+  "sources": [
+    {
+      "id": "katex",
+      "repository": "https://github.com/KaTeX/KaTeX",
+      "revision": "PIN_ON_ADOPTION",
+      "subpath": "test",
+      "description": "The largest math-rendering corpus: LaTeX-to-output cases with per-case goldens."
+    },
+    {
+      "id": "mathjax",
+      "repository": "https://github.com/mathjax/MathJax",
+      "revision": "PIN_ON_ADOPTION",
+      "subpath": "test",
+      "description": "MathML element-coverage tests and samples exercising the mml3 transform semantics."
+    },
+    {
+      "id": "jeuclid",
+      "repository": "https://github.com/jeuclid/jeuclid",
+      "revision": "PIN_ON_ADOPTION",
+      "subpath": "tests",
+      "description": "JEuclid's MathML rendering test cases."
+    },
+    {
+      "id": "webkit-mathml",
+      "repository": "https://github.com/WebKit/WebKit",
+      "revision": "PIN_ON_ADOPTION",
+      "subpath": "LayoutTests/mathml",
+      "description": "WebKit's per-construct MathML layout and rendering expectations."
+    },
+    {
+      "id": "lasem",
+      "repository": "https://github.com/plurimath/lasem-ruby",
+      "revision": "PIN_ON_ADOPTION",
+      "subpath": "spec/fixtures",
+      "description": "The incumbent's fixtures - the corpus logifos must beat before Lasem retires."
+    }
+  ]
+}
