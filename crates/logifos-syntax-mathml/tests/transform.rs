@@ -8,6 +8,8 @@ fn converted(source: &str) -> Formula {
     let original = document.clone();
     let formula = transform(&document).unwrap();
     assert_eq!(document, original, "conversion changed syntax");
+    let serialized = logifos_syntax_mathml::write(&formula).unwrap();
+    assert_eq!(transform(&parse(serialized).unwrap()).unwrap(), formula);
     formula
 }
 
