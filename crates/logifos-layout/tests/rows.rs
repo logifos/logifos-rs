@@ -533,8 +533,8 @@ fn cff_font() -> Vec<u8> {
         })
         .unwrap();
     put32(&mut bytes, head + 8, 0);
-    let sum = bytes.chunks_exact(4).fold(0u32, |sum, chunk| {
-        sum.wrapping_add(u32::from_be_bytes(chunk.try_into().unwrap()))
+    let sum = bytes.as_chunks::<4>().0.iter().fold(0u32, |sum, chunk| {
+        sum.wrapping_add(u32::from_be_bytes(*chunk))
     });
     put32(&mut bytes, head + 8, 0xb1b0_afbau32.wrapping_sub(sum));
     bytes
