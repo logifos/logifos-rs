@@ -826,12 +826,10 @@ fn unit_of(fonts: &mut FontProvider, constant: logifos_layout::font::math::MathC
 
 #[test]
 fn unsupported_operators_and_missing_glyphs_refuse_typed() {
-    for text in [" + "] {
-        assert_eq!(
-            layout(&operator(text), &mut provider(&font()), options(0)).unwrap_err(),
-            LayoutError::UnsupportedOperator(text.into())
-        );
-    }
+    assert_eq!(
+        layout(&operator(" + "), &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::UnsupportedOperator(" + ".into())
+    );
     let error = layout(&symbol("q"), &mut provider(&font()), options(0)).unwrap_err();
     assert!(matches!(error,LayoutError::Font(ref e) if e.kind == FontErrorKind::MissingGlyph));
     assert_eq!(error.code(), "MISSING_GLYPH");
@@ -1232,19 +1230,16 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
 #[test]
 fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
     use logifos_model::PresentationStyle;
-    for (hints, content) in [(
-        PresentationStyle {
-            accent: Some(true),
-            ..Default::default()
-        },
-        Formula::Over(Box::new(symbol("x")), Box::new(symbol("y"))),
-    )] {
-        let formula = sequence(vec![styled(content, hints)]);
-        assert_eq!(
-            layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
-            LayoutError::NotLaidOutYet
-        );
-    }
+    let hints = PresentationStyle {
+        accent: Some(true),
+        ..Default::default()
+    };
+    let content = Formula::Over(Box::new(symbol("x")), Box::new(symbol("y")));
+    let formula = sequence(vec![styled(content, hints)]);
+    assert_eq!(
+        layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::NotLaidOutYet
+    );
 }
 
 #[test]
