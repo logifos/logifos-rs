@@ -90,11 +90,16 @@ display variants selected by `LayoutOptions::display`. Scripts follow
 §3.4.1: the script child builds one level up and compact, the shift is
 the MATH-constant max over the ink clamps, the base's italic correction
 kerns before the script, `SpaceAfterScript` trails it, and the script
-re-baselines through a padded vbox wrapper. Radicals refuse typed.
+re-baselines through a padded vbox wrapper. Radicals follow §3.3.3:
+the surd stretches vertically to rule + gap + radicand ink height
+(variant or extender-grown assembly with min-connector overlap), the
+overbar rides the radicand at a zero advance, and the mroot index
+raises by the bottom-raise percent two levels up. Both set math-shift
+compact; the index is also compact displaystyle.
 
-**Target.** Radicals (closure construction and assembly stretching),
-tables (row/column alignment), stretchy delimiters (glyph assembly with
-min connector overlap — the `StretchShape` machinery is already typed).
+**Target.** Tables (row/column alignment), stretchy delimiters
+(horizontal glyph assembly with min connector overlap — the
+`expand_stretch` machinery already stretches vertically).
 
 ## 5. The painter — `logifos-svg`
 

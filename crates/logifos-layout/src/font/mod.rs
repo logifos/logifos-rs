@@ -7,11 +7,12 @@ pub mod math;
 mod reader;
 mod validate;
 
+use bounds::measured_glyph;
 pub use bounds::{GlyphBounds, MeasuredGlyph};
 use error::Result;
 pub use error::{FontError, FontErrorKind};
 use fontisan::sfnt::{Font, GlyphOutline, Options, OutlineKind};
-use math::{Direction, GlyphAssembly, GlyphVariant, MathConstant, MathTable};
+use math::{AssemblyPart, Direction, GlyphAssembly, GlyphVariant, MathConstant, MathTable};
 use reader::Reader;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -312,6 +313,21 @@ pub struct ResolvedStretch {
     pub min_connector_overlap: u16,
 }
 
+/// One glyph stretched along its direction to at least the target extent.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StretchedGlyph {
+    /// Measured pieces in specification order (bottom to top, left to right).
+    pub pieces: Vec<MeasuredGlyph>,
+    /// Each piece's extent along the stretch direction, in CSS pixels.
+    pub extents: Vec<f64>,
+    /// Total extent along the stretch direction, in CSS pixels.
+    pub extent_px: f64,
+    /// The overlap between adjacent pieces, in CSS pixels.
+    pub overlap_px: f64,
+    /// The stretched glyph's advance across its text direction, in CSS pixels.
+    pub advance_px: f64,
+}
+
 /// One provider per call. Every resource is validated before any glyph is selected.
 #[derive(Debug)]
 pub struct FontProvider {
@@ -486,6 +502,153 @@ impl FontProvider {
             .iter()
             .map(|&i| self.faces[i].1.identity.clone())
             .collect()
+    }
+
+    /// Selects and expands a stretch of `character` along `direction` to at
+    /// least `target_px`. Variants are used at their natural extent; assemblies
+    /// grow with their extender and overlap connectors by at least the face's
+    /// minimum, per the OpenType assembly rules.
+    pub fn expand_stretch(
+        &mut self,
+        character: char,
+        direction: Direction,
+        target_px: f64,
+        font_size_px: f64,
+    ) -> Result<StretchedGlyph> {
+        check_size(font_size_px)?;
+        if !target_px.is_finite() || target_px < 0.0 {
+            return Err(FontError::new(FontErrorKind::InvalidSize));
+        }
+        let stretch = self.resolve_stretch(character, direction, target_px, font_size_px)?;
+        let scale = self.face_scale(&stretch.resource_id, font_size_px)?;
+        let min_overlap_px = f64::from(stretch.min_connector_overlap) * scale;
+        let measured = |provider: &mut Self, glyph_id: u16| {
+            provider.measure_stretch_part(&stretch, glyph_id, font_size_px)
+        };
+        match &stretch.shape {
+            StretchShape::Variant(variant) => {
+                let piece = measured(self, variant.glyph_id)?;
+                let extent = f64::from(variant.advance) * scale;
+                Ok(StretchedGlyph {
+                    advance_px: piece.glyph.advance_px,
+                    extents: vec![extent],
+                    extent_px: extent,
+                    overlap_px: 0.0,
+                    pieces: vec![piece],
+                })
+            }
+            StretchShape::Assembly(assembly) => {
+                let px = |units: u16| f64::from(units) * scale;
+                // At most one repeated extender grows the assembly; the last
+                // one in specification order is the repeating part.
+                let extender = assembly.parts.iter().rev().find(|part| part.extender);
+                let mut order: Vec<&AssemblyPart> = assembly.parts.iter().collect();
+                let natural: f64 = assembly
+                    .parts
+                    .iter()
+                    .map(|part| px(part.full_advance))
+                    .sum();
+                if let Some(extender) = extender {
+                    let advance = px(extender.full_advance);
+                    if advance > 0.0 && natural < target_px {
+                        let without = natural - advance;
+                        let copies = (((target_px - without) / advance).ceil() as usize).max(1);
+                        order.clear();
+                        for part in &assembly.parts {
+                            if std::ptr::eq(part, extender) {
+                                order.extend(std::iter::repeat_n(part, copies));
+                            } else {
+                                order.push(part);
+                            }
+                        }
+                    }
+                }
+                let total: f64 = order.iter().map(|part| px(part.full_advance)).sum();
+                let gaps = order.len().saturating_sub(1);
+                let mut overlap = if gaps == 0 {
+                    0.0
+                } else {
+                    (total - target_px) / f64::from(gaps as u32)
+                };
+                // Connectors must overlap by at least the face minimum; a
+                // larger overlap keeps the assembly from overshooting, never
+                // a smaller one.
+                overlap = overlap.max(min_overlap_px).max(0.0);
+                let mut stretched = StretchedGlyph {
+                    extents: order.iter().map(|part| px(part.full_advance)).collect(),
+                    extent_px: total - overlap * f64::from(gaps as u32),
+                    overlap_px: overlap,
+                    advance_px: 0.0,
+                    pieces: Vec::with_capacity(order.len()),
+                };
+                stretched.pieces = order
+                    .iter()
+                    .map(|part| measured(self, part.glyph_id))
+                    .collect::<Result<Vec<_>>>()?;
+                stretched.advance_px = stretched
+                    .pieces
+                    .first()
+                    .map_or(0.0, |piece| piece.glyph.advance_px);
+                Ok(stretched)
+            }
+        }
+    }
+
+    /// The design-unit to CSS-pixel scale of one named face at this size.
+    fn face_scale(&self, resource_id: &str, font_size_px: f64) -> Result<f64> {
+        check_size(font_size_px)?;
+        let font = &self
+            .faces
+            .iter()
+            .find(|(id, _)| id == resource_id)
+            .ok_or_else(|| FontError::new(FontErrorKind::InvalidResources))?
+            .1;
+        Ok(font_size_px / f64::from(font.metrics.units_per_em))
+    }
+
+    /// Measures one glyph of a previously resolved stretch, in its own face.
+    pub fn measure_stretch_part(
+        &mut self,
+        stretch: &ResolvedStretch,
+        glyph_id: u16,
+        font_size_px: f64,
+    ) -> Result<MeasuredGlyph> {
+        let font = &self
+            .faces
+            .iter()
+            .find(|(id, _)| *id == stretch.resource_id)
+            .ok_or_else(|| FontError::new(FontErrorKind::InvalidResources))?
+            .1;
+        let metrics = font.glyph_metrics(glyph_id)?;
+        // A CFF face resolves metrics without decoded points; only a corrupt
+        // glyph (or a missing one) refuses the resolution.
+        let outline_px = match font.outline(glyph_id) {
+            Ok(outline) => outline.map(|outline| {
+                scale_outline(outline, font_size_px / f64::from(font.metrics.units_per_em))
+            }),
+            Err(e) if e.kind == FontErrorKind::OutlinesUnavailable => None,
+            Err(e) => return Err(e),
+        };
+        let resolved = ResolvedGlyph {
+            resource_id: stretch.resource_id.clone(),
+            identity: stretch.identity.clone(),
+            glyph_id,
+            advance_px: font.scale(f64::from(metrics.advance), font_size_px)?,
+            left_side_bearing_px: font.scale(f64::from(metrics.left_side_bearing), font_size_px)?,
+            italics_correction_px: font.scale(
+                f64::from(font.math.italics_correction(glyph_id)),
+                font_size_px,
+            )?,
+            top_accent_px: font.scale(
+                font.math
+                    .top_accent(glyph_id)
+                    .map(f64::from)
+                    .unwrap_or(f64::from(metrics.advance) / 2.0),
+                font_size_px,
+            )?,
+            outline_px,
+        };
+        measured_glyph(font, resolved, font_size_px)
     }
 
     fn mark_used(&mut self, index: usize) {

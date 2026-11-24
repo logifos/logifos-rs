@@ -1,8 +1,10 @@
 //! Formula tokens and baseline-aligned rows with explicit per-call options.
 
+mod baseline;
 mod error;
 mod fraction;
 mod operator;
+mod radical;
 mod rows;
 mod scripts;
 mod style;
@@ -109,15 +111,36 @@ fn build<'a>(
         }
         Formula::Superscript(base, script) => {
             let base = build(base, fonts, style, budget, depth + 1)?;
-            let raised = style.raise(fonts, style.cramped)?;
+            let raised = style.raise(fonts, 1, style.cramped)?;
             let script = build(script, fonts, raised, budget, depth + 1)?;
             scripts::superscript(base, script, fonts, style)
         }
         Formula::Subscript(base, script) => {
             let base = build(base, fonts, style, budget, depth + 1)?;
-            let lowered = style.raise(fonts, true)?;
+            let lowered = style.raise(fonts, 1, true)?;
             let script = build(script, fonts, lowered, budget, depth + 1)?;
             scripts::subscript(base, script, fonts, style)
+        }
+        Formula::Sqrt(radicand) => {
+            // msqrt and mroot set math-shift compact on themselves and so on
+            // their whole content (Core 3.3.3 stylesheet rules).
+            let style = ResolvedStyle {
+                cramped: true,
+                ..style
+            };
+            let radicand = build(radicand, fonts, style, budget, depth + 1)?;
+            radical::sqrt(radicand, fonts, style)
+        }
+        Formula::Root(radicand, index) => {
+            let style = ResolvedStyle {
+                cramped: true,
+                ..style
+            };
+            let radicand = build(radicand, fonts, style, budget, depth + 1)?;
+            // The index gains two levels (Core 3.3.3 stylesheet rules).
+            let raised = style.raise(fonts, 2, true)?;
+            let index = build(index, fonts, raised, budget, depth + 1)?;
+            radical::root(radicand, index, fonts, style)
         }
     }
 }

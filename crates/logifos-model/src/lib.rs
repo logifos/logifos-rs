@@ -21,6 +21,10 @@ pub enum Formula {
     Superscript(Box<Formula>, Box<Formula>),
     /// Base with a subscript (index) child.
     Subscript(Box<Formula>, Box<Formula>),
+    /// A square root around one radicand child.
+    Sqrt(Box<Formula>),
+    /// A radicand with an explicit index child.
+    Root(Box<Formula>, Box<Formula>),
     /// An operator symbol with an implied spacing class.
     Operator(String),
     /// A text or identifier symbol.
@@ -30,7 +34,7 @@ pub enum Formula {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::{Map, Value};
+    use serde_json::{json, Map, Value};
 
     #[test]
     #[should_panic(expected = "UnsupportedField")]
@@ -54,5 +58,50 @@ mod tests {
         model.insert("class".into(), Value::from("Math::Unknown"));
         model.insert("fields".into(), serde_json::json!({}));
         assert!(Formula::from_wire(&model).is_err());
+    }
+
+    #[test]
+    fn radical_wire_shapes_match_the_upstream_fixtures() {
+        // The portable fixture shape: Sqrt carries only parameter_one; Root
+        // keeps the radicand in parameter_one and the index in parameter_two.
+        let radicand = json!({"class": "Math::Symbols::Symbol", "fields": {"value": "x"}});
+        let index = json!({"class": "Math::Symbols::Symbol", "fields": {"value": "3"}});
+        let sqrt = json!({"class": "Math::Function::Sqrt", "fields": {"parameter_one": radicand}});
+        let formula = Formula::from_wire(sqrt.as_object().unwrap()).unwrap();
+        assert_eq!(
+            formula,
+            Formula::Sqrt(Box::new(Formula::Symbol("x".into())))
+        );
+        assert_eq!(formula.to_wire().unwrap(), sqrt);
+        let root = json!({
+            "class": "Math::Function::Root",
+            "fields": {"parameter_one": radicand, "parameter_two": index},
+        });
+        let formula = Formula::from_wire(root.as_object().unwrap()).unwrap();
+        assert_eq!(
+            formula,
+            Formula::Root(
+                Box::new(Formula::Symbol("x".into())),
+                Box::new(Formula::Symbol("3".into())),
+            )
+        );
+        assert_eq!(formula.to_wire().unwrap(), root);
+    }
+
+    #[test]
+    fn radicals_refuse_fields_the_tree_cannot_carry() {
+        let model = json!({
+            "class": "Math::Function::Sqrt",
+            "fields": {
+                "parameter_one": {"class": "Math::Symbols::Symbol", "fields": {"value": "x"}},
+                "hide_function_name": false,
+            },
+        });
+        assert!(Formula::from_wire(model.as_object().unwrap()).is_err());
+        let model = json!({
+            "class": "Math::Function::Root",
+            "fields": {"parameter_one": {"class": "Math::Symbols::Symbol", "fields": {"value": "x"}}},
+        });
+        assert!(Formula::from_wire(model.as_object().unwrap()).is_err());
     }
 }
