@@ -826,7 +826,7 @@ fn unit_of(fonts: &mut FontProvider, constant: logifos_layout::font::math::MathC
 
 #[test]
 fn unsupported_operators_and_missing_glyphs_refuse_typed() {
-    for text in ["", "∑", "∫", " + "] {
+    for text in [" + "] {
         assert_eq!(
             layout(&operator(text), &mut provider(&font()), options(0)).unwrap_err(),
             LayoutError::UnsupportedOperator(text.into())
@@ -1291,4 +1291,43 @@ fn explicit_center_is_preserved_without_changing_default_table_geometry() {
         layout(&invalid, &mut provider(&font()), options(0)).unwrap_err(),
         LayoutError::InvalidOptions
     );
+}
+
+#[test]
+fn display_large_operator_takes_the_tall_variant_centred_on_the_axis() {
+    let bytes = {
+        let mut b = support::FontBuilder::new(&[('x', 1), ('∑', 2), ('+', 1)], 250, true);
+        put16(b.tables.get_mut(b"glyf").unwrap(), 8, 700);
+        b.finish()
+    };
+    let display = LayoutOptions {
+        display: true,
+        ..options(0)
+    };
+    // DisplayOperatorMinHeight 1100u = 19.8px selects the 1200u (21.6px)
+    // variant; the axis is 250u = 4.5px.
+    let result = layout(&operator("∑"), &mut provider(&bytes), display).unwrap();
+    close(result.tree.metrics().height(), 4.5 + 10.8);
+    close(result.tree.metrics().depth(), 10.8 - 4.5);
+    assert_eq!(result.glyphs.len(), 1);
+    assert_eq!(result.glyphs[0].glyph.glyph_id, 3);
+    close(result.glyphs[0].origin.y(), 21.6);
+    // Inline style keeps the natural glyph.
+    let inline = layout(&operator("∑"), &mut provider(&bytes), options(0)).unwrap();
+    assert_eq!(inline.glyphs[0].glyph.glyph_id, 2);
+    let again = layout(&operator("∑"), &mut provider(&bytes), display).unwrap();
+    assert_eq!(result, again);
+}
+
+#[test]
+fn empty_operators_lay_out_as_nothing() {
+    let alone = layout(&operator(""), &mut provider(&font()), options(0)).unwrap();
+    assert!(alone.glyphs.is_empty());
+    close(alone.tree.metrics().width(), 0.0);
+    let plain = sequence(vec![symbol("x")]);
+    let with = sequence(vec![symbol("x"), operator("")]);
+    let a = layout(&plain, &mut provider(&font()), options(0)).unwrap();
+    let b = layout(&with, &mut provider(&font()), options(0)).unwrap();
+    close(a.tree.metrics().width(), b.tree.metrics().width());
+    assert_eq!(a.glyphs.len(), b.glyphs.len());
 }

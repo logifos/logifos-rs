@@ -20,15 +20,14 @@ pub(super) fn validate(text: &str) -> Result<(), LayoutError> {
     if text.len() > 16 {
         return Err(LayoutError::ResourceLimit);
     }
-    // Large operators need display-size variants and movable limits, which
-    // layout does not implement; everything else in the dictionary is spacing.
-    if text.is_empty() || !operator::is_operator_text(text) || large(text) {
+    // Empty operators lay out as nothing; large ones as display variants.
+    if !operator::is_operator_text(text) {
         return Err(LayoutError::UnsupportedOperator(text.to_owned()));
     }
     Ok(())
 }
 
-fn large(text: &str) -> bool {
+pub(super) fn large(text: &str) -> bool {
     [Form::Prefix, Form::Infix, Form::Postfix]
         .into_iter()
         .any(|form| operator::category(text, form).is_large())
