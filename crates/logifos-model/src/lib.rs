@@ -20,6 +20,21 @@ pub enum Formula {
     Superscript(Box<Formula>, Box<Formula>),
     /// Base with a subscript (index) child.
     Subscript(Box<Formula>, Box<Formula>),
+    /// Base, subscript and superscript in source order.
+    SubSup(Box<Formula>, Box<Formula>, Box<Formula>),
+    /// Base with ordered postscript pairs and an optional prescript boundary.
+    MultiScripts {
+        /// The scripted base.
+        base: Box<Formula>,
+        /// Pairs after the base, in source order.
+        postscripts: Vec<ScriptPair>,
+        /// Pairs after `mprescripts`; `Some([])` preserves an empty boundary.
+        prescripts: Option<Vec<ScriptPair>>,
+    },
+    /// An attribute-free MathML space with default dimensions.
+    Space,
+    /// A string literal, distinct from identifier text and with default quotes.
+    StringLiteral(String),
     /// Base with an underscript child, distinct from a subscript.
     Under(Box<Formula>, Box<Formula>),
     /// Base with an overscript child, distinct from a superscript.
@@ -34,6 +49,15 @@ pub enum Formula {
     Operator(String),
     /// A text or identifier symbol.
     Symbol(String),
+}
+
+/// One ordered subscript/superscript pair in a multiscript construct.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScriptPair {
+    /// `None` preserves an explicit `none` placeholder, not an empty row.
+    pub subscript: Option<Box<Formula>>,
+    /// `None` preserves an explicit `none` placeholder, not an empty row.
+    pub superscript: Option<Box<Formula>>,
 }
 
 #[cfg(test)]

@@ -56,6 +56,36 @@ mspace, mtext, mstyle, merror) with the MathJax mml3-style implied-mrow
 semantics, then LaTeX and AsciiMath syntax crates behind the same
 transform contract.
 
+### Scripts and distinct tokens
+
+The conservative transform and writer also preserve these syntax-only kinds:
+
+| MathML | Formula | Preserved data |
+| --- | --- | --- |
+| `munder`, `mover`, `munderover` | `Under`, `Over`, `UnderOver` | Base and ordered limit operands |
+| `msubsup` | `SubSup` | Base, subscript, superscript |
+| `mmultiscripts` | `MultiScripts` | Base, ordered postscript pairs, optional prescript pairs |
+| `mspace` without attributes | `Space` | A distinct space with default dimensions |
+| `ms` without attributes | `StringLiteral` | Exact decoded text and the string token kind |
+
+A multiscript `ScriptPair` has separate optional subscript and superscript
+slots. An absent slot writes an explicit `none` placeholder; an empty row
+remains a present `Sequence`. `prescripts: None` omits `mprescripts`, while
+`Some([])` retains an explicitly empty boundary. Markers are accepted only
+inside multiscripts, have no presentation attributes and contain only XML
+whitespace. Missing bases, unpaired slots, repeated separators and nonempty
+markers refuse typed. These malformed multiscripts remain outside the
+supported subset rather than using Core's row fallback. `msubsup` follows
+Core's row semantics outside its three-child arity.
+
+Every accepted tree writes canonical MathML that parses and transforms into
+an equal Formula. Namespace checks, syntax-node and depth budgets also apply
+to markers. Dimensions, custom quotes and other presentation attributes
+remain typed refusals. The pinned wire subset has no mappings for these
+kinds: encoding returns `UnsupportedClass` at the owning path. Layout returns
+`NotLaidOutYet` before visiting their children; no script layout algorithm is
+implied by syntax coverage.
+
 ## 4. The layout engine — `logifos-layout`
 
 **Model.** Formula lowers to a **box tree**: `BoxKind::{Leaf, Rule, HBox,

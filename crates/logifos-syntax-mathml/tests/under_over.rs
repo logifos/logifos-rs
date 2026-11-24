@@ -123,7 +123,7 @@ fn unsupported_content_refuses_even_at_row_fallback_arities() {
             ("<!--note-->", TransformErrorKind::UnsupportedContent),
             ("lost", TransformErrorKind::UnsupportedContent),
             ("&#xA0;", TransformErrorKind::UnsupportedContent),
-            ("<mspace/>", TransformErrorKind::UnsupportedElement),
+            ("<mpadded/>", TransformErrorKind::UnsupportedElement),
             (
                 "<f:mi xmlns:f='urn:foreign'>x</f:mi>",
                 TransformErrorKind::UnsupportedElement,

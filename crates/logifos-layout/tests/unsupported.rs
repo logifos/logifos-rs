@@ -6,7 +6,7 @@ use logifos_layout::layout::{layout, LayoutError, LayoutOptions};
 use logifos_model::Formula;
 
 #[test]
-fn syntax_only_limits_refuse_layout_without_visiting_their_operands() {
+fn syntax_only_nodes_refuse_layout_without_visiting_their_operands() {
     let bytes = support::FontBuilder::new(&[('x', 1)], 250, false).finish();
     let digest = support::digest(&bytes);
     let mut fonts = FontProvider::new(
@@ -24,7 +24,21 @@ fn syntax_only_limits_refuse_layout_without_visiting_their_operands() {
     for node in [
         Formula::Under(child.clone(), child.clone()),
         Formula::Over(child.clone(), child.clone()),
-        Formula::UnderOver(child.clone(), child.clone(), child),
+        Formula::UnderOver(child.clone(), child.clone(), child.clone()),
+        Formula::SubSup(child.clone(), child.clone(), child.clone()),
+        Formula::MultiScripts {
+            base: child.clone(),
+            postscripts: vec![logifos_model::ScriptPair {
+                subscript: None,
+                superscript: Some(child.clone()),
+            }],
+            prescripts: Some(vec![logifos_model::ScriptPair {
+                subscript: Some(child),
+                superscript: None,
+            }]),
+        },
+        Formula::Space,
+        Formula::StringLiteral("private".into()),
     ] {
         for formula in [node.clone(), Formula::Sequence(vec![node])] {
             let error = layout(
