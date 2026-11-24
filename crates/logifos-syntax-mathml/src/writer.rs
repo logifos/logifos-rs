@@ -68,7 +68,9 @@ fn refusal(kind: WriteErrorKind, location: &str) -> WriteError {
 /// number and text tokens. Operators retain their exact supported spelling.
 /// No attributes or inherited styles can be supplied by the current Formula
 /// model; the transform refuses those inputs before writing is possible.
-/// Under/over constructs retain their distinct elements and ordered operands.
+/// Script constructs retain their distinct elements and ordered operands,
+/// including multiscript placeholders and an explicitly empty prescript boundary.
+/// Default spaces and string literals retain their distinct token kinds.
 ///
 /// Output uses the default MathML namespace, explicit closing tags, no pretty
 /// whitespace, and escaped text (including CR as a character reference). XML
@@ -144,7 +146,7 @@ impl SyntaxBuilder {
                     "mrow"
                 }
             }
-            Formula::Symbol(text) | Formula::Operator(text) => {
+            Formula::Symbol(text) | Formula::Operator(text) | Formula::StringLiteral(text) => {
                 let operator = matches!(formula, Formula::Operator(_));
                 if operator
                     && !matches!(
@@ -184,6 +186,8 @@ impl SyntaxBuilder {
                 }
                 if operator {
                     "mo"
+                } else if matches!(formula, Formula::StringLiteral(_)) {
+                    "ms"
                 } else {
                     "mi"
                 }
@@ -220,15 +224,48 @@ impl SyntaxBuilder {
                 }
                 name
             }
-            Formula::UnderOver(base, under, over) => {
-                for (child, field) in [(base, "base"), (under, "under"), (over, "over")] {
+            Formula::UnderOver(base, under, over) | Formula::SubSup(base, under, over) => {
+                let (name, lower, upper) = if matches!(formula, Formula::SubSup(..)) {
+                    ("msubsup", "subscript", "superscript")
+                } else {
+                    ("munderover", "under", "over")
+                };
+                for (child, field) in [(base, "base"), (under, lower), (over, upper)] {
                     children.push(Node::Element(self.element(
                         child,
                         &format!("{location}/{field}"),
                         depth + 1,
                     )?));
                 }
-                "munderover"
+                name
+            }
+            Formula::Space => "mspace",
+            Formula::MultiScripts {
+                base,
+                postscripts,
+                prescripts,
+            } => {
+                children.push(Node::Element(self.element(
+                    base,
+                    &format!("{location}/base"),
+                    depth + 1,
+                )?));
+                self.script_pairs(
+                    postscripts,
+                    &format!("{location}/postscripts"),
+                    depth + 1,
+                    &mut children,
+                )?;
+                if let Some(prescripts) = prescripts {
+                    let path = format!("{location}/prescripts");
+                    children.push(Node::Element(self.marker(
+                        "mprescripts",
+                        &path,
+                        depth + 1,
+                    )?));
+                    self.script_pairs(prescripts, &path, depth + 1, &mut children)?;
+                }
+                "mmultiscripts"
             }
             Formula::Root(radicand, index) => {
                 for (child, field) in [(radicand, "radicand"), (index, "index")] {
@@ -286,7 +323,38 @@ impl SyntaxBuilder {
                 "mtable"
             }
         };
-        Ok(Element {
+        Ok(self.syntax_element(name, children))
+    }
+
+    fn script_pairs(
+        &mut self,
+        pairs: &[logifos_model::ScriptPair],
+        location: &str,
+        depth: usize,
+        children: &mut Vec<Node>,
+    ) -> Result<(), WriteError> {
+        for (index, pair) in pairs.iter().enumerate() {
+            for (child, field) in [
+                (&pair.subscript, "subscript"),
+                (&pair.superscript, "superscript"),
+            ] {
+                let path = format!("{location}/{index}/{field}");
+                children.push(Node::Element(match child {
+                    Some(child) => self.element(child, &path, depth)?,
+                    None => self.marker("none", &path, depth)?,
+                }));
+            }
+        }
+        Ok(())
+    }
+
+    fn marker(&mut self, name: &str, location: &str, depth: usize) -> Result<Element, WriteError> {
+        self.visit(location, depth)?;
+        Ok(self.syntax_element(name, Vec::new()))
+    }
+
+    fn syntax_element(&self, name: &str, children: Vec<Node>) -> Element {
+        Element {
             name: QualifiedName {
                 prefix: None,
                 local: name.into(),
@@ -295,7 +363,7 @@ impl SyntaxBuilder {
             namespaces: Vec::new(),
             attributes: Vec::new(),
             children,
-        })
+        }
     }
     /// A finished element with the shared namespace and no attributes.
     fn node(&self, name: &str, children: Vec<Node>) -> Element {

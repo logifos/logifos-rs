@@ -268,16 +268,8 @@ fn loose_table_content_refuses_at_the_offending_element() {
 }
 
 #[test]
-fn combined_scripts_and_multiscripts_refuse() {
-    unsupported(&[
-        (
-            "msubsup",
-            "<msubsup><mi>x</mi><mi>i</mi><mn>2</mn></msubsup>",
-        ),
-        ("mmultiscripts", "<mmultiscripts/>"),
-        ("mprescripts", "<mprescripts/>"),
-        ("none", "<none/>"),
-    ]);
+fn standalone_multiscript_markers_refuse() {
+    unsupported(&[("mprescripts", "<mprescripts/>"), ("none", "<none/>")]);
 }
 
 #[test]
@@ -288,7 +280,6 @@ fn style_wrappers_refuse_even_without_attributes() {
 #[test]
 fn spacing_padding_phantoms_and_enclosures_refuse() {
     unsupported(&[
-        ("mspace", "<mspace/>"),
         ("mpadded", "<mpadded><mi>x</mi></mpadded>"),
         ("mphantom", "<mphantom><mi>x</mi></mphantom>"),
         ("menclose", "<menclose><mi>x</mi></menclose>"),
@@ -308,11 +299,10 @@ fn semantics_and_annotations_refuse() {
 }
 
 #[test]
-fn actions_errors_string_tokens_and_glyphs_refuse() {
+fn actions_errors_and_glyphs_refuse() {
     unsupported(&[
         ("maction", "<maction><mi>x</mi></maction>"),
         ("merror", "<merror><mi>x</mi></merror>"),
-        ("ms", "<ms>quoted</ms>"),
         ("mglyph", "<mglyph/>"),
     ]);
 }
