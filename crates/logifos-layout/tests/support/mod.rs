@@ -34,6 +34,17 @@ fn value_table(value: i16, ranges: bool) -> Vec<u8> {
     b
 }
 
+/// A version-2 OS/2 table whose only nonzero metric is sxHeight: 96 bytes —
+/// 78 header bytes, the v1 code-page range, then the five v2 fields
+/// (sxHeight, sCapHeight, usDefaultChar, usBreakChar, usMaxContext).
+fn os2_table(x_height: i16) -> Vec<u8> {
+    let mut b = vec![0; 96];
+    put16(&mut b, 0, 2); // version
+    put16(&mut b, 86, x_height as u16); // sxHeight
+    put16(&mut b, 88, 500); // sCapHeight
+    b
+}
+
 /// Independently chosen values in each specification field, in design units.
 pub fn math_table(axis: i16, stretch: bool) -> Vec<u8> {
     let mut c = words(&[80, 60, 900, 1100]);
@@ -135,6 +146,7 @@ impl FontBuilder {
                 (*b"glyf", glyf),
                 (*b"loca", loca),
                 (*b"MATH", math_table(axis, stretch)),
+                (*b"OS/2", os2_table(450)),
             ]),
         }
     }

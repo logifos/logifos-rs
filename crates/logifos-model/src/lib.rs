@@ -25,6 +25,8 @@ pub enum Formula {
     Sqrt(Box<Formula>),
     /// A radicand with an explicit index child.
     Root(Box<Formula>, Box<Formula>),
+    /// Rows of cells (each an anonymous row) in a table or matrix.
+    Table(Vec<Vec<Formula>>),
     /// An operator symbol with an implied spacing class.
     Operator(String),
     /// A text or identifier symbol.
@@ -103,5 +105,65 @@ mod tests {
             "fields": {"parameter_one": {"class": "Math::Symbols::Symbol", "fields": {"value": "x"}}},
         });
         assert!(Formula::from_wire(model.as_object().unwrap()).is_err());
+    }
+
+    #[test]
+    fn table_wire_shapes_match_the_upstream_fixtures() {
+        let cell = |text: &str| {
+            json!({
+                "class": "Math::Function::Td",
+                "fields": {
+                    "parameter_one": [{"class": "Math::Symbols::Symbol", "fields": {"value": text}}],
+                    "parameter_two": null,
+                },
+            })
+        };
+        let table = json!({
+            "class": "Math::Function::Table",
+            "fields": {
+                "value": [
+                    {"class": "Math::Function::Tr", "fields": {"parameter_one": [cell("1"), cell("2")]}},
+                    {"class": "Math::Function::Tr", "fields": {"parameter_one": [cell("3"), cell("4")]}},
+                ],
+                "open_paren": null,
+                "close_paren": null,
+                "options": {},
+            },
+        });
+        let formula = Formula::from_wire(table.as_object().unwrap()).unwrap();
+        let expected_cell = |text: &str| Formula::Sequence(vec![Formula::Symbol(text.into())]);
+        assert_eq!(
+            formula,
+            Formula::Table(vec![
+                vec![expected_cell("1"), expected_cell("2")],
+                vec![expected_cell("3"), expected_cell("4")],
+            ])
+        );
+        // The minimal emitted shape reparses to the same tree.
+        let minimal = formula.to_wire().unwrap();
+        assert_eq!(
+            Formula::from_wire(minimal.as_object().unwrap()).unwrap(),
+            formula
+        );
+    }
+
+    #[test]
+    fn tables_refuse_fences_and_options_the_tree_cannot_carry() {
+        let rows = json!({"class": "Math::Function::Tr", "fields": {"parameter_one": []}});
+        let fence = json!({
+            "class": "Math::Function::Table",
+            "fields": {"value": [rows], "open_paren": {"class": "Math::Symbols::Paren::Lsquare", "fields": {"value": null}}},
+        });
+        assert!(Formula::from_wire(fence.as_object().unwrap()).is_err());
+        let styled = json!({
+            "class": "Math::Function::Table",
+            "fields": {"value": [rows], "options": {"columnlines": "solid"}},
+        });
+        assert!(Formula::from_wire(styled.as_object().unwrap()).is_err());
+        let bare_cell = json!({
+            "class": "Math::Function::Table",
+            "fields": {"value": [{"class": "Math::Symbols::Symbol", "fields": {"value": "x"}}]},
+        });
+        assert!(Formula::from_wire(bare_cell.as_object().unwrap()).is_err());
     }
 }

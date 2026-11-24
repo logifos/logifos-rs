@@ -1007,3 +1007,87 @@ fn signed_italic_correction_is_retained_and_applied_once() {
     close(result.glyphs[1].origin.x(), 8.55);
     close(result.tree.metrics().width(), 21.15);
 }
+
+#[test]
+fn tables_center_cells_on_the_math_axis_with_mtd_padding() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let mut unit =
+        |constant: MathConstant| f64::from(fonts.primary().math.constants.value(constant)) * scale;
+    let axis = unit(MathConstant::AxisHeight);
+    // mtd padding: 0.4em horizontal, 0.5ex vertical over OS/2 sxHeight 450
+    // (ex = 450 units = 8.1px at 18px).
+    let horizontal_pad = 7.2;
+    let vertical_pad = 4.05;
+    let formula = Formula::Table(vec![
+        vec![
+            Formula::Sequence(vec![symbol("x")]),
+            Formula::Sequence(vec![symbol("y")]),
+        ],
+        vec![
+            Formula::Sequence(vec![symbol("y")]),
+            Formula::Sequence(vec![symbol("x")]),
+        ],
+    ]);
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    let metrics = result.tree.metrics();
+    // Padded widths: x 9 + 14.4 = 23.4, y 12.6 + 14.4 = 27.0; both columns
+    // take the larger 27.0, so the grid is 54 wide.
+    close(metrics.width(), 54.0);
+    // Padded rows: height max(10.8, 14.4) + 4.05 = 18.45 above the baseline;
+    // depth max(1.8, 5.4) + 4.05 = 9.45 below it.
+    let row_height = 14.4 + vertical_pad;
+    let row_depth = 5.4 + vertical_pad;
+    let total = 2.0 * (row_height + row_depth);
+    close(metrics.baseline(), total / 2.0 + axis);
+    close(metrics.depth(), total - (total / 2.0 + axis));
+    // Cells baseline-align within each row and center in their column.
+    // Row 0: x then y; row 1: y then x.
+    let row_baseline_1 = row_height + row_depth;
+    close(
+        result.glyphs[0].origin.x(),
+        (27.0 - 23.4) / 2.0 + horizontal_pad,
+    );
+    close(result.glyphs[0].origin.y(), row_height);
+    close(result.glyphs[1].origin.x(), 27.0 + horizontal_pad);
+    close(result.glyphs[1].origin.y(), row_height);
+    close(result.glyphs[2].origin.x(), horizontal_pad);
+    close(result.glyphs[2].origin.y(), row_baseline_1 + row_height);
+    close(
+        result.glyphs[3].origin.x(),
+        27.0 + (27.0 - 23.4) / 2.0 + horizontal_pad,
+    );
+    close(result.glyphs[3].origin.y(), row_baseline_1 + row_height);
+    // The math-style compact rule: a fraction in a cell must equal the
+    // direct non-display level-zero fraction.
+    let mut fonts = provider(&font());
+    let direct = layout(
+        &Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y"))),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    let fraction = Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
+    let inside = layout(
+        &Formula::Table(vec![vec![Formula::Sequence(vec![fraction])]]),
+        &mut fonts,
+        options(0),
+    )
+    .unwrap();
+    // finish hbox > table vbox > row hbox > padded wrapper > the cell's own
+    // row hbox > the fraction's own tree.
+    let cell_box = inside.tree.children()[0].node().children()[0]
+        .node()
+        .children()[0]
+        .node()
+        .children()[0]
+        .node()
+        .children()[0]
+        .node();
+    assert_eq!(cell_box, direct.tree.children()[0].node());
+    assert_eq!(snapshot(&result), include_str!("snapshots/table-grid.txt"));
+    let mut fonts = provider(&font());
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}

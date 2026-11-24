@@ -209,6 +209,33 @@ impl SyntaxBuilder {
                 }
                 "msqrt"
             }
+            Formula::Table(rows) => {
+                for (row_index, row) in rows.iter().enumerate() {
+                    let row_path = format!("{location}/rows/{row_index}");
+                    self.visit(&row_path, depth + 1)?;
+                    let mut cells = Vec::with_capacity(row.len());
+                    for (cell_index, cell) in row.iter().enumerate() {
+                        // mtd generates an anonymous row, so only the
+                        // transform's sequence cells reparse equal.
+                        let cell_path = format!("{row_path}/cells/{cell_index}");
+                        self.visit(&cell_path, depth + 2)?;
+                        let Formula::Sequence(items) = cell else {
+                            return Err(refusal(WriteErrorKind::InvalidStructure, &cell_path));
+                        };
+                        let mut content = Vec::with_capacity(items.len());
+                        for (index, child) in items.iter().enumerate() {
+                            content.push(Node::Element(self.element(
+                                child,
+                                &format!("{cell_path}/children/{index}"),
+                                depth + 3,
+                            )?));
+                        }
+                        cells.push(Node::Element(self.node("mtd", content)));
+                    }
+                    children.push(Node::Element(self.node("mtr", cells)));
+                }
+                "mtable"
+            }
         };
         Ok(Element {
             name: QualifiedName {
@@ -220,6 +247,19 @@ impl SyntaxBuilder {
             attributes: Vec::new(),
             children,
         })
+    }
+    /// A finished element with the shared namespace and no attributes.
+    fn node(&self, name: &str, children: Vec<Node>) -> Element {
+        Element {
+            name: QualifiedName {
+                prefix: None,
+                local: name.into(),
+                namespace: Some(Arc::clone(&self.namespace)),
+            },
+            namespaces: Vec::new(),
+            attributes: Vec::new(),
+            children,
+        }
     }
 }
 

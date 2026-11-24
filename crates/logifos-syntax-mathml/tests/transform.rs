@@ -214,18 +214,44 @@ fn fences_refuse_instead_of_becoming_symbols() {
 }
 
 #[test]
-fn tables_alignment_and_labels_refuse() {
-    unsupported(&[
-        (
-            "mtable",
-            "<mtable><mtr><mtd><mi>x</mi></mtd></mtr></mtable>",
+fn tables_map_rows_of_anonymous_row_cells() {
+    assert_eq!(
+        converted(
+            "<math><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mi>a</mi><mo>+</mo></mtd></mtr></mtable></math>"
         ),
-        ("mtr", "<mtr/>"),
-        ("mtd", "<mtd/>"),
+        Formula::Sequence(vec![Formula::Table(vec![
+            vec![
+                Formula::Sequence(vec![symbol("1")]),
+                Formula::Sequence(vec![symbol("2")]),
+            ],
+            vec![Formula::Sequence(vec![symbol("a"), operator("+")])],
+        ])])
+    );
+    assert_eq!(
+        converted("<math><mtable/></math>"),
+        Formula::Sequence(vec![Formula::Table(vec![])])
+    );
+}
+
+#[test]
+fn loose_table_content_refuses_at_the_offending_element() {
+    unsupported(&[
         ("mlabeledtr", "<mlabeledtr/>"),
         ("maligngroup", "<maligngroup/>"),
         ("malignmark", "<malignmark/>"),
     ]);
+    refused(
+        "<math><mtable><mtd><mi>x</mi></mtd></mtable></math>",
+        TransformErrorKind::UnsupportedElement,
+        "mtd",
+        "/root/children/0/children/0",
+    );
+    refused(
+        "<math><mtable><mtr><mi>x</mi></mtr></mtable></math>",
+        TransformErrorKind::UnsupportedElement,
+        "mi",
+        "/root/children/0/children/0/children/0",
+    );
 }
 
 #[test]

@@ -149,6 +149,14 @@ impl Formula {
     pub fn to_wire(&self) -> Result<Value, WireError> {
         encode_node(self, "", 1, &mut Budget::default())
     }
+
+    /// The children of a sequence; other variants have none.
+    fn sequence(&self) -> Option<&[Formula]> {
+        match self {
+            Formula::Sequence(children) => Some(children),
+            _ => None,
+        }
+    }
 }
 
 impl TryFrom<&Value> for Formula {
@@ -263,6 +271,42 @@ fn decode_node(
             )?;
             Ok(Formula::Root(Box::new(radicand), Box::new(index)))
         }
+        "Math::Function::Table" => {
+            closed(
+                fields,
+                &["value", "open_paren", "close_paren", "options"],
+                &fields_path,
+            )?;
+            // Fence and styling fields carry no information when absent;
+            // present ones name information the tree cannot carry yet.
+            for name in ["open_paren", "close_paren"] {
+                if fields.get(name).is_some_and(|value| !value.is_null()) {
+                    return Err(refusal(
+                        WireErrorCode::UnsupportedField,
+                        &pointer(&fields_path, name),
+                    ));
+                }
+            }
+            if let Some(value) = fields.get("options") {
+                if value.as_object().is_none_or(|options| !options.is_empty()) {
+                    return Err(refusal(
+                        WireErrorCode::UnsupportedField,
+                        &pointer(&fields_path, "options"),
+                    ));
+                }
+            }
+            let value_path = pointer(&fields_path, "value");
+            let rows = required(fields, "value", &fields_path)?
+                .as_array()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &value_path))?;
+            let mut table = Vec::with_capacity(rows.len());
+            for (row_index, row) in rows.iter().enumerate() {
+                let row_path = pointer(&value_path, &row_index.to_string());
+                let row = decode_tr(row, &row_path, depth + 1, budget)?;
+                table.push(row);
+            }
+            Ok(Formula::Table(table))
+        }
         _ => {
             let text = operator_text(class)
                 .ok_or_else(|| refusal(WireErrorCode::UnsupportedClass, &pointer(path, "class")))?;
@@ -276,6 +320,81 @@ fn decode_node(
             Ok(Formula::Operator(text.to_owned()))
         }
     }
+}
+
+/// Decodes one `Math::Function::Tr` row of cells into its cell formulas.
+fn decode_tr(
+    value: &Value,
+    path: &str,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<Vec<Formula>, WireError> {
+    let row = value
+        .as_object()
+        .ok_or_else(|| refusal(WireErrorCode::InvalidValue, path))?;
+    let class = required(row, "class", path)?
+        .as_str()
+        .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &pointer(path, "class")))?;
+    if class != "Math::Function::Tr" {
+        return Err(refusal(
+            WireErrorCode::UnsupportedClass,
+            &pointer(path, "class"),
+        ));
+    }
+    let fields_path = pointer(path, "fields");
+    let fields = required(row, "fields", path)?
+        .as_object()
+        .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+    closed(fields, &["parameter_one"], &fields_path)?;
+    let cells_path = pointer(&fields_path, "parameter_one");
+    let cells = required(fields, "parameter_one", &fields_path)?
+        .as_array()
+        .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &cells_path))?;
+    let mut out = Vec::with_capacity(cells.len());
+    for (index, cell) in cells.iter().enumerate() {
+        let cell_path = pointer(&cells_path, &index.to_string());
+        let cell = cell
+            .as_object()
+            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &cell_path))?;
+        let class = required(cell, "class", &cell_path)?
+            .as_str()
+            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &pointer(&cell_path, "class")))?;
+        if class != "Math::Function::Td" {
+            return Err(refusal(
+                WireErrorCode::UnsupportedClass,
+                &pointer(&cell_path, "class"),
+            ));
+        }
+        let fields_path = pointer(&cell_path, "fields");
+        let fields = required(cell, "fields", &cell_path)?
+            .as_object()
+            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+        closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+        if fields
+            .get("parameter_two")
+            .is_some_and(|value| !value.is_null())
+        {
+            return Err(refusal(
+                WireErrorCode::UnsupportedField,
+                &pointer(&fields_path, "parameter_two"),
+            ));
+        }
+        let content_path = pointer(&fields_path, "parameter_one");
+        let children = required(fields, "parameter_one", &fields_path)?
+            .as_array()
+            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &content_path))?;
+        let mut line = Vec::with_capacity(children.len());
+        for (index, child) in children.iter().enumerate() {
+            line.push(decode_value(
+                child,
+                &pointer(&content_path, &index.to_string()),
+                depth + 1,
+                budget,
+            )?);
+        }
+        out.push(Formula::Sequence(line));
+    }
+    Ok(out)
 }
 
 fn encode_node(
@@ -344,6 +463,40 @@ fn encode_node(
                 budget,
             )?;
             ("Math::Function::Sqrt", json!({"parameter_one": first}))
+        }
+        Formula::Table(rows) => {
+            let value_path = pointer(&fields_path, "value");
+            let mut encoded = Vec::with_capacity(rows.len());
+            for (index, row) in rows.iter().enumerate() {
+                let row_path = pointer(&value_path, &index.to_string());
+                let cells_path = pointer(&row_path, "fields/parameter_one");
+                let mut cells = Vec::with_capacity(row.len());
+                for (cell_index, cell) in row.iter().enumerate() {
+                    let cell_path = pointer(&cells_path, &cell_index.to_string());
+                    let content_path = pointer(&cell_path, "fields/parameter_one");
+                    let content = cell
+                        .sequence()
+                        .ok_or_else(|| refusal(WireErrorCode::UnsupportedField, &content_path))?;
+                    let mut children = Vec::with_capacity(content.len());
+                    for (child_index, child) in content.iter().enumerate() {
+                        children.push(encode_node(
+                            child,
+                            &pointer(&content_path, &child_index.to_string()),
+                            depth + 1,
+                            budget,
+                        )?);
+                    }
+                    cells.push(json!({
+                        "class": "Math::Function::Td",
+                        "fields": {"parameter_one": children},
+                    }));
+                }
+                encoded.push(json!({
+                    "class": "Math::Function::Tr",
+                    "fields": {"parameter_one": cells},
+                }));
+            }
+            ("Math::Function::Table", json!({"value": encoded}))
         }
     };
     Ok(json!({"class": class, "fields": fields}))
