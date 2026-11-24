@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/logifos-corpus",
     "crates/logifos-json",
     "crates/logifos-model",
     "crates/logifos-syntax-mathml",

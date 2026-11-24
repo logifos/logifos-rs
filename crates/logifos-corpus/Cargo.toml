@@ -1,0 +1,18 @@
+[package]
+publish = false
+name = "logifos-corpus"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+logifos-json = { path = "../logifos-json" }
+logifos-facade = { path = "../logifos-facade" }
+logifos-layout = { path = "../logifos-layout" }
+logifos-syntax-mathml = { path = "../logifos-syntax-mathml" }
+logifos-svg = { path = "../logifos-svg" }
+serde_json.workspace = true
+sha2 = "0.10"

@@ -1,0 +1,162 @@
+{
+  "cases": [
+    {
+      "category": "INVALID_REQUEST",
+      "id": "bootstrap-missing-op",
+      "input_kind": "bootstrap-request",
+      "input_sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "outcome": "refusal",
+      "stage": "facade",
+      "stages": [
+        {
+          "category": "INVALID_REQUEST",
+          "outcome": "refusal",
+          "stage": "facade"
+        }
+      ]
+    },
+    {
+      "category": "INVALID_REQUEST",
+      "id": "bootstrap-parse-refusal",
+      "input_kind": "bootstrap-request",
+      "input_sha256": "4693afeffc4e4e59f8eb94e2f8b50eedb2816fd52afc6358f029b20bc9272b0b",
+      "outcome": "refusal",
+      "stage": "facade",
+      "stages": [
+        {
+          "category": "INVALID_REQUEST",
+          "outcome": "refusal",
+          "stage": "facade"
+        }
+      ]
+    },
+    {
+      "category": "INVALID_REQUEST",
+      "id": "bootstrap-unknown-op",
+      "input_kind": "bootstrap-request",
+      "input_sha256": "bfcd655bd1a598e089bf81a0adf9c69dbbae460154626020ea5a011dfe61a269",
+      "outcome": "refusal",
+      "stage": "facade",
+      "stages": [
+        {
+          "category": "INVALID_REQUEST",
+          "outcome": "refusal",
+          "stage": "facade"
+        }
+      ]
+    },
+    {
+      "category": "unsupported_attribute",
+      "id": "mathml-inherited-style",
+      "input_kind": "mathml",
+      "input_sha256": "49ba41cf4ac03dc74d98f956d4ab6baa853f6fde21267ac219a9e94ea194295d",
+      "outcome": "refusal",
+      "stage": "transform",
+      "stages": [
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "parse"
+        },
+        {
+          "category": "unsupported_attribute",
+          "outcome": "refusal",
+          "stage": "transform"
+        }
+      ]
+    },
+    {
+      "category": "font_not_configured",
+      "id": "mathml-namespace-token",
+      "input_kind": "mathml",
+      "input_sha256": "96faac0c032eaeeecf08b802c5ee0e5d07415d2e28ccb863d20fa135d75f27d9",
+      "outcome": "refusal",
+      "stage": "layout",
+      "stages": [
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "parse"
+        },
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "transform"
+        },
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "writer"
+        },
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "roundtrip"
+        },
+        {
+          "category": "font_not_configured",
+          "outcome": "refusal",
+          "stage": "layout"
+        }
+      ]
+    },
+    {
+      "category": "font_not_configured",
+      "id": "mathml-prefixed-token",
+      "input_kind": "mathml",
+      "input_sha256": "e94f95c97e6027b7f76866badb5454d7477fe3d3d87f6dfb9040a9b893ea13fb",
+      "outcome": "refusal",
+      "stage": "layout",
+      "stages": [
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "parse"
+        },
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "transform"
+        },
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "writer"
+        },
+        {
+          "category": "complete",
+          "outcome": "pass",
+          "stage": "roundtrip"
+        },
+        {
+          "category": "font_not_configured",
+          "outcome": "refusal",
+          "stage": "layout"
+        }
+      ]
+    }
+  ],
+  "categories": {
+    "refusal:facade:INVALID_REQUEST": 3,
+    "refusal:layout:font_not_configured": 2,
+    "refusal:transform:unsupported_attribute": 1
+  },
+  "counts": {
+    "failure": 0,
+    "pass": 0,
+    "refusal": 6
+  },
+  "font": null,
+  "format_version": 1,
+  "manifest_sha256": "b28129bd81df73ea6f884cf044a8921c2f0714de99f884e3d72f0741a9c67dc2",
+  "stage_counts": {
+    "facade:refusal:INVALID_REQUEST": 3,
+    "layout:refusal:font_not_configured": 2,
+    "parse:pass:complete": 3,
+    "roundtrip:pass:complete": 2,
+    "transform:pass:complete": 2,
+    "transform:refusal:unsupported_attribute": 1,
+    "writer:pass:complete": 2
+  },
+  "total": 6
+}

@@ -7,3 +7,7 @@
   the SOTA gate.
 * The plurimath-testsuite mathml stage and the vendored W3C MathML suites
   (in plurimath-testsuite) remain the primary parse/round-trip corpora.
+
+The offline [grading tool](../crates/logifos-corpus/README.md) replays every
+case in the canonical conformance manifest and reports observed outcomes
+and stage counts as deterministic JSON. Run `cargo run --locked -p logifos-corpus`.
