@@ -1,0 +1,7 @@
+{
+  "renderer": "mathjax",
+  "package": "mathjax",
+  "version": "4.1.3",
+  "source": "https://registry.npmjs.org",
+  "description": "The reference renderer for the canon comparison: MathML to SVG in Node. scripts/fetch-canon-mathjax.sh installs the pinned version into corpus/canon/mathjax-env; scripts/render-canon-mathjax.mjs renders every manifest case into corpus/canon/mathjax/."
+}

@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, ffi::OsStr, path::Path};
 
-use crate::{grade, read_bounded, report_json};
+use crate::{read_bounded, report_json};
 
 /// One extracted replayable case. `path` is corpus-dir relative; the hash
 /// pins the whole source file, which may hold several cases.
@@ -230,53 +230,14 @@ fn grading_font(parent: &Path) -> Result<Option<FontProvider>, String> {
 /// must agree; manifests and cases derive deterministically from the
 /// fetched bytes.
 pub fn replay_reference(reference: &Path) -> Result<Value, String> {
-    let sources = read_bounded(&reference.join("sources.json"))?;
-    let manifest_source = logifos_json::decode(&sources)?;
-    let mut listed = BTreeMap::new();
-    for source in manifest_source["sources"]
-        .as_array()
-        .ok_or("invalid sources.json")?
-    {
-        let id = source["id"].as_str().ok_or("invalid sources.json")?;
-        let revision = source["revision"]
-            .as_str()
-            .ok_or("invalid sources.json")?
-            .to_owned();
-        if listed.insert(id.to_owned(), revision).is_some() {
-            return Err("duplicate corpus id".into());
-        }
-    }
+    let listed = listed_corpora(reference)?;
     let mut reports = Vec::new();
     let mut totals = json!({"pass":0,"refusal":0,"failure":0});
     let mut fonts = grading_font(reference)?;
     for (id, revision) in &listed {
         let dir = reference.join(id);
-        let fetched = std::fs::read_to_string(dir.join(".fetched"))
-            .map_err(|_| format!("{id} is not fetched"))?;
-        if fetched.trim() != revision {
-            return Err(format!(
-                "{id} is at {}, pinned to {revision}",
-                fetched.trim()
-            ));
-        }
-        let cases = extract(id, &dir)?;
-        let manifest = json!({
-            "format_version": 1,
-            "cases": cases
-                .iter()
-                .map(|case| json!({
-                    "id": case.id,
-                    "input_kind": case.kind,
-                    "path": case.path,
-                    "sha256": case.sha256,
-                    "font_sha256": Value::Null,
-                }))
-                .collect::<Vec<_>>(),
-        });
-        let manifest_path = dir.join("manifest.json");
-        std::fs::write(&manifest_path, report_json(&manifest))
-            .map_err(|_| format!("{id} manifest is unwritable"))?;
-        let report = grade(&manifest_path, fonts.as_mut())?;
+        let mut captures = BTreeMap::new();
+        let report = run_corpus(id, revision, &dir, fonts.as_mut(), &mut captures)?;
         for key in ["pass", "refusal", "failure"] {
             let n = totals[key].as_u64().unwrap_or(0);
             totals[key] = json!(n + report["counts"][key].as_u64().unwrap_or(0));
@@ -295,5 +256,163 @@ pub fn replay_reference(reference: &Path) -> Result<Value, String> {
         "format_version": 1,
         "totals": totals,
         "sources": reports,
+    }))
+}
+
+/// The pinned corpus id/revision pairs from `sources.json`, sorted by id.
+fn listed_corpora(reference: &Path) -> Result<BTreeMap<String, String>, String> {
+    let sources = read_bounded(&reference.join("sources.json"))?;
+    let manifest_source = logifos_json::decode(&sources)?;
+    let mut listed = BTreeMap::new();
+    for source in manifest_source["sources"]
+        .as_array()
+        .ok_or("invalid sources.json")?
+    {
+        let id = source["id"].as_str().ok_or("invalid sources.json")?;
+        let revision = source["revision"]
+            .as_str()
+            .ok_or("invalid sources.json")?
+            .to_owned();
+        if listed.insert(id.to_owned(), revision).is_some() {
+            return Err("duplicate corpus id".into());
+        }
+    }
+    Ok(listed)
+}
+
+/// Verifies the fetched revision, regenerates the manifest, and grades one
+/// corpus; `captures` receives the emitted SVG of every fully passing case.
+fn run_corpus(
+    id: &str,
+    revision: &str,
+    dir: &Path,
+    fonts: Option<&mut FontProvider>,
+    captures: &mut BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let fetched = std::fs::read_to_string(dir.join(".fetched"))
+        .map_err(|_| format!("{id} is not fetched"))?;
+    if fetched.trim() != revision {
+        return Err(format!(
+            "{id} is at {}, pinned to {revision}",
+            fetched.trim()
+        ));
+    }
+    let cases = extract(id, dir)?;
+    let manifest = json!({
+        "format_version": 1,
+        "cases": cases
+            .iter()
+            .map(|case| json!({
+                "id": case.id,
+                "input_kind": case.kind,
+                "path": case.path,
+                "sha256": case.sha256,
+                "font_sha256": Value::Null,
+            }))
+            .collect::<Vec<_>>(),
+    });
+    let manifest_path = dir.join("manifest.json");
+    std::fs::write(&manifest_path, report_json(&manifest))
+        .map_err(|_| format!("{id} manifest is unwritable"))?;
+    crate::grade_with_captures(&manifest_path, fonts, captures)
+}
+
+/// Structural record of an SVG: element counts and root attributes, read by
+/// byte scan so the comparison needs no XML parser.
+fn svg_record(bytes: &[u8]) -> Value {
+    let count = |needle: &[u8]| -> u64 {
+        let mut hits = 0u64;
+        let mut from = 0;
+        while let Some(at) = find(&bytes[from..], needle) {
+            hits += 1;
+            from += at + 1;
+        }
+        hits
+    };
+    json!({
+        "bytes": bytes.len(),
+        "path": count(b"<path"),
+        "rect": count(b"<rect"),
+        "use": count(b"<use"),
+        "g": count(b"<g"),
+        "defs": count(b"<defs"),
+        "view_box": bytes.windows(7).any(|window| window == b"viewBox"),
+    })
+}
+
+/// The corpus-relative artifact name for a case id, matching the renderer
+/// script's flattening.
+fn artifact_name(corpus: &str, case_id: &str) -> String {
+    format!("{corpus}__{}", case_id.replace('/', "__"))
+}
+
+/// Structural comparison of logifos's renders against a reference
+/// renderer's artifacts for the shared cases. The pin at
+/// `canon/<renderer>.json` records the renderer version; artifacts live in
+/// `canon/<renderer>/` as `.svg` (or `.error` for cases the reference
+/// could not render). Cases logifos does not fully render stay out of the
+/// shared set, and the aggregate counts carry the pass-rate gate.
+pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
+    let parent = reference.parent().ok_or("reference has no parent")?;
+    let pin = read_bounded(&parent.join("canon").join(format!("{renderer}.json")))?;
+    let pin = logifos_json::decode(&pin)?;
+    let version = pin["version"].as_str().ok_or("invalid renderer pin")?;
+    let artifacts = parent.join("canon").join(renderer);
+    let listed = listed_corpora(reference)?;
+    let mut fonts = grading_font(reference)?;
+    let mut shared = Vec::new();
+    let mut logifos_renders = 0u64;
+    let mut reference_renders = 0u64;
+    let mut reference_errors = 0u64;
+    let mut total = 0u64;
+    for corpus in listed.keys() {
+        let dir = reference.join(corpus);
+        let mut captures = BTreeMap::new();
+        let report = run_corpus(corpus, &listed[corpus], &dir, fonts.as_mut(), &mut captures)?;
+        total += report["total"].as_u64().unwrap_or(0);
+        logifos_renders += report["counts"]["pass"].as_u64().unwrap_or(0);
+        for (case_id, svg) in captures {
+            let name = artifact_name(corpus, &case_id);
+            let ours = svg_record(svg.as_bytes());
+            let svg_path = artifacts.join(format!("{name}.svg"));
+            let error_path = artifacts.join(format!("{name}.error"));
+            let theirs = if let Ok(bytes) = read_bounded(&svg_path) {
+                reference_renders += 1;
+                svg_record(&bytes)
+            } else if let Ok(bytes) = read_bounded(&error_path) {
+                reference_errors += 1;
+                json!({"error": String::from_utf8_lossy(bytes.trim_ascii()).into_owned()})
+            } else {
+                continue;
+            };
+            shared.push(json!({
+                "corpus": corpus,
+                "id": case_id,
+                "logifos": ours,
+                "mathjax": theirs,
+            }));
+        }
+    }
+    let matching = shared
+        .iter()
+        .filter(|case| {
+            let mut ours = case["logifos"].clone();
+            ours["bytes"] = json!(0);
+            let mut theirs = case["mathjax"].clone();
+            theirs["bytes"] = json!(0);
+            ours == theirs
+        })
+        .count();
+    Ok(json!({
+        "format_version": 1,
+        "renderer": renderer,
+        "version": version,
+        "total": total,
+        "logifos_renders": logifos_renders,
+        "reference_renders": reference_renders,
+        "reference_errors": reference_errors,
+        "shared": shared.len(),
+        "matching_structure": matching,
+        "cases": shared,
     }))
 }

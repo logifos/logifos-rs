@@ -13,6 +13,15 @@
   refusals — their capability depth is visible in each source's
   `stage_counts`.
 
+* `../canon/` compares logifos's renders against reference-renderer
+  artifacts for the shared cases: `scripts/fetch-canon-mathjax.sh`
+  installs the pinned MathJax, `scripts/render-canon-mathjax.mjs`
+  renders every manifest case into `canon/mathjax/`, and
+  `cargo run -p logifos-corpus -- --canon mathjax` grades the corpora,
+  captures logifos's own SVGs, and prints the structural diff with
+  pass-rate counts; redirect to `canon/report.json` for the committed
+  snapshot.
+
 * `../fonts.json` pins the grading font (STIX Two Math from google/fonts,
   fetched to `corpus/fonts/` by the same script). With it materialized,
   `--reference` replays through layout and SVG emission with real glyph
