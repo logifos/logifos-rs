@@ -1,22 +1,29 @@
-//! Font-independent, deterministic SVG emission from a validated box tree.
+//! Font-independent, deterministic SVG emission from a validated box tree and
+//! its placed glyphs.
 //!
-//! Rules become filled rectangles; spaces and ordered stacks retain their local
-//! translations. An ink-bearing measured leaf has no outline in the public
-//! layout API and is refused with [`SvgError::UnsupportedLeaf`]. This crate
-//! neither loads fonts nor substitutes text or bounding rectangles for glyphs.
+//! Rules become filled rectangles; placed glyphs become `<path>` data (TrueType
+//! quadratics with implied on-curve midpoints, flipped into top-left
+//! coordinates at their baseline origin). Boxes paint first, the glyph layer
+//! paints last. A glyph with no decodable contours paints nothing: loading a
+//! glyf face refuses any glyph that claims ink bounds without contours, so a
+//! missing outline can never hide measured ink. This crate neither loads
+//! fonts nor substitutes text or bounding rectangles for glyphs.
 //!
 //! The viewport includes both logical advance and ink overhangs. Its dimensions
 //! in CSS pixels equal the viewBox extents, preserving one user unit per pixel.
 //! Logical metrics and ink bounds remain in the original layout coordinates;
 //! the viewBox origin explicitly records any viewport padding on the top/left.
 //!
-//! Element/attribute order and preorder `box-N` IDs are fixed. Numbers use Rust's
+//! Element/attribute order and preorder `box-N` IDs are fixed; the glyph layer
+//! is a trailing `glyphs` group in glyph order. Numbers use Rust's
 //! locale-independent, shortest round-trip binary64 Display representation,
-//! with negative zero normalized and no rounding or quantization. Equal trees
-//! and options produce equal bytes with the same engine artifact.
+//! with negative zero normalized and no rounding or quantization. Equal trees,
+//! glyph lists and options produce equal bytes with the same engine artifact.
 
 use std::fmt;
 
+use logifos_layout::font::ContourPx;
+use logifos_layout::layout::PlacedGlyph;
 use logifos_layout::{Bounds, BoxKind, BoxTree, GeometryError, Metrics, Point};
 
 /// Per-emission presentation. No CSS, URLs, or raw XML are accepted.
@@ -44,8 +51,6 @@ pub enum SvgError {
     InvalidColor,
     /// The title contains a character forbidden by XML 1.0.
     InvalidXmlCharacter,
-    /// A measured leaf has ink but supplies no drawable outline.
-    UnsupportedLeaf,
     /// Combining logical and ink extents exceeded representable geometry.
     Geometry(GeometryError),
 }
@@ -55,7 +60,6 @@ impl fmt::Display for SvgError {
         match self {
             Self::InvalidColor => f.write_str("SVG color must be a six-digit RGB hex string"),
             Self::InvalidXmlCharacter => f.write_str("SVG title contains an invalid XML character"),
-            Self::UnsupportedLeaf => f.write_str("ink-bearing leaf requires a drawable outline"),
             Self::Geometry(error) => write!(f, "SVG viewport: {error}"),
         }
     }
@@ -108,17 +112,17 @@ impl SvgDocument {
     }
 }
 
-/// Emits rules, inkless leaves, and stacks in stable input order.
+/// Emits rules, inkless leaves, stacks and placed glyphs in stable input order.
 ///
 /// No external resources, host fonts, scripts, styles, or event handlers appear
-/// in the output. Even a zero-area ink-bearing leaf is unsupported: bounds are
-/// measurements, not a drawable shape. Traversal uses an explicit stack rather
-/// than recursive calls. Geometry validation remains owned by `logifos-layout`.
+/// in the output. Traversal uses an explicit stack rather than recursive calls.
+/// Geometry validation remains owned by `logifos-layout`; a contourless glyph
+/// contributes no path data.
 ///
 /// # Errors
 ///
-/// Refuses invalid presentation, unsupported leaves anywhere in the tree, and
-/// viewport arithmetic overflow. No partial SVG is returned.
+/// Refuses invalid presentation and viewport arithmetic overflow. No partial
+/// SVG is returned.
 ///
 /// # Examples
 ///
@@ -127,12 +131,16 @@ impl SvgDocument {
 /// use logifos_svg::{emit, SvgOptions};
 ///
 /// let rule = BoxTree::rule(8.0, 0.5, 0.0)?;
-/// let document = emit(&rule, &SvgOptions::default())?;
+/// let document = emit(&rule, &[], &SvgOptions::default())?;
 /// assert_eq!(document.metrics().width(), 8.0);
 /// assert!(document.as_str().contains("<rect"));
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn emit(tree: &BoxTree, options: &SvgOptions) -> Result<SvgDocument, SvgError> {
+pub fn emit(
+    tree: &BoxTree,
+    glyphs: &[PlacedGlyph],
+    options: &SvgOptions,
+) -> Result<SvgDocument, SvgError> {
     if options.color.len() != 7
         || !options.color.starts_with('#')
         || !options.color.as_bytes()[1..]
@@ -183,9 +191,6 @@ pub fn emit(tree: &BoxTree, options: &SvgOptions) -> Result<SvgDocument, SvgErro
             svg.push_str("</g>");
             continue;
         };
-        if node.kind() == BoxKind::Leaf && node.ink_bounds().is_some() {
-            return Err(SvgError::UnsupportedLeaf);
-        }
         svg.push_str(&format!(
             "<g id=\"box-{id}\" transform=\"translate({} {})\">",
             number(offset.x()),
@@ -204,6 +209,12 @@ pub fn emit(tree: &BoxTree, options: &SvgOptions) -> Result<SvgDocument, SvgErro
             pending.push(Visit::Open(child.node(), child.offset()));
         }
     }
+    let layer = glyph_layer(glyphs);
+    if !layer.is_empty() {
+        svg.push_str("<g id=\"glyphs\">");
+        svg.push_str(&layer);
+        svg.push_str("</g>");
+    }
     svg.push_str("</g></svg>");
     Ok(SvgDocument {
         svg,
@@ -219,6 +230,88 @@ fn number(value: f64) -> String {
     } else {
         value.to_string()
     }
+}
+
+/// One `<path>` per placed glyph with contours, in glyph order; implied
+/// on-curve midpoints materialize runs of quadratic off-curve points,
+/// including across the contour's wrap.
+fn glyph_layer(glyphs: &[PlacedGlyph]) -> String {
+    let mut layer = String::new();
+    for glyph in glyphs {
+        let Some(outline) = &glyph.glyph.outline_px else {
+            continue;
+        };
+        let mut data = String::new();
+        for contour in &outline.contours {
+            append_contour(&mut data, contour, glyph);
+        }
+        if !data.is_empty() {
+            layer.push_str(&format!("<path d=\"{data}\"/>"));
+        }
+    }
+    layer
+}
+
+/// Appends one contour's subpath: `M`/`L`/`Q` segments in top-left layout
+/// coordinates (the font's y-up points flip around the glyph's baseline).
+fn append_contour(data: &mut String, contour: &ContourPx, glyph: &PlacedGlyph) {
+    if contour.points.len() < 2 {
+        return;
+    }
+    let points = with_implied_midpoints(&contour.points);
+    let Some(start) = points.iter().position(|p| p.on_curve) else {
+        return;
+    };
+    let flip = |p: &logifos_layout::font::PointPx| (glyph.origin.x() + p.x, glyph.origin.y() - p.y);
+    let (x, y) = flip(&points[start]);
+    data.push_str(&format!("M{} {} ", number(x), number(y)));
+    let mut i = (start + 1) % points.len();
+    while i != start {
+        if points[i].on_curve {
+            let (x, y) = flip(&points[i]);
+            data.push_str(&format!("L{} {} ", number(x), number(y)));
+            i = (i + 1) % points.len();
+        } else {
+            let (cx, cy) = flip(&points[i]);
+            let next_index = (i + 1) % points.len();
+            let (x, y) = flip(&points[next_index]);
+            data.push_str(&format!(
+                "Q{} {} {} {} ",
+                number(cx),
+                number(cy),
+                number(x),
+                number(y)
+            ));
+            // A quadratic landing on the start point has closed the contour;
+            // wrapping past it would cycle forever.
+            if next_index == start {
+                break;
+            }
+            i = (next_index + 1) % points.len();
+        }
+    }
+    data.push('Z');
+}
+
+/// Inserts the quadratic midpoint between consecutive off-curve points,
+/// including between the last and first point of the contour.
+fn with_implied_midpoints(
+    points: &[logifos_layout::font::PointPx],
+) -> Vec<logifos_layout::font::PointPx> {
+    let mut expanded = Vec::with_capacity(points.len() * 2);
+    let count = points.len();
+    for (i, p) in points.iter().enumerate() {
+        expanded.push(*p);
+        let next = points[(i + 1) % count];
+        if !p.on_curve && !next.on_curve {
+            expanded.push(logifos_layout::font::PointPx {
+                x: (p.x + next.x) / 2.0,
+                y: (p.y + next.y) / 2.0,
+                on_curve: true,
+            });
+        }
+    }
+    expanded
 }
 
 fn is_xml_character(value: char) -> bool {

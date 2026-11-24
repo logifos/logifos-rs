@@ -10,7 +10,7 @@ mod validate;
 pub use bounds::{GlyphBounds, MeasuredGlyph};
 use error::Result;
 pub use error::{FontError, FontErrorKind};
-use fontisan::sfnt::{Font, Options};
+use fontisan::sfnt::{Font, GlyphOutline, Options, OutlineKind};
 use math::{Direction, GlyphAssembly, GlyphVariant, MathConstant, MathTable};
 use reader::Reader;
 use sha2::{Digest, Sha256};
@@ -49,7 +49,7 @@ pub struct GlyphMetrics {
     pub left_side_bearing: i16,
 }
 
-/// Metrics and MATH for one face. Loading does not qualify drawable outlines.
+/// Metrics and MATH for one face, with decoded TrueType outline points.
 #[derive(Debug)]
 pub struct FontFace {
     pub identity: FontIdentity,
@@ -58,6 +58,8 @@ pub struct FontFace {
     mappings: Vec<(u32, u32)>,
     advances: Vec<GlyphMetrics>,
     bounds: Option<Vec<Option<GlyphBounds>>>,
+    /// Per-glyph contour points in font units; `None` for a contourless glyph.
+    outlines: Option<Vec<Option<GlyphOutline>>>,
 }
 
 impl FontFace {
@@ -144,6 +146,25 @@ impl FontFace {
             return Err(FontError::new(FontErrorKind::InvalidFont));
         }
         let bounds = bounds::read(&outlines)?;
+        // Every glyph's points decode at load: a malformed glyph is an
+        // InvalidFont instead of a mid-layout failure. CFF/CFF2 faces carry
+        // no decoded points and refuse outlines at selection time.
+        let points = if outlines.kind == OutlineKind::Glyf {
+            let mut points = Vec::with_capacity(n);
+            for i in 0..n {
+                points.push(outlines.decode_points(i).map_err(upstream)?);
+            }
+            // A glyph claiming ink bounds without contours could never be
+            // painted; the painter relies on "no contours, no ink".
+            for (i, (bounds, outline)) in bounds.iter().flatten().zip(&points).enumerate() {
+                if bounds.is_some() && outline.is_none() {
+                    return Err(FontError::malformed("glyf", i));
+                }
+            }
+            Some(points)
+        } else {
+            None
+        };
         let math = MathTable::parse(required(&font, "MATH")?.bytes, maxp.num_glyphs)?;
         Ok(Self {
             identity: FontIdentity {
@@ -160,6 +181,7 @@ impl FontFace {
             mappings,
             advances,
             bounds,
+            outlines: points,
         })
     }
 
@@ -188,10 +210,53 @@ impl FontFace {
         Ok(if value == 0.0 { 0.0 } else { value })
     }
 
-    /// Path decoding is pending; raw outline ranges must never become SVG text.
-    pub fn outline(&self, glyph: u16) -> Result<()> {
+    /// The glyph's decoded contour points in font units (y up, baseline at
+    /// origin). `None` is a valid contourless glyph; CFF/CFF2 faces refuse.
+    pub fn outline(&self, glyph: u16) -> Result<Option<&GlyphOutline>> {
         self.glyph_metrics(glyph)?;
-        Err(FontError::new(FontErrorKind::OutlinesUnavailable))
+        Ok(self
+            .outlines
+            .as_ref()
+            .ok_or_else(|| FontError::new(FontErrorKind::OutlinesUnavailable))?
+            .get(usize::from(glyph))
+            .ok_or_else(|| FontError::new(FontErrorKind::MissingGlyph))?
+            .as_ref())
+    }
+}
+
+/// A glyph outline in CSS pixels, kept in font orientation (y up, baseline
+/// at the pen origin); the painter applies the final y flip.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GlyphOutlinePx {
+    pub contours: Vec<ContourPx>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContourPx {
+    pub points: Vec<PointPx>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PointPx {
+    pub x: f64,
+    pub y: f64,
+    pub on_curve: bool,
+}
+
+fn scale_outline(outline: &GlyphOutline, scale: f64) -> GlyphOutlinePx {
+    let contour = |c: &fontisan::sfnt::Contour| ContourPx {
+        points: c
+            .points
+            .iter()
+            .map(|p| PointPx {
+                x: f64::from(p.x) * scale,
+                y: f64::from(p.y) * scale,
+                on_curve: p.on_curve,
+            })
+            .collect(),
+    };
+    GlyphOutlinePx {
+        contours: outline.contours.iter().map(contour).collect(),
     }
 }
 
@@ -227,6 +292,9 @@ pub struct ResolvedGlyph {
     pub left_side_bearing_px: f64,
     pub italics_correction_px: f64,
     pub top_accent_px: f64,
+    /// Contour points in CSS pixels, font orientation; `None` when the glyph
+    /// has no contours or the face carries no decodable outlines.
+    pub outline_px: Option<GlyphOutlinePx>,
 }
 
 /// A stretch selection retains its owning font and design-unit measurements.
@@ -332,6 +400,15 @@ impl FontProvider {
         for (i, (id, font)) in self.faces.iter().enumerate() {
             if let Some(glyph_id) = font.glyph_id(character) {
                 let metrics = font.glyph_metrics(glyph_id)?;
+                // A CFF face resolves metrics without decoded points; only a
+                // corrupt glyph (or a missing one) refuses the resolution.
+                let outline_px = match font.outline(glyph_id) {
+                    Ok(outline) => outline.map(|outline| {
+                        scale_outline(outline, font_size_px / f64::from(font.metrics.units_per_em))
+                    }),
+                    Err(e) if e.kind == FontErrorKind::OutlinesUnavailable => None,
+                    Err(e) => return Err(e),
+                };
                 let result = ResolvedGlyph {
                     resource_id: id.clone(),
                     identity: font.identity.clone(),
@@ -350,6 +427,7 @@ impl FontProvider {
                             .unwrap_or(f64::from(metrics.advance) / 2.0),
                         font_size_px,
                     )?,
+                    outline_px,
                 };
                 self.mark_used(i);
                 return Ok(result);

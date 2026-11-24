@@ -1,10 +1,8 @@
 //! Shared versioned JSON boundary for native and WASM transports.
-//! Only negotiation is implemented; parse, transform and rendering refuse.
 
 mod wire;
 
 use serde_json::{json, Value};
-use logifos_model::FORMULA_CONTRACT;
 use wire::{Failure, Limits};
 
 /// Effective transport ceiling; checked before JSON allocation.
@@ -42,6 +40,7 @@ pub fn limits() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use logifos_model::FORMULA_CONTRACT;
 
     #[test]
     fn negotiation_advertises_parse_and_render() {

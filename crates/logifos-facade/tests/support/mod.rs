@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 pub fn put16(b: &mut [u8], at: usize, n: u16) {
@@ -7,12 +6,6 @@ pub fn put16(b: &mut [u8], at: usize, n: u16) {
 pub fn put32(b: &mut [u8], at: usize, n: u32) {
     b[at..at + 4].copy_from_slice(&n.to_be_bytes());
 }
-pub fn get16(b: &[u8], at: usize) -> usize {
-    usize::from(u16::from_be_bytes([b[at], b[at + 1]]))
-}
-pub fn get32(b: &[u8], at: usize) -> usize {
-    u32::from_be_bytes(b[at..at + 4].try_into().unwrap()) as usize
-}
 pub fn words(values: &[u16]) -> Vec<u8> {
     values.iter().flat_map(|n| n.to_be_bytes()).collect()
 }
@@ -20,12 +13,6 @@ fn link(parent: &mut Vec<u8>, field: usize, child: &[u8]) {
     let at = parent.len();
     put16(parent, field, at as u16);
     parent.extend_from_slice(child);
-}
-pub fn digest(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
 }
 
 fn value_table(value: i16, ranges: bool) -> Vec<u8> {
@@ -174,31 +161,4 @@ fn checksum(bytes: &[u8]) -> u32 {
         b[..chunk.len()].copy_from_slice(chunk);
         sum.wrapping_add(u32::from_be_bytes(b))
     })
-}
-
-pub fn font() -> Vec<u8> {
-    FontBuilder::new(&[('(', 2), ('x', 1), ('𝑥', 4)], 250, true).finish()
-}
-
-/// Two independent faces; all sfnt table offsets are relative to the full file.
-pub fn collection() -> Vec<u8> {
-    let mut a = font();
-    let mut b = FontBuilder::new(&[('y', 1)], 375, true).finish();
-    let first = 20;
-    let second = first + a.len();
-    for (bytes, shift) in [(&mut a, first), (&mut b, second)] {
-        for i in 0..get16(bytes, 4) {
-            let at = 12 + i * 16 + 8;
-            let offset = get32(bytes, at) + shift;
-            put32(bytes, at, offset as u32);
-        }
-    }
-    let mut bytes = b"ttcf".to_vec();
-    bytes.extend(0x0001_0000u32.to_be_bytes());
-    bytes.extend(2u32.to_be_bytes());
-    bytes.extend((first as u32).to_be_bytes());
-    bytes.extend((second as u32).to_be_bytes());
-    bytes.extend(a);
-    bytes.extend(b);
-    bytes
 }

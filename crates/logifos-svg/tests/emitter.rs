@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use logifos_layout::{Bounds, BoxTree, GeometryError, Kern, Metrics, StackItem};
+use logifos_layout::layout::PlacedGlyph;
+use logifos_layout::{Bounds, BoxTree, GeometryError, Kern, Metrics, Point, StackItem};
 use logifos_svg::{emit, SvgDocument, SvgError, SvgOptions};
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
@@ -327,7 +328,7 @@ fn kern(amount: f64) -> StackItem {
 }
 
 fn emit_default(tree: &BoxTree) -> SvgDocument {
-    emit(tree, &SvgOptions::default()).unwrap()
+    emit(tree, &[], &SvgOptions::default()).unwrap()
 }
 
 #[test]
@@ -472,28 +473,118 @@ fn inkless_leaf_reserves_advance_and_baseline_without_painting() {
 }
 
 #[test]
-fn ink_bearing_leaves_are_refused_at_root_and_inside_stacks() {
-    for bounds in [
-        Bounds::new(-1.0, -2.0, 5.0, 7.0).unwrap(),
-        Bounds::new(0.0, 0.0, 0.0, 0.0).unwrap(),
-    ] {
-        let leaf = BoxTree::leaf(Metrics::new(3.0, 4.0, 1.0).unwrap(), Some(bounds));
-        let nested = BoxTree::vbox(
-            vec![
-                BoxTree::hbox(vec![rule(1.0, 1.0, 0.0).into(), leaf.clone().into()])
-                    .unwrap()
-                    .into(),
-            ],
-            0.0,
+fn ink_bearing_leaves_paint_their_placed_glyph_paths_with_exact_bytes() {
+    let bounds = Bounds::new(-1.0, -2.0, 5.0, 7.0).unwrap();
+    let tree = BoxTree::leaf(Metrics::new(3.0, 4.0, 1.0).unwrap(), Some(bounds));
+    let glyph = placed_glyph(
+        Point::new(2.0, 4.0).unwrap(),
+        Some(font_outline_px(vec![vec![
+            point_px(1.0, 0.0, true),
+            point_px(3.0, -5.0, false),
+            point_px(5.0, 0.0, true),
+        ]])),
+    );
+    let document = emit(&tree, &[glyph], &SvgOptions::default()).unwrap();
+    // Font orientation (y up) flips around the baseline origin (2, 4):
+    // (1,0)->(3,4), off-curve (3,-5)->(5,9), (5,0)->(7,4).
+    assert_eq!(
+        document.as_str(),
+        concat!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5px\" height=\"7px\" viewBox=\"-1 -2 5 7\">",
+            "<g fill=\"#000000\"><g id=\"box-0\" transform=\"translate(0 0)\"></g>",
+            "<g id=\"glyphs\"><path d=\"M3 4 Q5 9 7 4 Z\"/></g></g></svg>",
         )
-        .unwrap();
-        for tree in [leaf, nested] {
-            assert_eq!(
-                emit(&tree, &SvgOptions::default()),
-                Err(SvgError::UnsupportedLeaf)
-            );
-        }
+    );
+}
+
+#[test]
+fn off_curve_runs_get_one_implied_midpoint_per_pair() {
+    let tree = BoxTree::space(Metrics::new(3.0, 4.0, 1.0).unwrap());
+    let glyph = placed_glyph(
+        Point::new(0.0, 4.0).unwrap(),
+        Some(font_outline_px(vec![vec![
+            point_px(0.0, 0.0, false),
+            point_px(2.0, 2.0, false),
+            point_px(4.0, 0.0, false),
+        ]])),
+    );
+    let document = emit(&tree, &[glyph], &SvgOptions::default()).unwrap();
+    // All off-curve: implied midpoints at (1,3), (3,3) and the wrap midpoint
+    // (2,4); the walk starts at the first midpoint and closes back onto it.
+    assert!(document
+        .as_str()
+        .contains("<path d=\"M1 3 Q2 2 3 3 Q4 4 2 4 Q0 4 1 3 Z\"/>"));
+}
+
+#[test]
+fn a_quadratic_landing_on_the_start_point_closes_the_contour() {
+    // Alternating on/off with no implied midpoints: the final Q lands back on
+    // the start point and must end the walk instead of wrapping past it.
+    let tree = BoxTree::space(Metrics::new(4.0, 4.0, 2.0).unwrap());
+    let glyph = placed_glyph(
+        Point::new(0.0, 2.0).unwrap(),
+        Some(font_outline_px(vec![vec![
+            point_px(0.0, 0.0, true),
+            point_px(2.0, 2.0, false),
+            point_px(4.0, 0.0, true),
+            point_px(2.0, -2.0, false),
+        ]])),
+    );
+    let document = emit(&tree, &[glyph], &SvgOptions::default()).unwrap();
+    assert!(document
+        .as_str()
+        .contains("<path d=\"M0 2 Q2 0 4 2 Q2 4 0 2 Z\"/>"));
+}
+
+#[test]
+fn contourless_glyphs_paint_nothing() {
+    let tree = BoxTree::leaf(
+        Metrics::new(3.0, 4.0, 1.0).unwrap(),
+        Some(Bounds::new(0.0, 0.0, 0.0, 0.0).unwrap()),
+    );
+    let glyph = placed_glyph(Point::new(0.0, 4.0).unwrap(), None);
+    let document = emit(&tree, &[glyph], &SvgOptions::default()).unwrap();
+    assert!(!document.as_str().contains("<path"));
+    assert!(!document.as_str().contains("glyphs"));
+}
+
+fn placed_glyph(
+    origin: Point,
+    outline: Option<logifos_layout::font::GlyphOutlinePx>,
+) -> PlacedGlyph {
+    PlacedGlyph {
+        character: 'x',
+        glyph: logifos_layout::font::ResolvedGlyph {
+            resource_id: "test".into(),
+            identity: logifos_layout::font::FontIdentity {
+                sha256: [0; 32],
+                face_index: 0,
+            },
+            glyph_id: 1,
+            advance_px: 3.0,
+            left_side_bearing_px: 0.0,
+            italics_correction_px: 0.0,
+            top_accent_px: 1.5,
+            outline_px: outline,
+        },
+        origin,
+        font_size_px: 16.0,
     }
+}
+
+fn font_outline_px(
+    contours: Vec<Vec<logifos_layout::font::PointPx>>,
+) -> logifos_layout::font::GlyphOutlinePx {
+    logifos_layout::font::GlyphOutlinePx {
+        contours: contours
+            .into_iter()
+            .map(|points| logifos_layout::font::ContourPx { points })
+            .collect(),
+    }
+}
+
+fn point_px(x: f64, y: f64, on_curve: bool) -> logifos_layout::font::PointPx {
+    logifos_layout::font::PointPx { x, y, on_curve }
 }
 
 #[test]
@@ -506,7 +597,7 @@ fn viewport_overflow_is_a_typed_geometry_error() {
         kern(f64::MAX),
     ])
     .unwrap();
-    let error = emit(&tree, &SvgOptions::default()).unwrap_err();
+    let error = emit(&tree, &[], &SvgOptions::default()).unwrap_err();
     assert_eq!(error, SvgError::Geometry(GeometryError::Overflow));
     assert!(std::error::Error::source(&error).is_some());
     assert!(error.to_string().contains("viewport"));
@@ -519,7 +610,7 @@ fn title_escapes_markup_entities_quotes_and_preserves_unicode() {
         color: "#A1b2C3".into(),
         title: Some(title.into()),
     };
-    let document = emit(&rule(1.0, 1.0, 0.0), &options).unwrap();
+    let document = emit(&rule(1.0, 1.0, 0.0), &[], &options).unwrap();
     let parsed = parse(&document);
     assert_eq!(parsed.title.as_deref(), Some(title));
     assert!(document
@@ -536,7 +627,7 @@ fn injected_title_remains_character_data_only() {
         title: Some(title.into()),
         ..SvgOptions::default()
     };
-    let parsed = parse(&emit(&rule(1.0, 1.0, 0.0), &options).unwrap());
+    let parsed = parse(&emit(&rule(1.0, 1.0, 0.0), &[], &options).unwrap());
     assert_eq!(parsed.title.as_deref(), Some(title));
     assert_eq!(
         parsed
@@ -567,7 +658,7 @@ fn invalid_colors_refuse_css_and_attribute_injection() {
             ..SvgOptions::default()
         };
         assert_eq!(
-            emit(&rule(1.0, 1.0, 0.0), &options),
+            emit(&rule(1.0, 1.0, 0.0), &[], &options),
             Err(SvgError::InvalidColor)
         );
     }
@@ -583,7 +674,7 @@ fn invalid_xml_characters_refuse_instead_of_silent_replacement() {
             ..SvgOptions::default()
         };
         assert_eq!(
-            emit(&rule(1.0, 1.0, 0.0), &options),
+            emit(&rule(1.0, 1.0, 0.0), &[], &options),
             Err(SvgError::InvalidXmlCharacter)
         );
     }
@@ -629,10 +720,13 @@ fn repeated_emissions_have_no_cross_document_state() {
         title: Some("repeatable".into()),
         ..SvgOptions::default()
     };
-    let expected = emit(&tree, &options).unwrap();
+    let expected = emit(&tree, &[], &options).unwrap();
     for _ in 0..16 {
         emit_default(&rule(9.0, 8.0, 7.0));
-        assert_eq!(emit(&tree.clone(), &options.clone()).unwrap(), expected);
+        assert_eq!(
+            emit(&tree.clone(), &[], &options.clone()).unwrap(),
+            expected
+        );
     }
     parse(&expected).assert_viewport([0.0, 0.0, 2.75, 4.0]);
 }

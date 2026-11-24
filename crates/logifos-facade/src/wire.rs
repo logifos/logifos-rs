@@ -285,12 +285,12 @@ fn execute(
             "limits":limits.as_value()}),
         "parse" => {
             let source = text(&request["source"], "/source")?;
-            let document =
-                parse_mathml(source).map_err(|_| fail("INVALID_SOURCE", "/source"))?;
-            let formula = transform_mathml(&document)
-                .map_err(|_| fail("TRANSFORM_FAILED", "/source"))?;
-            let model =
-                formula.to_wire().map_err(|_| fail("WIRE_FAILED", "/source"))?;
+            let document = parse_mathml(source).map_err(|_| fail("INVALID_SOURCE", "/source"))?;
+            let formula =
+                transform_mathml(&document).map_err(|_| fail("TRANSFORM_FAILED", "/source"))?;
+            let model = formula
+                .to_wire()
+                .map_err(|_| fail("WIRE_FAILED", "/source"))?;
             return Ok(json!({"model": model, "formula_contract": formula_contract_value()}));
         }
         "render" if font_count == 0 => return Err(fail("MISSING_FONT", "/options/fonts")),
@@ -298,8 +298,12 @@ fn execute(
             if !contract_pinned(&request["formula_contract"]) {
                 return Err(fail("UNSUPPORTED_CONTRACT", "/formula_contract"));
             }
-            let formula = Formula::from_wire(request["formula"].as_object().ok_or_else(|| fail("INVALID_REQUEST", "/formula"))?)
-                .map_err(|_| fail("INVALID_FORMULA", "/formula"))?;
+            let formula = Formula::from_wire(
+                request["formula"]
+                    .as_object()
+                    .ok_or_else(|| fail("INVALID_REQUEST", "/formula"))?,
+            )
+            .map_err(|_| fail("INVALID_FORMULA", "/formula"))?;
             let mut owned: Vec<(String, String, Vec<u8>, u16)> = Vec::new();
             for (index, font) in options
                 .get("fonts")
@@ -335,23 +339,29 @@ fn execute(
                 .flatten()
                 .filter_map(Value::as_str)
                 .collect();
-            let mut provider =
-                FontProvider::new(&resources, &order).map_err(|_| fail("INVALID_FONT", "/options/fonts"))?;
+            let mut provider = FontProvider::new(&resources, &order)
+                .map_err(|_| fail("INVALID_FONT", "/options/fonts"))?;
             let font_size_px = options
                 .get("font_size_px")
                 .and_then(Value::as_f64)
                 .unwrap_or(24.0);
-            let options_layout =
-                LayoutOptions { font_size_px, script_level: 0 };
+            let options_layout = LayoutOptions {
+                font_size_px,
+                script_level: 0,
+            };
             let laid = layout_formula(&formula, &mut provider, options_layout)
-                .map_err(|e| fail("LAYOUT_FAILED", ""))?;
+                .map_err(|_e| fail("LAYOUT_FAILED", ""))?;
             let color = options
                 .get("color")
                 .and_then(Value::as_str)
                 .unwrap_or("#000000");
             let document = emit_svg(
                 &laid.tree,
-                &SvgOptions { color: color.to_owned(), title: None },
+                &laid.glyphs,
+                &SvgOptions {
+                    color: color.to_owned(),
+                    title: None,
+                },
             )
             .map_err(|_| fail("RENDER_FAILED", ""))?;
             return Ok(json!({"svg": document.as_str()}));

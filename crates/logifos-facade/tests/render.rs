@@ -61,8 +61,14 @@ fn render_renders_a_parsed_formula_to_svg() {
     assert_eq!(reply["ok"], true, "render failed: {reply}");
     let svg = reply["result"]["svg"].as_str().expect("svg string");
     assert!(svg.starts_with("<svg"), "svg root missing: {svg}");
-    assert!(svg.contains('x'), "the x glyph is missing");
-    assert!(svg.contains('+'), "the + glyph is missing");
+    // Real glyph outlines, not boxes: x+1 carries one path per glyph. The
+    // fixture triangle (0,-200)(500,700)(0,-200) at 24px/1000upem flips to
+    // top-left coordinates around the row baseline (16.8px from y_max).
+    assert_eq!(svg.matches("<path").count(), 3, "three glyph paths: {svg}");
+    assert!(
+        svg.contains("<g id=\"glyphs\"><path d=\"M0 21.6 L12 0 L0 21.6 Z\"/>"),
+        "the x glyph path is wrong: {svg}"
+    );
 }
 
 #[test]
