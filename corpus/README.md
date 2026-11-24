@@ -20,7 +20,11 @@
   `cargo run -p logifos-corpus -- --canon mathjax` grades the corpora,
   captures logifos's own SVGs, and prints the structural diff with
   pass-rate counts; redirect to `canon/report.json` for the committed
-  snapshot.
+  snapshot. The same flow exists for JEuclid
+  (`scripts/fetch-canon-jeuclid.sh` builds the pinned rototor fork with
+  a raised source level and opened java.base modules,
+  `scripts/render-canon-jeuclid.mjs` renders all cases in one JVM,
+  `--canon jeuclid` compares; `canon/report-jeuclid.json`).
 
 * `../fonts.json` pins the grading font (STIX Two Math from google/fonts,
   fetched to `corpus/fonts/` by the same script). With it materialized,

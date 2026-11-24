@@ -356,7 +356,10 @@ pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
     let parent = reference.parent().ok_or("reference has no parent")?;
     let pin = read_bounded(&parent.join("canon").join(format!("{renderer}.json")))?;
     let pin = logifos_json::decode(&pin)?;
-    let version = pin["version"].as_str().ok_or("invalid renderer pin")?;
+    let version = pin["version"]
+        .as_str()
+        .or_else(|| pin["revision"].as_str())
+        .ok_or("invalid renderer pin")?;
     let artifacts = parent.join("canon").join(renderer);
     let listed = listed_corpora(reference)?;
     let mut fonts = grading_font(reference)?;
@@ -389,7 +392,7 @@ pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
                 "corpus": corpus,
                 "id": case_id,
                 "logifos": ours,
-                "mathjax": theirs,
+                renderer: theirs,
             }));
         }
     }
@@ -398,7 +401,7 @@ pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
         .filter(|case| {
             let mut ours = case["logifos"].clone();
             ours["bytes"] = json!(0);
-            let mut theirs = case["mathjax"].clone();
+            let mut theirs = case[renderer].clone();
             theirs["bytes"] = json!(0);
             ours == theirs
         })

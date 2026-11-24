@@ -1,0 +1,1883 @@
+{
+  "cases": [
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/gtkmathview/tables/table0000.mml",
+      "jeuclid": {
+        "bytes": 1646,
+        "defs": 1,
+        "g": 2,
+        "path": 1,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 1545,
+        "defs": 0,
+        "g": 10,
+        "path": 1,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/gtkmathview/tables/table6.mml",
+      "jeuclid": {
+        "bytes": 4593,
+        "defs": 1,
+        "g": 2,
+        "path": 1,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5984,
+        "defs": 0,
+        "g": 14,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/misc/msup.mml",
+      "jeuclid": {
+        "bytes": 2884,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 3758,
+        "defs": 0,
+        "g": 15,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/misc/root-order.mml",
+      "jeuclid": {
+        "bytes": 6197,
+        "defs": 1,
+        "g": 7,
+        "path": 6,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 8360,
+        "defs": 0,
+        "g": 33,
+        "path": 6,
+        "rect": 4,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/misc/root.mml",
+      "jeuclid": {
+        "bytes": 3159,
+        "defs": 1,
+        "g": 4,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5237,
+        "defs": 0,
+        "g": 14,
+        "path": 3,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/mozilla/mozilla-07.mml",
+      "jeuclid": {
+        "bytes": 16930,
+        "defs": 1,
+        "g": 19,
+        "path": 18,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 23791,
+        "defs": 0,
+        "g": 71,
+        "path": 18,
+        "rect": 4,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mfrac/mfrac1.mml",
+      "jeuclid": {
+        "bytes": 2626,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 2484,
+        "defs": 0,
+        "g": 16,
+        "path": 2,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mfrac/mfracBheight17.mml",
+      "jeuclid": {
+        "bytes": 43128,
+        "defs": 1,
+        "g": 27,
+        "path": 26,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 70188,
+        "defs": 0,
+        "g": 113,
+        "path": 44,
+        "rect": 4,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mfrac/mfracBhoriz11.mml",
+      "jeuclid": {
+        "bytes": 28188,
+        "defs": 1,
+        "g": 33,
+        "path": 32,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 35944,
+        "defs": 0,
+        "g": 82,
+        "path": 32,
+        "rect": 3,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mfrac/mfracBvert12.mml",
+      "jeuclid": {
+        "bytes": 28996,
+        "defs": 1,
+        "g": 33,
+        "path": 32,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 51032,
+        "defs": 0,
+        "g": 113,
+        "path": 32,
+        "rect": 9,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mfrac/mfracSscriptlevel15.mml",
+      "jeuclid": {
+        "bytes": 19031,
+        "defs": 1,
+        "g": 24,
+        "path": 23,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 27554,
+        "defs": 0,
+        "g": 89,
+        "path": 23,
+        "rect": 8,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mphantom/mphantomB1.mml",
+      "jeuclid": {
+        "bytes": 9215,
+        "defs": 1,
+        "g": 12,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11559,
+        "defs": 0,
+        "g": 35,
+        "path": 11,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mphantom/mphantomBinferred2.mml",
+      "jeuclid": {
+        "bytes": 3450,
+        "defs": 1,
+        "g": 4,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 4099,
+        "defs": 0,
+        "g": 13,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mphantom/mphantomBoperators3.mml",
+      "jeuclid": {
+        "bytes": 3833,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 4296,
+        "defs": 0,
+        "g": 14,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mrow/mrow1.mml",
+      "jeuclid": {
+        "bytes": 766,
+        "defs": 1,
+        "g": 1,
+        "path": 0,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 246,
+        "defs": 0,
+        "g": 4,
+        "path": 0,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mrow/mrowBinferred2.mml",
+      "jeuclid": {
+        "bytes": 8495,
+        "defs": 1,
+        "g": 13,
+        "path": 12,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11204,
+        "defs": 0,
+        "g": 37,
+        "path": 12,
+        "rect": 2,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mrow/mrowBnested3.mml",
+      "jeuclid": {
+        "bytes": 2916,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 3720,
+        "defs": 0,
+        "g": 17,
+        "path": 2,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/msqrt-mroot/mrootB1.mml",
+      "jeuclid": {
+        "bytes": 17472,
+        "defs": 1,
+        "g": 21,
+        "path": 20,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 31550,
+        "defs": 0,
+        "g": 72,
+        "path": 20,
+        "rect": 6,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/msqrt-mroot/mrootSscriptlevel4.mml",
+      "jeuclid": {
+        "bytes": 21226,
+        "defs": 1,
+        "g": 25,
+        "path": 24,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 39588,
+        "defs": 0,
+        "g": 90,
+        "path": 24,
+        "rect": 8,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/msqrt-mroot/msqrtB7.mml",
+      "jeuclid": {
+        "bytes": 12372,
+        "defs": 1,
+        "g": 17,
+        "path": 16,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 23220,
+        "defs": 0,
+        "g": 54,
+        "path": 16,
+        "rect": 5,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/msqrt-mroot/msqrtBimplied8.mml",
+      "jeuclid": {
+        "bytes": 7408,
+        "defs": 1,
+        "g": 12,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13023,
+        "defs": 0,
+        "g": 37,
+        "path": 11,
+        "rect": 2,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/GeneralLayout/mstyle/mstyleAscriptlevel1.mml",
+      "jeuclid": {
+        "bytes": 12961,
+        "defs": 1,
+        "g": 13,
+        "path": 12,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15823,
+        "defs": 0,
+        "g": 58,
+        "path": 12,
+        "rect": 6,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/ignore-mmultiscripts/mmultiscripts2.mml",
+      "jeuclid": {
+        "bytes": 5741,
+        "defs": 1,
+        "g": 6,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 10041,
+        "defs": 0,
+        "g": 37,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/msubsup/msubsupBsize1.mml",
+      "jeuclid": {
+        "bytes": 41498,
+        "defs": 1,
+        "g": 44,
+        "path": 43,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 61943,
+        "defs": 0,
+        "g": 122,
+        "path": 43,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/msubsup/msubsupBsize2.mml",
+      "jeuclid": {
+        "bytes": 16223,
+        "defs": 1,
+        "g": 18,
+        "path": 17,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 29316,
+        "defs": 0,
+        "g": 58,
+        "path": 17,
+        "rect": 2,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/msup/msupBnest1.mml",
+      "jeuclid": {
+        "bytes": 4304,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5810,
+        "defs": 0,
+        "g": 17,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/msup/msupBsize1.mml",
+      "jeuclid": {
+        "bytes": 144482,
+        "defs": 1,
+        "g": 130,
+        "path": 129,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 224057,
+        "defs": 0,
+        "g": 265,
+        "path": 129,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/msup/msupBsize2.mml",
+      "jeuclid": {
+        "bytes": 11299,
+        "defs": 1,
+        "g": 12,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 16859,
+        "defs": 0,
+        "g": 34,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/ScriptsAndLimits/msup/msupSadvance1.mml",
+      "jeuclid": {
+        "bytes": 5857,
+        "defs": 1,
+        "g": 6,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 9081,
+        "defs": 0,
+        "g": 18,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/TablesAndMatrices/mtable/mtableBsize1.mml",
+      "jeuclid": {
+        "bytes": 11095,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 19303,
+        "defs": 0,
+        "g": 33,
+        "path": 12,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/TokenElements/mo/moAaccent9.mml",
+      "jeuclid": {
+        "bytes": 9848,
+        "defs": 1,
+        "g": 15,
+        "path": 14,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 10996,
+        "defs": 0,
+        "g": 45,
+        "path": 14,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/TokenElements/mo/moAprime16.mml",
+      "jeuclid": {
+        "bytes": 9013,
+        "defs": 1,
+        "g": 12,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11562,
+        "defs": 0,
+        "g": 29,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/TokenElements/mspace/mspacestruts2.mml",
+      "jeuclid": {
+        "bytes": 11141,
+        "defs": 1,
+        "g": 12,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 16564,
+        "defs": 0,
+        "g": 44,
+        "path": 11,
+        "rect": 3,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Presentation/TokenElements/mtext/mtext1.mml",
+      "jeuclid": {
+        "bytes": 9162,
+        "defs": 1,
+        "g": 2,
+        "path": 1,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13577,
+        "defs": 0,
+        "g": 17,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/Accents/accents3.mml",
+      "jeuclid": {
+        "bytes": 10922,
+        "defs": 1,
+        "g": 11,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13828,
+        "defs": 0,
+        "g": 39,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/EmbellishedOp/embStretch1.mml",
+      "jeuclid": {
+        "bytes": 4822,
+        "defs": 1,
+        "g": 6,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5233,
+        "defs": 0,
+        "g": 14,
+        "path": 4,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/chain1.mml",
+      "jeuclid": {
+        "bytes": 60147,
+        "defs": 1,
+        "g": 64,
+        "path": 63,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 89618,
+        "defs": 0,
+        "g": 164,
+        "path": 63,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/coprod1.mml",
+      "jeuclid": {
+        "bytes": 7316,
+        "defs": 1,
+        "g": 8,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11153,
+        "defs": 0,
+        "g": 24,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/doubleint1.mml",
+      "jeuclid": {
+        "bytes": 10027,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13488,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/doubleint2.mml",
+      "jeuclid": {
+        "bytes": 10027,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 17345,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int1.mml",
+      "jeuclid": {
+        "bytes": 8287,
+        "defs": 1,
+        "g": 8,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 12794,
+        "defs": 0,
+        "g": 19,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int10.mml",
+      "jeuclid": {
+        "bytes": 9910,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15135,
+        "defs": 0,
+        "g": 27,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int2.mml",
+      "jeuclid": {
+        "bytes": 9396,
+        "defs": 1,
+        "g": 9,
+        "path": 8,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15264,
+        "defs": 0,
+        "g": 25,
+        "path": 8,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int3.mml",
+      "jeuclid": {
+        "bytes": 9913,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15398,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int4.mml",
+      "jeuclid": {
+        "bytes": 11022,
+        "defs": 1,
+        "g": 11,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 17679,
+        "defs": 0,
+        "g": 32,
+        "path": 10,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int5.mml",
+      "jeuclid": {
+        "bytes": 9910,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15135,
+        "defs": 0,
+        "g": 27,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int6.mml",
+      "jeuclid": {
+        "bytes": 9396,
+        "defs": 1,
+        "g": 9,
+        "path": 8,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15264,
+        "defs": 0,
+        "g": 25,
+        "path": 8,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int7.mml",
+      "jeuclid": {
+        "bytes": 9913,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15398,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int8.mml",
+      "jeuclid": {
+        "bytes": 11022,
+        "defs": 1,
+        "g": 11,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 17679,
+        "defs": 0,
+        "g": 32,
+        "path": 10,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/int9.mml",
+      "jeuclid": {
+        "bytes": 9912,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11877,
+        "defs": 0,
+        "g": 27,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/largeopPos3.mml",
+      "jeuclid": {
+        "bytes": 7760,
+        "defs": 1,
+        "g": 9,
+        "path": 8,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11181,
+        "defs": 0,
+        "g": 30,
+        "path": 8,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/oint1.mml",
+      "jeuclid": {
+        "bytes": 10650,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13313,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/oint2.mml",
+      "jeuclid": {
+        "bytes": 10643,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 17379,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/prod1.mml",
+      "jeuclid": {
+        "bytes": 7331,
+        "defs": 1,
+        "g": 8,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 10960,
+        "defs": 0,
+        "g": 24,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/sum1.mml",
+      "jeuclid": {
+        "bytes": 6917,
+        "defs": 1,
+        "g": 8,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 10734,
+        "defs": 0,
+        "g": 24,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/tripleint1.mml",
+      "jeuclid": {
+        "bytes": 10592,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15424,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LargeOp/tripleint2.mml",
+      "jeuclid": {
+        "bytes": 10592,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 19916,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LineBreak/linebreakFrac.mml",
+      "jeuclid": {
+        "bytes": 36660,
+        "defs": 1,
+        "g": 49,
+        "path": 48,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 63242,
+        "defs": 0,
+        "g": 106,
+        "path": 48,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/LineBreak/linebreakRow1.mml",
+      "jeuclid": {
+        "bytes": 34061,
+        "defs": 1,
+        "g": 46,
+        "path": 45,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 66832,
+        "defs": 0,
+        "g": 92,
+        "path": 45,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/Nesting/nestScript.mml",
+      "jeuclid": {
+        "bytes": 5294,
+        "defs": 1,
+        "g": 6,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 8906,
+        "defs": 0,
+        "g": 22,
+        "path": 5,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/horizontal/stretchHoriz2.mml",
+      "jeuclid": {
+        "bytes": 8911,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15910,
+        "defs": 0,
+        "g": 22,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/horizontal/stretchTilde1.mml",
+      "jeuclid": {
+        "bytes": 9845,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15050,
+        "defs": 0,
+        "g": 19,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int1.mml",
+      "jeuclid": {
+        "bytes": 8289,
+        "defs": 1,
+        "g": 8,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11887,
+        "defs": 0,
+        "g": 19,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int10.mml",
+      "jeuclid": {
+        "bytes": 9910,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15135,
+        "defs": 0,
+        "g": 27,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int2.mml",
+      "jeuclid": {
+        "bytes": 9406,
+        "defs": 1,
+        "g": 9,
+        "path": 8,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13000,
+        "defs": 0,
+        "g": 25,
+        "path": 8,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int3.mml",
+      "jeuclid": {
+        "bytes": 9913,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 12423,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int4.mml",
+      "jeuclid": {
+        "bytes": 11031,
+        "defs": 1,
+        "g": 11,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 13718,
+        "defs": 0,
+        "g": 32,
+        "path": 10,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int5.mml",
+      "jeuclid": {
+        "bytes": 8287,
+        "defs": 1,
+        "g": 8,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 12794,
+        "defs": 0,
+        "g": 19,
+        "path": 7,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int6.mml",
+      "jeuclid": {
+        "bytes": 9396,
+        "defs": 1,
+        "g": 9,
+        "path": 8,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15264,
+        "defs": 0,
+        "g": 25,
+        "path": 8,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int7.mml",
+      "jeuclid": {
+        "bytes": 9913,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 15398,
+        "defs": 0,
+        "g": 26,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int8.mml",
+      "jeuclid": {
+        "bytes": 11022,
+        "defs": 1,
+        "g": 11,
+        "path": 10,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 17679,
+        "defs": 0,
+        "g": 32,
+        "path": 10,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/integral/int9.mml",
+      "jeuclid": {
+        "bytes": 9912,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 11877,
+        "defs": 0,
+        "g": 27,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/tables/stretchTable1.mml",
+      "jeuclid": {
+        "bytes": 11036,
+        "defs": 1,
+        "g": 14,
+        "path": 13,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 18908,
+        "defs": 0,
+        "g": 63,
+        "path": 13,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/tables/stretchTable2.mml",
+      "jeuclid": {
+        "bytes": 11095,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 19303,
+        "defs": 0,
+        "g": 33,
+        "path": 12,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/abs1.mml",
+      "jeuclid": {
+        "bytes": 2429,
+        "defs": 1,
+        "g": 4,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 2537,
+        "defs": 0,
+        "g": 8,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/abs2.mml",
+      "jeuclid": {
+        "bytes": 4601,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 4994,
+        "defs": 0,
+        "g": 14,
+        "path": 6,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/mid1.mml",
+      "jeuclid": {
+        "bytes": 2365,
+        "defs": 1,
+        "g": 4,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 2631,
+        "defs": 0,
+        "g": 10,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/mid2.mml",
+      "jeuclid": {
+        "bytes": 4540,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5025,
+        "defs": 0,
+        "g": 16,
+        "path": 4,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/stretchVert2.mml",
+      "jeuclid": {
+        "bytes": 7251,
+        "defs": 1,
+        "g": 10,
+        "path": 9,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 7245,
+        "defs": 0,
+        "g": 20,
+        "path": 11,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/verbar1.mml",
+      "jeuclid": {
+        "bytes": 2429,
+        "defs": 1,
+        "g": 4,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 2537,
+        "defs": 0,
+        "g": 8,
+        "path": 3,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/StretchyChars/vertical/verbar2.mml",
+      "jeuclid": {
+        "bytes": 4601,
+        "defs": 1,
+        "g": 5,
+        "path": 4,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 4994,
+        "defs": 0,
+        "g": 14,
+        "path": 6,
+        "rect": 1,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/WhiteSpace/white1.mml",
+      "jeuclid": {
+        "bytes": 2735,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5607,
+        "defs": 0,
+        "g": 11,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/WhiteSpace/white2.mml",
+      "jeuclid": {
+        "bytes": 2735,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5248,
+        "defs": 0,
+        "g": 11,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/WhiteSpace/white3.mml",
+      "jeuclid": {
+        "bytes": 2736,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5191,
+        "defs": 0,
+        "g": 11,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    },
+    {
+      "corpus": "lasem",
+      "id": "data/mathml/testsuite/Topics/WhiteSpace/white4.mml",
+      "jeuclid": {
+        "bytes": 2735,
+        "defs": 1,
+        "g": 3,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": false
+      },
+      "logifos": {
+        "bytes": 5508,
+        "defs": 0,
+        "g": 11,
+        "path": 2,
+        "rect": 0,
+        "use": 0,
+        "view_box": true
+      }
+    }
+  ],
+  "format_version": 1,
+  "logifos_renders": 85,
+  "matching_structure": 0,
+  "reference_errors": 0,
+  "reference_renders": 85,
+  "renderer": "jeuclid",
+  "shared": 85,
+  "total": 6837,
+  "version": "1dd19534348ba6e146a8eed293446430e104f603"
+}
