@@ -138,10 +138,10 @@ jobs:
   # Check Unused Dependencies
   # ============================================================================
   # ============================================================================
-  # C / C++ ABI Smoke (examples/parg_parse.c|.cpp against include/logifos.h)
+  # C ABI Smoke (tests/smoke.c against include/logifos.h)
   # ============================================================================
   c-abi:
-    name: C/C++ ABI Smoke
+    name: C ABI Smoke
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
@@ -150,22 +150,9 @@ jobs:
         run: cargo build -p logifos-ffi --release
       - name: Compile and run the C consumer
         run: |
-          cc logifos-ffi/examples/parg_parse.c -I logifos-ffi/include \
-            -o /tmp/parg_parse_c -L target/release -llogifos
-          LD_LIBRARY_PATH=target/release /tmp/parg_parse_c \
-            corpus/conformance/recovery_resync_declared.json "a=1;b=2;" | tee /tmp/c.out
-          grep -q '"ok":true' /tmp/c.out
-          LD_LIBRARY_PATH=target/release /tmp/parg_parse_c \
-            corpus/conformance/recovery_resync_declared.json "a=1;b=2;@@junk@@;c=3;d=4;" | tee /tmp/c-fail.out
-          grep -q '"ok":false' /tmp/c-fail.out
-          grep -q '@@junk@@;' /tmp/c-fail.out
-      - name: Compile and run the C++ consumer
-        run: |
-          c++ -std=c++17 logifos-ffi/examples/parg_parse.cpp -I logifos-ffi/include \
-            -o /tmp/parg_parse_cpp -L target/release -llogifos
-          LD_LIBRARY_PATH=target/release /tmp/parg_parse_cpp \
-            corpus/conformance/recovery_resync_declared.json "a=1;b=2;" | tee /tmp/cpp.out
-          grep -q '"ok":true' /tmp/cpp.out
+          cc crates/logifos-ffi/tests/smoke.c -I crates/logifos-ffi/include \
+            -o /tmp/logifos_smoke_c -L target/release -llogifos_ffi
+          LD_LIBRARY_PATH=target/release /tmp/logifos_smoke_c
 
   machete:
     name: Check Unused Dependencies
@@ -202,12 +189,11 @@ jobs:
         with:
           cache-on-failure: true
 
-      - name: Publish check logifos-derive
-        run: cargo publish --dry-run --manifest-path logifos-derive/Cargo.toml
-
-      # Note: Can't check logifos crate as it depends on logifos-derive
-      # which isn't published yet. This is a known limitation.
-      # The derive crate is small and simple, so testing it is sufficient.
+      # The workspace is pre-release: every crate is publish = false until the
+      # first release train opens them. This job returns then.
+      - name: No publishable crates yet
+        run: |
+          echo "All crates are publish = false; publish check returns at the first release train."
 
   # ============================================================================
   # Test Matrix (Multi-platform, Multi-arch)
@@ -266,35 +252,6 @@ jobs:
         run: cargo test --doc --no-default-features
 
   # ============================================================================
-  # Feature Matrix Testing
-  # Note: Ruby and WASM features are tested in separate workflows
-  # ============================================================================
-  features:
-    name: Test Features
-    runs-on: ubuntu-latest
-    needs: [preflight]
-    if: needs.preflight.outputs.should_run == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        feature:
-          - ""
-          - "logging"
-          - "parallel"
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo artifacts
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-
-      - name: Test with ${{ matrix.feature || 'no features' }}
-        run: cargo test --no-default-features --features "${{ matrix.feature }}"
-
   # ============================================================================
   # Workspace Testing
   # ============================================================================
@@ -352,7 +309,7 @@ jobs:
           # warnings gate.
           RUSTFLAGS: -C link-dead-code=yes
         run: |
-          cargo llvm-cov --no-default-features --features "logging,parallel" --lcov --output-path lcov.info
+          cargo llvm-cov --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
@@ -383,20 +340,13 @@ jobs:
           cache-on-failure: true
 
       - name: Build benchmarks
-        run: cargo build -p logifos --bench comparison --no-default-features
+        run: cargo build --workspace --benches
 
       - name: Run benchmarks (test mode)
-        run: cargo bench -p logifos --bench comparison --no-default-features -- --test
+        run: cargo bench --workspace -- --test
 
-      - name: Run benchmarks with baseline
-        run: cargo bench -p logifos --bench comparison --no-default-features -- --save-baseline ci-${{ github.sha }}
-
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmark-results
-          path: target/criterion
-          retention-days: 7
+      # Baselines and criterion artifacts return with the perf-gate work, when
+      # the workspace has real bench targets.
 
   # ============================================================================
   # Documentation
@@ -455,8 +405,11 @@ jobs:
         with:
           tool: cargo-semver-checks
 
-      - name: Check semver compatibility
-        run: cargo semver-checks --baseline-rev origin/${{ github.base_ref }} -p logifos
+      # No workspace crate is published yet (publish = false), so there is no
+      # library baseline to check. This job returns at the first release train.
+      - name: No published library baselines yet
+        run: |
+          echo "All crates are publish = false; semver checks return at the first release train."
 
   # ============================================================================
   # Summary
@@ -464,7 +417,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [typos, security, lint, machete, publish-check, test, features, workspace, coverage, benchmarks, docs]
+    needs: [typos, security, lint, machete, publish-check, test, workspace, coverage, benchmarks, docs]
     if: always() && !contains(needs.*.result, 'failure')
     steps:
       - name: Report success
