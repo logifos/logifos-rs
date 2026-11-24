@@ -394,7 +394,6 @@ fn malformed_math_offsets_counts_and_glyph_ids_refuse() {
         (assembly + 4, 0),
         (assembly + 4, u16::MAX),
         (assembly + 6, 6),
-        (assembly + 8, 501),
         (assembly + 14, 2),
         (kern, 0),
         (kern + 2, u16::MAX),

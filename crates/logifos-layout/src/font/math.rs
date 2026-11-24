@@ -370,8 +370,11 @@ fn assembly(r: Reader<'_>, glyphs: u16, budget: &mut Budget) -> Result<GlyphAsse
         let end_connector = r.u16(at + 4)?;
         let full_advance = r.u16(at + 6)?;
         let flags = r.u16(at + 8)?;
-        if start_connector > full_advance || end_connector > full_advance || flags & !1 != 0 {
-            return Err(r.err(at));
+        // Connector lengths past the advance occur in real MATH faces
+        // (STIX Two Math, uni0305); assembly overlap computation clamps
+        // against the advance, so only unknown flags refuse.
+        if flags & !1 != 0 {
+            return Err(r.err(at + 8));
         }
         parts.push(AssemblyPart {
             glyph_id: glyph(r, at, glyphs)?,

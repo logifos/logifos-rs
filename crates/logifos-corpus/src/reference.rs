@@ -6,6 +6,7 @@
 //! their bytes here; the generated manifests and the scoreboard are
 //! derived artifacts.
 
+use logifos_layout::font::{FontProvider, FontResource};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, ffi::OsStr, path::Path};
@@ -166,6 +167,64 @@ fn extract(id: &str, dir: &Path) -> Result<Vec<ExtractedCase>, String> {
     }
 }
 
+/// Builds the grading-font provider from the fetched `corpus/fonts.json`
+/// entries: the recorded revision must match `.fetched` and the file bytes
+/// must match the pinned hash. No fetched font grades without one; cases
+/// then stop at the layout gate exactly as before.
+fn grading_font(parent: &Path) -> Result<Option<FontProvider>, String> {
+    let Some(parent) = parent.parent() else {
+        return Ok(None);
+    };
+    let Ok(listing) = read_bounded(&parent.join("fonts.json")) else {
+        return Ok(None);
+    };
+    let listing = logifos_json::decode(&listing)?;
+    let mut provider = None;
+    for font in listing["fonts"].as_array().ok_or("invalid fonts.json")? {
+        let id = font["id"].as_str().ok_or("invalid fonts.json")?;
+        let revision = font["revision"]
+            .as_str()
+            .ok_or("invalid fonts.json")?
+            .to_owned();
+        let expected = font["sha256"].as_str().ok_or("invalid fonts.json")?;
+        let file = font["path"]
+            .as_str()
+            .and_then(|p| Path::new(p).file_name())
+            .ok_or("invalid fonts.json")?
+            .to_string_lossy()
+            .into_owned();
+        let dir = parent.join("fonts").join(id);
+        let fetched = std::fs::read_to_string(dir.join(".fetched"))
+            .map_err(|_| format!("{id} font is not fetched"))?;
+        if fetched.trim() != revision {
+            return Err(format!(
+                "{id} font is at {}, pinned to {revision}",
+                fetched.trim()
+            ));
+        }
+        let bytes =
+            read_bounded(&dir.join(&file)).map_err(|_| format!("{id} font is unreadable"))?;
+        if format!("{:x}", Sha256::digest(&bytes)) != expected {
+            return Err(format!("{id} font bytes do not match the pinned hash"));
+        }
+        let sha = expected.to_owned();
+        let id = id.to_owned();
+        provider.get_or_insert_with(|| {
+            FontProvider::new(
+                &[FontResource {
+                    id: &id,
+                    sha256: &sha,
+                    bytes: &bytes,
+                    face_index: 0,
+                }],
+                &[&id],
+            )
+            .expect("a hash-verified font always builds a provider")
+        });
+    }
+    Ok(provider)
+}
+
 /// Grades every fetched corpus and returns the aggregate scoreboard. The
 /// `sources.json` revision and the corpus's recorded `.fetched` revision
 /// must agree; manifests and cases derive deterministically from the
@@ -189,6 +248,7 @@ pub fn replay_reference(reference: &Path) -> Result<Value, String> {
     }
     let mut reports = Vec::new();
     let mut totals = json!({"pass":0,"refusal":0,"failure":0});
+    let mut fonts = grading_font(reference)?;
     for (id, revision) in &listed {
         let dir = reference.join(id);
         let fetched = std::fs::read_to_string(dir.join(".fetched"))
@@ -216,7 +276,7 @@ pub fn replay_reference(reference: &Path) -> Result<Value, String> {
         let manifest_path = dir.join("manifest.json");
         std::fs::write(&manifest_path, report_json(&manifest))
             .map_err(|_| format!("{id} manifest is unwritable"))?;
-        let report = grade(&manifest_path, None)?;
+        let report = grade(&manifest_path, fonts.as_mut())?;
         for key in ["pass", "refusal", "failure"] {
             let n = totals[key].as_u64().unwrap_or(0);
             totals[key] = json!(n + report["counts"][key].as_u64().unwrap_or(0));
@@ -228,6 +288,7 @@ pub fn replay_reference(reference: &Path) -> Result<Value, String> {
             "counts": report["counts"],
             "categories": report["categories"],
             "stage_counts": report["stage_counts"],
+            "font": report["font"],
         }));
     }
     Ok(json!({

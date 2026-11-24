@@ -4,19 +4,23 @@
 # revision matches the pin passes through.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-node -e '
-const { sources } = require("./corpus/reference/sources.json");
-for (const s of sources) console.log(s.id + " " + s.repository + " " + s.revision + " " + s.subpath);
-' | while read -r id repo revision subpath; do
-  dest="corpus/reference/$id"
-  if [ -f "$dest/.fetched" ] && [ "$(cat "$dest/.fetched")" = "$revision" ]; then
-    echo "skip $id (at $revision)"
-    continue
+
+# Materializes one pinned commit into a temp checkout whose sparse cone is
+# limited to `subpath`, then copies that subtree under `dest` (or copies the
+# single file `file` when given). Idempotent: a destination whose recorded
+# revision matches the pin passes through.
+fetch_pinned() {
+  local repo="$1" revision="$2" subpath="$3" dest="$4" file="${5-}"
+  if [ -f "$dest/.fetched" ] && [ "$(cat "$dest/.fetched")" = "$revision" ] \
+      && { [ -n "$file" ] || [ -d "$dest" ]; }; then
+    echo "skip ${dest##*/} (at $revision)"
+    return
   fi
   rm -rf "$dest"
+  local tmp
   tmp=$(mktemp -d)
-  # A blob-filtered cone sparse checkout of the adopted subpath keeps the
-  # big repos (WebKit) to that subtree; the pin is an exact commit.
+  # A blob-filtered cone sparse checkout keeps the big repos (WebKit,
+  # google/fonts) to the adopted subtree; the pin is an exact commit.
   git init --quiet "$tmp/clone"
   git -C "$tmp/clone" remote add origin "$repo"
   git -C "$tmp/clone" sparse-checkout init --cone
@@ -24,8 +28,27 @@ for (const s of sources) console.log(s.id + " " + s.repository + " " + s.revisio
   git -C "$tmp/clone" fetch --quiet --depth 1 --filter=blob:none origin "$revision"
   git -C "$tmp/clone" checkout --quiet FETCH_HEAD
   mkdir -p "$dest"
-  cp -R "$tmp/clone/$subpath/." "$dest/"
+  if [ -n "$file" ]; then
+    cp "$tmp/clone/$file" "$dest/"
+  else
+    cp -R "$tmp/clone/$subpath/." "$dest/"
+  fi
   git -C "$tmp/clone" rev-parse FETCH_HEAD > "$dest/.fetched"
   rm -rf "$tmp"
-  echo "fetched $id at $(cat "$dest/.fetched")"
+  echo "fetched ${dest##*/} at $(cat "$dest/.fetched")"
+}
+
+node -e '
+const { sources } = require("./corpus/reference/sources.json");
+for (const s of sources) console.log(s.id + " " + s.repository + " " + s.revision + " " + s.subpath);
+' | while read -r id repo revision subpath; do
+  fetch_pinned "$repo" "$revision" "$subpath" "corpus/reference/$id"
+done
+
+mkdir -p corpus/fonts
+node -e '
+const { fonts } = require("./corpus/fonts.json");
+for (const f of fonts) console.log(f.id + " " + f.repository + " " + f.revision + " " + f.path);
+' | while read -r id repo revision path; do
+  fetch_pinned "$repo" "$revision" "$(dirname "$path")" "corpus/fonts/$id" "$path"
 done
