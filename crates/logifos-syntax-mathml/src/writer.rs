@@ -28,7 +28,8 @@ pub struct WriteError {
     /// Stable failure category.
     pub kind: WriteErrorKind,
     /// Formula path: the root is empty, sequences use `/children/N`, fractions
-    /// use `/numerator` and `/denominator`, scripts use `/base` and `/script`.
+    /// use `/numerator` and `/denominator`, scripts use `/base` and `/script`,
+    /// radicals use `/radicand` and `/index`.
     /// An output byte-limit refusal identifies the whole document (empty path).
     pub location: String,
 }
@@ -179,6 +180,34 @@ impl SyntaxBuilder {
                     )?));
                 }
                 name
+            }
+            Formula::Root(radicand, index) => {
+                for (child, field) in [(radicand, "radicand"), (index, "index")] {
+                    children.push(Node::Element(self.element(
+                        child,
+                        &format!("{location}/{field}"),
+                        depth + 1,
+                    )?));
+                }
+                "mroot"
+            }
+            Formula::Sqrt(radicand) => {
+                // msqrt inlines its children, so only the transform's
+                // sequence radicand reparses to an equal Formula.
+                let Formula::Sequence(items) = &**radicand else {
+                    return Err(refusal(
+                        WriteErrorKind::InvalidStructure,
+                        &format!("{location}/radicand"),
+                    ));
+                };
+                for (index, child) in items.iter().enumerate() {
+                    children.push(Node::Element(self.element(
+                        child,
+                        &format!("{location}/radicand/children/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                "msqrt"
             }
         };
         Ok(Element {
