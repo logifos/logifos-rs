@@ -1,5 +1,10 @@
+#[allow(dead_code)]
+#[path = "../../logifos-layout/tests/support/mod.rs"]
+mod font_support;
+
 use logifos_corpus::replay_reference;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
@@ -17,9 +22,12 @@ impl Reference {
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
-        std::fs::create_dir(&root).unwrap();
-        std::fs::write(root.join("sources.json"), sources.to_string()).unwrap();
-        Self { root }
+        // The reference dir nests under its own parent so fonts.json and
+        // corpus files stay isolated from the shared temp directory.
+        let reference = root.join("reference");
+        std::fs::create_dir_all(&reference).unwrap();
+        std::fs::write(reference.join("sources.json"), sources.to_string()).unwrap();
+        Self { root: reference }
     }
 
     fn corpus(&self, id: &str, revision: &str) -> PathBuf {
@@ -108,6 +116,40 @@ fn corpora_replay_through_the_shared_pipeline() {
     assert_eq!(report, again);
     let repeated = std::fs::read(reference.path().join("jeuclid/manifest.json")).unwrap();
     assert_eq!(manifest, repeated);
+}
+
+#[test]
+fn a_fetched_grading_font_opens_the_layout_gate() {
+    let reference = Reference::new(sources(&[("jeuclid", "a1")]));
+    let jeuclid = reference.corpus("jeuclid", "a1");
+    std::fs::write(
+        jeuclid.join("contentmath.mml"),
+        "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi>x</mi></math>",
+    )
+    .unwrap();
+    // A hash-pinned font materializes where fonts.json says it does.
+    let font = font_support::font();
+    let dir = reference.root.parent().unwrap().join("fonts").join("main");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("fixture.ttf"), &font).unwrap();
+    std::fs::write(dir.join(".fetched"), "f1\n").unwrap();
+    std::fs::write(
+        reference.root.parent().unwrap().join("fonts.json"),
+        json!({"fonts": [{"id": "main", "revision": "f1", "path": "fixture.ttf",
+            "sha256": format!("{:x}", Sha256::digest(&font))}]})
+        .to_string(),
+    )
+    .unwrap();
+
+    let report = replay_reference(reference.path()).unwrap();
+    assert_eq!(report["totals"], json!({"pass":1,"refusal":0,"failure":0}));
+    let source = &report["sources"][0];
+    assert_eq!(
+        source["stage_counts"]["emit:pass:complete"],
+        json!(1),
+        "the case renders to deterministic SVG through the fixture font"
+    );
+    assert_ne!(source["font"], Value::Null, "the report names the font");
 }
 
 #[test]

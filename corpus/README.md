@@ -12,6 +12,11 @@
   stop at the font gate show as `layout/font_not_configured`
   refusals — their capability depth is visible in each source's
   `stage_counts`.
+
+* `../fonts.json` pins the grading font (STIX Two Math from google/fonts,
+  fetched to `corpus/fonts/` by the same script). With it materialized,
+  `--reference` replays through layout and SVG emission with real glyph
+  outlines; the first run rendered 85 lasem cases end to end.
 * The plurimath-testsuite mathml stage and the vendored W3C MathML suites
   (in plurimath-testsuite) remain the primary parse/round-trip corpora.
 

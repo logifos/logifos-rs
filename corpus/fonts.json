@@ -1,0 +1,13 @@
+{
+  "comment": "The grading font replays reference corpora through layout and SVG emission. Pinned like the corpora: fetch with scripts/fetch-reference-corpus.sh, which materializes the pinned file at corpus/fonts/<file>.",
+  "fonts": [
+    {
+      "id": "stix-two-math",
+      "repository": "https://github.com/google/fonts",
+      "revision": "823468bd7825152bce2b8fd2cf740432ad2fce8d",
+      "path": "ofl/stixtwomath/STIXTwoMath-Regular.ttf",
+      "sha256": "562551b15b836e6e01d1b7350909baf3c8c8d83260c1190fbf4544333e6936de",
+      "description": "The canonical MATH-table face for grading: layout and emission outcomes on the reference corpora are measured against it."
+    }
+  ]
+}
