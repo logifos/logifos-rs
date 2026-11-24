@@ -20,6 +20,10 @@ pub(super) fn token<'a>(
     let mut children = Vec::new();
     let mut italic = 0.0;
     for character in text.chars() {
+        let character = match style.variant {
+            Some(variant) if operator.is_none() => super::variant::map(character, variant),
+            _ => character,
+        };
         budget.glyph()?;
         let measured = fonts.measure(character, style.font_size_px)?;
         italic = measured.glyph.italics_correction_px;

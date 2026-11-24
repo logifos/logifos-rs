@@ -10,6 +10,7 @@ mod scripts;
 mod style;
 mod table;
 mod token;
+mod variant;
 
 pub use error::LayoutError;
 pub use logifos_model::MathColor;

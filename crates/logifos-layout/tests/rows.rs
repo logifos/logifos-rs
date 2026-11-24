@@ -1231,23 +1231,14 @@ fn effective_depth_outside_bounds_refuses_without_panicking() {
 
 #[test]
 fn preserved_attributes_without_layout_semantics_refuse_instead_of_disappearing() {
-    use logifos_model::{MathVariant, PresentationStyle};
-    for (hints, content) in [
-        (
-            PresentationStyle {
-                math_variant: Some(MathVariant::Bold),
-                ..Default::default()
-            },
-            Formula::Style(vec![symbol("x")]),
-        ),
-        (
-            PresentationStyle {
-                accent: Some(true),
-                ..Default::default()
-            },
-            Formula::Over(Box::new(symbol("x")), Box::new(symbol("y"))),
-        ),
-    ] {
+    use logifos_model::PresentationStyle;
+    for (hints, content) in [(
+        PresentationStyle {
+            accent: Some(true),
+            ..Default::default()
+        },
+        Formula::Over(Box::new(symbol("x")), Box::new(symbol("y"))),
+    )] {
         let formula = sequence(vec![styled(content, hints)]);
         assert_eq!(
             layout(&formula, &mut provider(&font()), options(0)).unwrap_err(),
@@ -1378,4 +1369,40 @@ fn rspace_replaces_only_the_trailing_operator_space() {
         spaced.glyphs[2].origin.x() - plain.glyphs[2].origin.x(),
         1.0,
     );
+}
+
+#[test]
+fn mathvariant_selects_the_styled_character_and_inherits() {
+    use logifos_model::{MathVariant, PresentationStyle};
+    let hints = |variant| PresentationStyle {
+        math_variant: Some(variant),
+        ..Default::default()
+    };
+    let italic = styled(
+        Formula::Style(vec![symbol("x"), operator("(")]),
+        hints(MathVariant::Italic),
+    );
+    let result = layout(&italic, &mut provider(&support::font()), options(0)).unwrap();
+    // 'x' becomes U+1D465 (glyph 4); the operator keeps its own character.
+    assert_eq!(result.glyphs[0].character, '\u{1d465}');
+    assert_eq!(result.glyphs[0].glyph.glyph_id, 4);
+    assert_eq!(result.glyphs[1].character, '(');
+    let normal = styled(
+        Formula::Style(vec![styled(
+            Formula::Style(vec![symbol("x")]),
+            hints(MathVariant::Normal),
+        )]),
+        hints(MathVariant::Italic),
+    );
+    assert_eq!(
+        layout(&normal, &mut provider(&support::font()), options(0))
+            .unwrap()
+            .glyphs[0]
+            .character,
+        'x'
+    );
+    // A face without the styled glyph refuses rather than substituting.
+    let bold = styled(Formula::Style(vec![symbol("x")]), hints(MathVariant::Bold));
+    let error = layout(&bold, &mut provider(&support::font()), options(0)).unwrap_err();
+    assert_eq!(error.code(), "MISSING_GLYPH");
 }
