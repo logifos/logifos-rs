@@ -34,6 +34,10 @@ fn fresh_constructs_roundtrip_with_exact_formula_equality() {
         "<math><msup><mi>base</mi><mi>sup</mi></msup></math>",
         "<math><msub><mfrac><mi>a</mi><mi>b</mi></mfrac><msup><mi>c</mi><mi>d</mi></msup></msub></math>",
         "<math><mfrac><mrow/><mrow><mi>a</mi><mi>b</mi></mrow></mfrac></math>",
+        "<math><msqrt><mi>x</mi><mo>+</mo><mn>1</mn></msqrt></math>",
+        "<math><msqrt/></math>",
+        "<math><mroot><msqrt><mi>x</mi></msqrt><mn>3</mn></mroot></math>",
+        "<math><msqrt><mfrac><mi>a</mi><mi>b</mi></mfrac></msqrt><mroot><mi>r</mi><mi>n</mi></mroot></math>",
         "<math><mtext> &lt;&amp;&gt;\"' &#xD;\n\tα&#x301;&#x1D6FC;&#xA0; </mtext></math>",
         "<math><mi>a<![CDATA[<&]]>b&amp;lt;</mi></math>",
         "<math>\r\n<mrow>\t<mn>1</mn>\n<mi>x</mi></mrow> </math>",
@@ -84,6 +88,26 @@ fn every_non_sequence_root_refuses_instead_of_adding_grouping() {
         assert_eq!(error.location, "");
         assert_eq!(error.code(), "UNSUPPORTED_SYNTAX");
     }
+}
+
+#[test]
+fn only_sequence_radicands_roundtrip_through_msqrt() {
+    // A bare non-sequence radicand has no spelling that reparses equal, so
+    // it refuses at the radicand path instead of normalizing silently.
+    let error = write(&Formula::Sequence(vec![Formula::Sqrt(Box::new(symbol(
+        "x",
+    )))]))
+    .unwrap_err();
+    assert_eq!(error.kind, WriteErrorKind::InvalidStructure);
+    assert_eq!(error.location, "/children/0/radicand");
+    let output = roundtrip(&Formula::Sequence(vec![Formula::Root(
+        Box::new(symbol("x")),
+        Box::new(symbol("3")),
+    )]));
+    assert!(
+        output.contains("<mroot><mi>x</mi><mi>3</mi></mroot>"),
+        "root bytes: {output}"
+    );
 }
 
 #[test]
