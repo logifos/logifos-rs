@@ -76,7 +76,7 @@ fn typed_refusals_and_integrity_failures_are_counted_without_skips() {
         ("bad-xml", b"<math>"),
         ("unsafe", b"<!DOCTYPE math><math/>"),
         ("style", b"<math mathcolor='red'/>"),
-        ("table", b"<math><mtable/></math>"),
+        ("error", b"<math><merror/></math>"),
         ("broken", b"<math/>"),
     ]);
     corpus.manifest["cases"][5]["sha256"] = json!("0".repeat(64));
