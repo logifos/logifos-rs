@@ -160,7 +160,7 @@ fn foreign_under_over_elements_refuse_despite_known_local_names() {
 #[test]
 fn writer_refusals_name_each_under_over_operand() {
     let valid = Box::new(symbol("x"));
-    let invalid = Box::new(Formula::Operator("private".into()));
+    let invalid = Box::new(Formula::Operator("pri vate".into()));
     for (node, field) in [
         (Formula::Under(invalid.clone(), valid.clone()), "base"),
         (Formula::Under(valid.clone(), invalid.clone()), "under"),

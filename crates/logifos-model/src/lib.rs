@@ -5,6 +5,8 @@
 //! layout and rendering stages consume only this tree, so adding a syntax
 //! never touches them.
 
+pub mod operator;
+
 mod presentation;
 pub use presentation::{
     ColumnAlign, MathColor, MathDisplay, MathSpace, MathVariant, PresentationStyle, ScriptLevel,

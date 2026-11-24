@@ -69,6 +69,10 @@ fn font() -> Vec<u8> {
         ('=', 4),
         ('*', 4),
         ('×', 4),
+        ('±', 4),
+        ('≤', 4),
+        ('⋅', 4),
+        (',', 4),
         (' ', 5),
     ])
     .finish()
@@ -209,6 +213,22 @@ fn core_spacing_categories_are_numeric_rules() {
         ("*", 33.45, 12.45, 20.85),
         ("×", 33.45, 12.45, 20.85),
         ("=", 37.45, 14.45, 24.85),
+    ] {
+        let result = render(&sequence(vec![symbol("x"), operator(text), symbol("y")]), 0);
+        close(result.tree.metrics().width(), width);
+        close(result.glyphs[1].origin.x(), op_x);
+        close(result.glyphs[2].origin.x(), y_x);
+    }
+}
+
+#[test]
+fn dictionary_categories_beyond_the_first_five_space_by_figure_26() {
+    // B (4), C (3), the default (5) and the asymmetric separator M (0 | 3).
+    for (text, width, op_x, y_x) in [
+        ("±", 35.45, 13.45, 22.85),
+        ("⋅", 33.45, 12.45, 20.85),
+        ("≤", 37.45, 14.45, 24.85),
+        (",", 30.45, 9.45, 17.85),
     ] {
         let result = render(&sequence(vec![symbol("x"), operator(text), symbol("y")]), 0);
         close(result.tree.metrics().width(), width);
@@ -806,7 +826,7 @@ fn unit_of(fonts: &mut FontProvider, constant: logifos_layout::font::math::MathC
 
 #[test]
 fn unsupported_operators_and_missing_glyphs_refuse_typed() {
-    for text in ["", "∑", "++", "−"] {
+    for text in ["", "∑", "∫", " + "] {
         assert_eq!(
             layout(&operator(text), &mut provider(&font()), options(0)).unwrap_err(),
             LayoutError::UnsupportedOperator(text.into())

@@ -474,15 +474,14 @@ impl Transformer {
         if element.name.local != "mo" {
             return Ok(Formula::Symbol(text));
         }
-        match text.as_str() {
-            "+" | "-" | "=" | "*" | "×" => Ok(Formula::Operator(text)),
-            "(" | ")" | "[" | "]" | "{" | "}" | "|" | "\u{2016}" | "\u{2308}" | "\u{2309}"
-            | "\u{230a}" | "\u{230b}" | "\u{27e8}" | "\u{27e9}" => Ok(Formula::Operator(text)),
-            _ => Err(refusal(
+        if logifos_model::operator::is_operator_text(&text) {
+            Ok(Formula::Operator(text))
+        } else {
+            Err(refusal(
                 TransformErrorKind::UnsupportedOperator,
                 element,
                 location,
-            )),
+            ))
         }
     }
 }

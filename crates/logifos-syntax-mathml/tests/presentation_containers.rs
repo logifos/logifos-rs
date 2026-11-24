@@ -138,7 +138,7 @@ fn row_like_content_keeps_exact_refusal_paths() {
                 "<annotation>meaning</annotation>",
                 TransformErrorKind::UnsupportedElement,
             ),
-            ("<mo>^</mo>", TransformErrorKind::UnsupportedOperator),
+            ("<mo>a b</mo>", TransformErrorKind::UnsupportedOperator),
         ] {
             refused(
                 &format!("<{name}><mi>x</mi>{content}</{name}>"),
@@ -227,12 +227,12 @@ fn container_writing_reports_invalid_descendants() {
     for name in CONTAINERS {
         let error = write(&Formula::Sequence(vec![container(
             name,
-            vec![Formula::Operator("private".into())],
+            vec![Formula::Operator("pri vate".into())],
         )]))
         .unwrap_err();
         assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
         assert_eq!(error.location, "/children/0/children/0");
-        assert!(!error.to_string().contains("private"));
+        assert!(!error.to_string().contains("pri vate"));
     }
 }
 

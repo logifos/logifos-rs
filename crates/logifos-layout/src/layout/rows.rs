@@ -95,17 +95,16 @@ pub(super) fn row<'a>(
     let mut index = 0;
     let mut parts = Vec::new();
     for node in children {
-        let space = if core.is_none() {
-            node.operator.map_or(0.0, |text| {
+        let (lead, trail) = if core.is_none() {
+            node.operator.map_or((0.0, 0.0), |text| {
                 operator::space(
                     text,
-                    index == 0,
-                    count > 1,
+                    operator::form(index, count),
                     node.operator_font_size_px.unwrap_or(style.font_size_px),
                 )
             })
         } else {
-            0.0
+            (0.0, 0.0)
         };
         let correction = if !node.empty && node.italic == 0.0 {
             previous_italic
@@ -116,7 +115,7 @@ pub(super) fn row<'a>(
             previous_italic = node.italic;
             index += 1;
         }
-        parts.push((node, correction + space, space));
+        parts.push((node, correction + lead, trail));
     }
     let mut node = stack(parts)?;
     node.operator = core;
@@ -153,14 +152,13 @@ fn stretched_fence<'a>(
 }
 
 pub(super) fn finish(node: Node<'_>, style: ResolvedStyle) -> Result<Node<'_>, LayoutError> {
-    let space = node.operator.map_or(0.0, |text| {
+    let (lead, trail) = node.operator.map_or((0.0, 0.0), |text| {
         operator::space(
             text,
-            false,
-            false,
+            operator::form(0, 1),
             node.operator_font_size_px.unwrap_or(style.font_size_px),
         )
     });
     let trailing = node.italic;
-    stack(vec![(node, space, space + trailing)])
+    stack(vec![(node, lead, trail + trailing)])
 }

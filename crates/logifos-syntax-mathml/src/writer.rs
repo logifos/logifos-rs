@@ -163,29 +163,7 @@ impl SyntaxBuilder {
             }
             Formula::Symbol(text) | Formula::Operator(text) | Formula::StringLiteral(text) => {
                 let operator = matches!(formula, Formula::Operator(_));
-                if operator
-                    && !matches!(
-                        text.as_str(),
-                        "+" | "-"
-                            | "="
-                            | "*"
-                            | "×"
-                            | "("
-                            | ")"
-                            | "["
-                            | "]"
-                            | "{"
-                            | "}"
-                            | "|"
-                            | "\u{2016}"
-                            | "\u{2308}"
-                            | "\u{2309}"
-                            | "\u{230a}"
-                            | "\u{230b}"
-                            | "\u{27e8}"
-                            | "\u{27e9}"
-                    )
-                {
+                if operator && !logifos_model::operator::is_operator_text(text) {
                     return Err(refusal(WriteErrorKind::UnsupportedOperator, location));
                 }
                 if text.len() > ParseLimits::default().source_bytes - self.text_bytes {

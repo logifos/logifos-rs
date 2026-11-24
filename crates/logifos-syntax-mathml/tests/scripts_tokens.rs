@@ -312,7 +312,7 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
     }
     for content in [
         "<menclose/>",
-        "<mo>private</mo>",
+        "<mo>pri vate</mo>",
         "<!--private-->",
         "private",
     ] {
@@ -330,7 +330,7 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
 #[test]
 fn writer_refusals_name_each_script_operand() {
     let valid = Box::new(symbol("x"));
-    let invalid = Box::new(Formula::Operator("private".into()));
+    let invalid = Box::new(Formula::Operator("pri vate".into()));
     let nodes = [
         (
             Formula::SubSup(invalid.clone(), valid.clone(), valid.clone()),

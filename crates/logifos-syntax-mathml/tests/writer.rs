@@ -22,6 +22,17 @@ fn roundtrip(formula: &Formula) -> String {
 }
 
 #[test]
+fn dictionary_operators_roundtrip_exactly() {
+    let formula = Formula::Sequence(
+        ["≤", "±", "→", "∑", "¯", ",", "lim", "\u{2004}", ""]
+            .into_iter()
+            .map(|text| Formula::Operator(text.into()))
+            .collect(),
+    );
+    roundtrip(&formula);
+}
+
+#[test]
 fn fresh_constructs_roundtrip_with_exact_formula_equality() {
     let cases = [
         "<math/>",
@@ -116,7 +127,7 @@ fn only_sequence_radicands_roundtrip_through_msqrt() {
 
 #[test]
 fn unsupported_operators_refuse_at_the_exact_formula_path() {
-    for text in ["", "−", "÷", "∑", " + ", "++", "\u{2062}"] {
+    for text in [" + ", "\u{2062}"] {
         let formula = Formula::Sequence(vec![Formula::Fraction(
             Box::new(symbol("x")),
             Box::new(Formula::Superscript(
