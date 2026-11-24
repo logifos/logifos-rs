@@ -62,8 +62,8 @@ impl ResolvedStyle {
         hints: PresentationStyle,
         fonts: &mut FontProvider,
     ) -> Result<Self, LayoutError> {
-        // accent only changes over-script placement, and the only constructs
-        // that own it (Over, UnderOver) still refuse layout as a whole.
+        // accent only changes over-script placement; Over and UnderOver read it
+        // from the hints themselves.
         let mut style = self;
         if hints.math_variant.is_some() {
             style.variant = hints.math_variant;

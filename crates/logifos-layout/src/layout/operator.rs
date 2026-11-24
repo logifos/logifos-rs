@@ -33,6 +33,13 @@ pub(super) fn large(text: &str) -> bool {
         .any(|form| operator::category(text, form).is_large())
 }
 
+/// Core 3.4.2.1: the `movablelimits` dictionary property.
+pub(super) fn movable_limits(text: &str) -> bool {
+    [Form::Prefix, Form::Infix, Form::Postfix]
+        .into_iter()
+        .any(|form| operator::category(text, form).is_movable_limits())
+}
+
 /// The form of an operator from its place among the non-empty row children.
 pub(super) fn form(index: usize, count: usize) -> Form {
     match (index, count) {

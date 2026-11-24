@@ -3,6 +3,7 @@
 mod baseline;
 mod error;
 mod fraction;
+mod limits;
 mod operator;
 mod radical;
 mod rows;
@@ -104,6 +105,7 @@ fn build<'a>(
     if depth > MAX_DEPTH || budget.nodes > MAX_NODES {
         return Err(LayoutError::ResourceLimit);
     }
+    let mut accent = false;
     let (formula, style) = if let Formula::Styled {
         style: hints,
         content,
@@ -116,11 +118,12 @@ fn build<'a>(
         style = style.presentation(*hints, fonts)?;
         if let Some(space) = hints.right_space {
             // Core 3.2.4: rspace in 1/18 em of the operator's own size.
-            let mut node = build_construct(content, fonts, style, budget, depth)?;
+            let mut node = build_construct(content, fonts, style, budget, depth, false)?;
             let size = node.operator_font_size_px.unwrap_or(style.font_size_px);
             node.right_space = Some(size * space.units() / 18.0);
             return Ok(node);
         }
+        accent = hints.accent == Some(true);
         (content.as_ref(), style)
     } else {
         (formula, style)
@@ -143,8 +146,68 @@ fn build<'a>(
             }
             Ok(node)
         }
-        _ => build_construct(formula, fonts, style, budget, depth),
+        _ => build_construct(formula, fonts, style, budget, depth, accent),
     }
+}
+
+/// Core 3.4.4: a script gains a math-depth level and compact displaystyle;
+/// the subscript is also math-shift compact.
+fn script_styles(
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+) -> Result<(ResolvedStyle, ResolvedStyle), LayoutError> {
+    Ok((
+        style.raise(fonts, 1, true)?,
+        style.raise(fonts, 1, style.cramped)?,
+    ))
+}
+
+/// An accent overscript gains the level but keeps the font size (Core 3.4.4).
+fn over_style(
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+    accent: bool,
+) -> Result<ResolvedStyle, LayoutError> {
+    let raised = style.raise(fonts, 1, style.cramped)?;
+    Ok(if accent {
+        ResolvedStyle {
+            font_size_px: style.font_size_px,
+            ..raised
+        }
+    } else {
+        raised
+    })
+}
+
+/// Core 3.4.2.1: compact limits over an embellished operator with
+/// `movablelimits` lay out as scripts.
+fn movable(base: &Node<'_>, style: ResolvedStyle) -> bool {
+    !style.display && base.operator.is_some_and(operator::movable_limits)
+}
+
+fn scripted_pair<'a>(
+    base: Node<'a>,
+    sub: Option<&'a Formula>,
+    sup: Option<&'a Formula>,
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+    budget: &mut Budget,
+    depth: usize,
+) -> Result<Node<'a>, LayoutError> {
+    let (lowered, raised) = script_styles(fonts, style)?;
+    let sub = sub
+        .map(|child| build(child, fonts, lowered, budget, depth + 1))
+        .transpose()?;
+    let sup = sup
+        .map(|child| build(child, fonts, raised, budget, depth + 1))
+        .transpose()?;
+    scripts::multi(
+        base,
+        vec![scripts::Pair { sub, sup }],
+        Vec::new(),
+        fonts,
+        style,
+    )
 }
 
 fn build_construct<'a>(
@@ -153,6 +216,7 @@ fn build_construct<'a>(
     style: ResolvedStyle,
     budget: &mut Budget,
     depth: usize,
+    accent: bool,
 ) -> Result<Node<'a>, LayoutError> {
     match formula {
         Formula::Styled { .. }
@@ -161,13 +225,7 @@ fn build_construct<'a>(
         | Formula::ErrorGroup(_)
         | Formula::Padded(_)
         | Formula::Phantom(_) => unreachable!("handled by build"),
-        Formula::Under(..)
-        | Formula::Over(..)
-        | Formula::UnderOver(..)
-        | Formula::SubSup(..)
-        | Formula::MultiScripts { .. }
-        | Formula::Space
-        | Formula::StringLiteral(_) => Err(LayoutError::NotLaidOutYet),
+        Formula::Space | Formula::StringLiteral(_) => Err(LayoutError::NotLaidOutYet),
         Formula::Symbol(text) => token::token(text, None, fonts, style, budget),
         Formula::Operator(text) => {
             operator::validate(text)?;
@@ -205,6 +263,95 @@ fn build_construct<'a>(
             let lowered = style.raise(fonts, 1, true)?;
             let script = build(script, fonts, lowered, budget, depth + 1)?;
             scripts::subscript(base, script, fonts, style)
+        }
+        Formula::SubSup(base, sub, sup) => {
+            let base = build(base, fonts, style, budget, depth + 1)?;
+            scripted_pair(
+                base,
+                Some(sub.as_ref()),
+                Some(sup.as_ref()),
+                fonts,
+                style,
+                budget,
+                depth,
+            )
+        }
+        Formula::MultiScripts {
+            base,
+            postscripts,
+            prescripts,
+        } => {
+            let base = build(base, fonts, style, budget, depth + 1)?;
+            let mut script = |pairs: &'a [logifos_model::ScriptPair]| {
+                pairs
+                    .iter()
+                    .map(|pair| {
+                        let (lowered, raised) = script_styles(fonts, style)?;
+                        let mut one = |child: &'a Option<Box<Formula>>, at| {
+                            child
+                                .as_deref()
+                                .map(|child| build(child, fonts, at, budget, depth + 1))
+                                .transpose()
+                        };
+                        Ok(scripts::Pair {
+                            sub: one(&pair.subscript, lowered)?,
+                            sup: one(&pair.superscript, raised)?,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, LayoutError>>()
+            };
+            let post = script(postscripts)?;
+            let pre = script(prescripts.as_deref().unwrap_or(&[]))?;
+            scripts::multi(base, post, pre, fonts, style)
+        }
+        Formula::Under(base, under) => {
+            let base = build(base, fonts, style, budget, depth + 1)?;
+            if movable(&base, style) {
+                let lowered = style.raise(fonts, 1, true)?;
+                let under = build(under, fonts, lowered, budget, depth + 1)?;
+                return scripts::subscript(base, under, fonts, style);
+            }
+            let raised = style.raise(fonts, 1, style.cramped)?;
+            let under = build(under, fonts, raised, budget, depth + 1)?;
+            limits::limits(base, Some(under), None, false, fonts, style)
+        }
+        Formula::Over(base, over) => {
+            let base_style = ResolvedStyle {
+                cramped: style.cramped || accent,
+                ..style
+            };
+            let base = build(base, fonts, base_style, budget, depth + 1)?;
+            if movable(&base, style) {
+                let raised = style.raise(fonts, 1, style.cramped)?;
+                let over = build(over, fonts, raised, budget, depth + 1)?;
+                return scripts::superscript(base, over, fonts, style);
+            }
+            let over_at = over_style(fonts, style, accent)?;
+            let over = build(over, fonts, over_at, budget, depth + 1)?;
+            limits::limits(base, None, Some(over), accent, fonts, style)
+        }
+        Formula::UnderOver(base, under, over) => {
+            let base_style = ResolvedStyle {
+                cramped: style.cramped || accent,
+                ..style
+            };
+            let base = build(base, fonts, base_style, budget, depth + 1)?;
+            if movable(&base, style) {
+                return scripted_pair(
+                    base,
+                    Some(under.as_ref()),
+                    Some(over.as_ref()),
+                    fonts,
+                    style,
+                    budget,
+                    depth,
+                );
+            }
+            let raised = style.raise(fonts, 1, style.cramped)?;
+            let under = build(under, fonts, raised, budget, depth + 1)?;
+            let over_at = over_style(fonts, style, accent)?;
+            let over = build(over, fonts, over_at, budget, depth + 1)?;
+            limits::limits(base, Some(under), Some(over), accent, fonts, style)
         }
         Formula::Sqrt(radicand) => {
             // msqrt and mroot set math-shift compact on themselves and so on

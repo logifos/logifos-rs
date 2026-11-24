@@ -48,6 +48,12 @@ impl OperatorCategory {
     pub fn is_large(self) -> bool {
         matches!(self, Self::H | Self::J)
     }
+
+    /// Whether the operator also has `movablelimits` (category J: sums,
+    /// products and the n-ary set operators, but not integrals).
+    pub fn is_movable_limits(self) -> bool {
+        matches!(self, Self::J)
+    }
 }
 
 use OperatorCategory as Category;
@@ -392,6 +398,7 @@ mod tests {
         assert_eq!(Category::M.spacing_units(), (0.0, 3.0));
         assert_eq!(Category::L.spacing_units(), (3.0, 0.0));
         assert!(Category::J.is_large() && !Category::B.is_large());
+        assert!(Category::J.is_movable_limits() && !Category::H.is_movable_limits());
     }
 
     #[test]
