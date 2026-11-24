@@ -4,10 +4,11 @@ mod error;
 mod fraction;
 mod operator;
 mod rows;
+mod scripts;
 mod style;
 mod token;
 
-pub use error::{Construct, LayoutError};
+pub use error::LayoutError;
 pub use style::{LayoutOptions, ResolvedStyle};
 
 use crate::font::{FontProvider, ResolvedGlyph};
@@ -33,7 +34,7 @@ pub struct Layout {
 }
 
 /// Layout never changes Formula, consults host fonts, or draws outlines.
-/// Unsupported constructs and unavailable glyph metrics refuse the whole call.
+/// Unsupported operators and unavailable glyph metrics refuse the whole call.
 /// Limits also apply to directly constructed Formula values, not just wire input.
 pub fn layout(
     formula: &Formula,
@@ -106,7 +107,17 @@ fn build<'a>(
             let denominator = build(denominator, fonts, style, budget, depth + 1)?;
             fraction::fraction(numerator, denominator, fonts, style)
         }
-        Formula::Superscript(..) => Err(LayoutError::UnsupportedConstruct(Construct::Superscript)),
-        Formula::Subscript(..) => Err(LayoutError::UnsupportedConstruct(Construct::Subscript)),
+        Formula::Superscript(base, script) => {
+            let base = build(base, fonts, style, budget, depth + 1)?;
+            let raised = style.raise(fonts, style.cramped)?;
+            let script = build(script, fonts, raised, budget, depth + 1)?;
+            scripts::superscript(base, script, fonts, style)
+        }
+        Formula::Subscript(base, script) => {
+            let base = build(base, fonts, style, budget, depth + 1)?;
+            let lowered = style.raise(fonts, true)?;
+            let script = build(script, fonts, lowered, budget, depth + 1)?;
+            scripts::subscript(base, script, fonts, style)
+        }
     }
 }

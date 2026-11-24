@@ -98,3 +98,35 @@ fn render_refuses_a_corrupt_font() {
     let reply = request_json(&render_request(&model, Some(&font)));
     assert_eq!(reply["error"]["code"], "INVALID_FONT");
 }
+
+#[test]
+fn render_lays_out_a_subscript_through_the_wire() {
+    let request = json!({
+        "abi_version": 1, "schema_version": 1,
+        "op": "parse", "format": "mathml",
+        "source": "<math><msub><mi>x</mi><mn>1</mn></msub></math>",
+    });
+    let reply = request_json(request.to_string().as_bytes());
+    assert_eq!(reply["ok"], true, "parse failed: {reply}");
+    let model = reply["result"]["model"].clone();
+    let font = font();
+    let rendered = request_json(&render_request(&model, Some(&font)));
+    assert_eq!(rendered["ok"], true, "render failed: {rendered}");
+    let svg = rendered["result"]["svg"].as_str().expect("svg string");
+    assert_eq!(svg.matches("<path").count(), 2, "two glyph paths: {svg}");
+    // The subscript must sit below the base: pin the glyph layer exactly.
+    // Script '1' lays out at 19.2px (80%); its baseline drops 10.92px below
+    // the row's (16.8 + ink ascent 13.44 - TopMax 2.52) and trails the base
+    // advance with SpaceAfterScript (2.712px) after it.
+    let glyphs_start = svg.find("<g id=\"glyphs\">").expect("glyph layer");
+    let layer = &svg[glyphs_start..];
+    assert_eq!(
+        layer,
+        concat!(
+            "<g id=\"glyphs\"><path d=\"M0 21.6 L12 0 L0 21.6 Z\"/>",
+            "<path d=\"M14.4 31.560000000000002 L24 14.280000000000001 L14.4 31.560000000000002 Z\"/>",
+            "</g></g></svg>",
+        ),
+        "glyph layer bytes: {svg}"
+    );
+}
