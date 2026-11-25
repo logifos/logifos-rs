@@ -215,7 +215,49 @@ fn mroot_outside_its_arity_becomes_a_row() {
 
 #[test]
 fn fences_become_stretchy_operators() {
-    unsupported(&[("mfenced", "<mfenced><mi>x</mi></mfenced>")]);
+    // MathML 3.3.8's equivalence: an mfenced expands to the open fence, the
+    // children separated by the cycling separator list, and the close fence
+    // — all ordinary operators.
+    assert_eq!(
+        converted("<math><mfenced><mi>x</mi><mo>+</mo><mn>1</mn></mfenced></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![
+            operator("("),
+            symbol("x"),
+            operator(","),
+            operator("+"),
+            operator(","),
+            symbol("1"),
+            operator(")"),
+        ])]),
+    );
+    // An empty separators value drops the separators.
+    assert_eq!(
+        converted("<math><mfenced separators=''><mi>x</mi><mo>+</mo><mn>1</mn></mfenced></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![
+            operator("("),
+            symbol("x"),
+            operator("+"),
+            symbol("1"),
+            operator(")"),
+        ])]),
+    );
+    assert_eq!(
+        converted(
+            "<math><mfenced open='[' close=']' separators=';;'><mi>x</mi><mi>y</mi></mfenced></math>"
+        ),
+        Formula::Sequence(vec![Formula::Sequence(vec![
+            operator("["),
+            symbol("x"),
+            operator(";"),
+            symbol("y"),
+            operator("]"),
+        ])]),
+    );
+    // An empty open omits that fence.
+    assert_eq!(
+        converted("<math><mfenced open=''><mi>x</mi></mfenced></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![symbol("x"), operator(")")])]),
+    );
     let expected = |token: &str| Formula::Sequence(vec![Formula::Operator(token.into())]);
     for token in ["(", ")", "[", "]", "{", "}", "|"] {
         assert_eq!(
@@ -257,12 +299,22 @@ fn tables_map_rows_of_anonymous_row_cells() {
         converted("<math><mtable/></math>"),
         Formula::Sequence(vec![Formula::Table(vec![])])
     );
+    // A labeled row lays out as an ordinary row: the label becomes its
+    // first cell.
+    assert_eq!(
+        converted(
+            "<math><mtable><mlabeledtr><mtd><mn>0</mn></mtd><mtd><mi>x</mi></mtd></mlabeledtr></mtable></math>"
+        ),
+        Formula::Sequence(vec![Formula::Table(vec![vec![
+            Formula::Sequence(vec![symbol("0")]),
+            Formula::Sequence(vec![symbol("x")]),
+        ]])])
+    );
 }
 
 #[test]
 fn loose_table_content_refuses_at_the_offending_element() {
     unsupported(&[
-        ("mlabeledtr", "<mlabeledtr/>"),
         ("maligngroup", "<maligngroup/>"),
         ("malignmark", "<malignmark/>"),
     ]);

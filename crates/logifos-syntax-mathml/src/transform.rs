@@ -186,8 +186,18 @@ impl Transformer {
         location: &str,
         depth: usize,
     ) -> Result<Formula, TransformError> {
-        self.check_element(element, location, depth)?;
-        let style = presentation::attributes(element, location)?;
+        // mfenced consumes its own attributes; every other element gets the
+        // budget visit and the presentation-attribute validation.
+        if element.name.local != "mfenced" {
+            self.check_element(element, location, depth)?;
+        } else {
+            self.visit(element, location, depth)?;
+        }
+        let style = if element.name.local == "mfenced" {
+            logifos_model::PresentationStyle::default()
+        } else {
+            presentation::attributes(element, location)?
+        };
         let formula = self.content(element, location, depth)?;
         if style == logifos_model::PresentationStyle::default() {
             Ok(formula)
@@ -207,6 +217,7 @@ impl Transformer {
     ) -> Result<Formula, TransformError> {
         match element.name.local.as_str() {
             "semantics" => self.semantics(element, location, depth),
+            "mfenced" => self.mfenced(element, location, depth),
             "mstyle" | "merror" | "mpadded" | "mphantom" => {
                 let children = self.row_like(element, location, depth)?;
                 Ok(match element.name.local.as_str() {
@@ -244,7 +255,9 @@ impl Transformer {
                 for (row_index, node) in element.children.iter().enumerate() {
                     let row_path = format!("{location}/children/{row_index}");
                     match node {
-                        Node::Element(row) if row.name.local.as_str() == "mtr" => {
+                        Node::Element(row)
+                            if matches!(row.name.local.as_str(), "mtr" | "mlabeledtr") =>
+                        {
                             self.check_element(row, &row_path, depth + 1)?;
                             let mut cells = Vec::new();
                             for (cell_index, cell_node) in row.children.iter().enumerate() {
@@ -436,12 +449,79 @@ impl Transformer {
                 })?;
                 let pair = (Box::new(first), Box::new(second));
                 Ok(match element.name.local.as_str() {
-                    "mfrac" => Formula::Fraction(pair.0, pair.1),
+                    // Core 3.3.2: an mfraction is a fraction whose
+                    // linethickness hint the layout owns.
+                    "mfrac" | "mfraction" => Formula::Fraction(pair.0, pair.1),
                     "msub" => Formula::Subscript(pair.0, pair.1),
                     _ => Formula::Superscript(pair.0, pair.1),
                 })
             }
         }
+    }
+
+    /// MathML 3.3.8's equivalence: an mfenced element is a row carrying
+    /// the open fence, the children separated by the separators, and the
+    /// close fence. Empty attribute values omit their fence; the separator
+    /// list cycles.
+    fn mfenced(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Formula, TransformError> {
+        let attribute = |name: &str| {
+            element
+                .attributes
+                .iter()
+                .find(|attribute| {
+                    attribute.name.namespace.is_none() && attribute.name.local == name
+                })
+                .map(|attribute| attribute.value.clone())
+        };
+        let (open, close, separators) = (
+            attribute("open").unwrap_or_else(|| "(".into()),
+            attribute("close").unwrap_or_else(|| ")".into()),
+            attribute("separators").unwrap_or_else(|| ",".into()),
+        );
+        // The open/close/separators attributes are consumed below; the
+        // presentation-attribute check does not apply to this element.
+        self.visit(element, location, depth)?;
+        let children = self.row_like(element, location, depth)?;
+        let mut sequence = Vec::with_capacity(children.len() * 2 + 2);
+        for (attribute, slot) in [(&open, "open"), (&close, "close")] {
+            if !attribute.is_empty() && !logifos_model::operator::is_operator_text(attribute) {
+                return Err(refusal(
+                    TransformErrorKind::UnsupportedOperator,
+                    element,
+                    &format!("{location}/@{slot}"),
+                ));
+            }
+        }
+        if !open.is_empty() {
+            sequence.push(Formula::Operator(open));
+        }
+        for (index, child) in children.into_iter().enumerate() {
+            if index > 0 {
+                let separator = if separators.is_empty() {
+                    None
+                } else {
+                    Some(
+                        separators
+                            .chars()
+                            .nth((index - 1) % separators.chars().count())
+                            .expect("a nonempty separator list has a character"),
+                    )
+                };
+                if let Some(separator) = separator {
+                    sequence.push(Formula::Operator(separator.to_string()));
+                }
+            }
+            sequence.push(child);
+        }
+        if !close.is_empty() {
+            sequence.push(Formula::Operator(close));
+        }
+        Ok(Formula::Sequence(sequence))
     }
 
     fn token(
