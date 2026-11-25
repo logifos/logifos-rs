@@ -50,23 +50,23 @@
     },
     {
       "categories": {
-        "pass:emit:complete": 85,
+        "pass:emit:complete": 115,
         "refusal:layout:INVALID_GEOMETRY": 1,
-        "refusal:layout:MISSING_GLYPH": 17,
+        "refusal:layout:MISSING_GLYPH": 20,
         "refusal:layout:NOT_IMPLEMENTED": 2,
         "refusal:parse:malformed_xml": 1,
         "refusal:parse:unsafe_xml": 22,
         "refusal:parse:unsupported_syntax": 6,
         "refusal:transform:invalid_structure": 2,
-        "refusal:transform:unsupported_attribute": 232,
+        "refusal:transform:unsupported_attribute": 235,
         "refusal:transform:unsupported_content": 3,
         "refusal:transform:unsupported_element": 14,
-        "refusal:transform:unsupported_operator": 37
+        "refusal:transform:unsupported_operator": 1
       },
       "counts": {
         "failure": 0,
-        "pass": 85,
-        "refusal": 337
+        "pass": 115,
+        "refusal": 307
       },
       "font": {
         "face_index": 0,
@@ -75,23 +75,23 @@
       "id": "lasem",
       "revision": "e657038b7f348a91fabd06da192aedef137bd2f2",
       "stage_counts": {
-        "emit:pass:complete": 85,
-        "layout:pass:complete": 85,
+        "emit:pass:complete": 115,
+        "layout:pass:complete": 115,
         "layout:refusal:INVALID_GEOMETRY": 1,
-        "layout:refusal:MISSING_GLYPH": 17,
+        "layout:refusal:MISSING_GLYPH": 20,
         "layout:refusal:NOT_IMPLEMENTED": 2,
         "parse:pass:complete": 393,
         "parse:refusal:malformed_xml": 1,
         "parse:refusal:unsafe_xml": 22,
         "parse:refusal:unsupported_syntax": 6,
-        "roundtrip:pass:complete": 105,
-        "transform:pass:complete": 105,
+        "roundtrip:pass:complete": 138,
+        "transform:pass:complete": 138,
         "transform:refusal:invalid_structure": 2,
-        "transform:refusal:unsupported_attribute": 232,
+        "transform:refusal:unsupported_attribute": 235,
         "transform:refusal:unsupported_content": 3,
         "transform:refusal:unsupported_element": 14,
-        "transform:refusal:unsupported_operator": 37,
-        "writer:pass:complete": 105
+        "transform:refusal:unsupported_operator": 1,
+        "writer:pass:complete": 138
       },
       "total": 422
     },
@@ -119,18 +119,18 @@
     },
     {
       "categories": {
-        "pass:emit:complete": 690,
+        "pass:emit:complete": 895,
         "refusal:layout:MISSING_GLYPH": 5,
         "refusal:parse:malformed_xml": 60,
-        "refusal:transform:unsupported_attribute": 201,
+        "refusal:transform:unsupported_attribute": 226,
         "refusal:transform:unsupported_content": 20,
-        "refusal:transform:unsupported_element": 125,
-        "refusal:transform:unsupported_operator": 405
+        "refusal:transform:unsupported_element": 295,
+        "refusal:transform:unsupported_operator": 5
       },
       "counts": {
         "failure": 0,
-        "pass": 690,
-        "refusal": 816
+        "pass": 895,
+        "refusal": 611
       },
       "font": {
         "face_index": 0,
@@ -139,18 +139,18 @@
       "id": "plurimath-testsuite",
       "revision": "7c7b4c628a8e1db149594519f7f2cc00bd08fa73",
       "stage_counts": {
-        "emit:pass:complete": 690,
-        "layout:pass:complete": 690,
+        "emit:pass:complete": 895,
+        "layout:pass:complete": 895,
         "layout:refusal:MISSING_GLYPH": 5,
         "parse:pass:complete": 1446,
         "parse:refusal:malformed_xml": 60,
-        "roundtrip:pass:complete": 695,
-        "transform:pass:complete": 695,
-        "transform:refusal:unsupported_attribute": 201,
+        "roundtrip:pass:complete": 900,
+        "transform:pass:complete": 900,
+        "transform:refusal:unsupported_attribute": 226,
         "transform:refusal:unsupported_content": 20,
-        "transform:refusal:unsupported_element": 125,
-        "transform:refusal:unsupported_operator": 405,
-        "writer:pass:complete": 695
+        "transform:refusal:unsupported_element": 295,
+        "transform:refusal:unsupported_operator": 5,
+        "writer:pass:complete": 900
       },
       "total": 1506
     },
@@ -181,7 +181,7 @@
   ],
   "totals": {
     "failure": 0,
-    "pass": 775,
-    "refusal": 7568
+    "pass": 1010,
+    "refusal": 7333
   }
 }

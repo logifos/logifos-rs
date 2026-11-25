@@ -59,12 +59,12 @@ impl OperatorCategory {
 use OperatorCategory as Category;
 
 /// Whether `text` can be the content of an operator token: possibly empty
-/// (an empty `mo` is valid MathML), with no ASCII whitespace, control or
-/// invisible-operator characters.
+/// (an empty `mo` is valid MathML), with no ASCII whitespace or control
+/// characters. The invisible operators (function application, invisible
+/// times and friends) are dictionary operators like any other.
 pub fn is_operator_text(text: &str) -> bool {
-    text.chars().all(|c| {
-        !c.is_ascii_whitespace() && !c.is_control() && !('\u{2061}'..='\u{2064}').contains(&c)
-    })
+    text.chars()
+        .all(|c| !c.is_ascii_whitespace() && !c.is_control())
 }
 
 const ASCII_PAIRS: [&str; 18] = [
@@ -402,11 +402,11 @@ mod tests {
     }
 
     #[test]
-    fn operator_text_refuses_ascii_space_control_and_invisible_operators() {
-        for text in ["\u{2192}", "lim", "..", "\u{2004}", ""] {
+    fn operator_text_refuses_ascii_space_and_control_characters() {
+        for text in ["\u{2192}", "lim", "..", "\u{2004}", "", "\u{2062}"] {
             assert!(is_operator_text(text), "{text:?}");
         }
-        for text in [" + ", "a b", "\u{2062}", "\n", "\u{0}"] {
+        for text in [" + ", "a b", "\n", "\u{0}"] {
             assert!(!is_operator_text(text), "{text:?}");
         }
     }

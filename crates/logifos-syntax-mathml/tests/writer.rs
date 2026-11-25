@@ -127,19 +127,17 @@ fn only_sequence_radicands_roundtrip_through_msqrt() {
 
 #[test]
 fn unsupported_operators_refuse_at_the_exact_formula_path() {
-    for text in [" + ", "\u{2062}"] {
-        let formula = Formula::Sequence(vec![Formula::Fraction(
-            Box::new(symbol("x")),
-            Box::new(Formula::Superscript(
-                Box::new(symbol("y")),
-                Box::new(Formula::Operator(text.into())),
-            )),
-        )]);
-        let error = write(&formula).unwrap_err();
-        assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
-        assert_eq!(error.location, "/children/0/denominator/script");
-        assert_eq!(error.code(), "UNSUPPORTED_SYNTAX");
-    }
+    let formula = Formula::Sequence(vec![Formula::Fraction(
+        Box::new(symbol("x")),
+        Box::new(Formula::Superscript(
+            Box::new(symbol("y")),
+            Box::new(Formula::Operator("a b".into())),
+        )),
+    )]);
+    let error = write(&formula).unwrap_err();
+    assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
+    assert_eq!(error.location, "/children/0/denominator/script");
+    assert_eq!(error.code(), "UNSUPPORTED_SYNTAX");
 }
 
 #[test]
