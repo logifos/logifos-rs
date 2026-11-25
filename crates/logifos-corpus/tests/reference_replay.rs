@@ -2,7 +2,7 @@
 #[path = "../../logifos-layout/tests/support/mod.rs"]
 mod font_support;
 
-use logifos_corpus::{canon_report, replay_reference};
+use logifos_corpus::{canon_report, emit_desired, replay_reference};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -202,6 +202,106 @@ fn a_fetched_grading_font_opens_the_layout_gate() {
         "the case renders to deterministic SVG through the fixture font"
     );
     assert_ne!(source["font"], Value::Null, "the report names the font");
+}
+
+#[test]
+fn each_grading_font_is_its_own_scoreboard_entry() {
+    let reference = Reference::new(sources(&[("jeuclid", "a1")]));
+    let jeuclid = reference.corpus("jeuclid", "a1");
+    std::fs::write(
+        jeuclid.join("contentmath.mml"),
+        "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi>x</mi></math>",
+    )
+    .unwrap();
+    // Two fetched grading fonts: glyph metrics and renders differ per face,
+    // so the corpus grades once per font.
+    let font = font_support::font();
+    let other = font_support::font();
+    let parent = reference.root.parent().unwrap();
+    for (id, file, bytes) in [
+        ("stix", "stix.ttf", &font),
+        ("cambria", "cambria.ttf", &other),
+    ] {
+        let dir = parent.join("fonts").join(id);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(file), bytes).unwrap();
+    }
+    std::fs::write(
+        parent.join("fonts.json"),
+        json!({"fonts": [
+            {"id": "stix", "path": "stix.ttf", "sha256": format!("{:x}", Sha256::digest(&font))},
+            {"id": "cambria", "path": "cambria.ttf", "sha256": format!("{:x}", Sha256::digest(&other))},
+        ]})
+        .to_string(),
+    )
+    .unwrap();
+
+    let report = replay_reference(reference.path()).unwrap();
+    assert_eq!(report["totals"]["pass"], json!(2), "one pass per font");
+    let entries = report["sources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|s| s["id"] == json!("jeuclid"))
+        .collect::<Vec<_>>();
+    assert_eq!(entries.len(), 2, "one scoreboard entry per font");
+    let font_ids = entries
+        .iter()
+        .map(|s| s["font"]["id"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(font_ids, ["cambria", "stix"], "entries sort by font id");
+    assert!(
+        entries
+            .iter()
+            .all(|s| s["stage_counts"]["emit:pass:complete"] == json!(1)),
+        "each font renders the case through its own face"
+    );
+}
+
+#[test]
+fn desired_renders_land_per_font_with_metrics() {
+    let reference = Reference::new(sources(&[("jeuclid", "a1")]));
+    let jeuclid = reference.corpus("jeuclid", "a1");
+    std::fs::write(
+        jeuclid.join("contentmath.mml"),
+        "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi>x</mi></math>",
+    )
+    .unwrap();
+    let font = font_support::font();
+    let parent = reference.root.parent().unwrap();
+    let dir = parent.join("fonts").join("main");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("fixture.ttf"), &font).unwrap();
+    std::fs::write(
+        parent.join("fonts.json"),
+        json!({"fonts": [{"id": "main", "path": "fixture.ttf",
+            "sha256": format!("{:x}", Sha256::digest(&font))}]})
+        .to_string(),
+    )
+    .unwrap();
+
+    let out = parent.join("desired");
+    let report = emit_desired(reference.path(), &out).unwrap();
+    assert_eq!(report["format_version"], json!(2));
+    assert_eq!(report["written"], json!(1));
+    let relative = "main/jeuclid/contentmath.mml.svg";
+    let written = out.join(relative);
+    assert!(written.is_file(), "the render lands under its font id");
+    let expected = format!("{:x}", Sha256::digest(std::fs::read(&written).unwrap()));
+    assert_eq!(report["sha256"][relative], json!(expected));
+    let metrics = report["metrics"][relative]
+        .as_array()
+        .expect("metrics are a recorded outcome");
+    assert_eq!(metrics.len(), 3, "width, height, depth");
+    assert!(
+        metrics.iter().all(|v| v.is_number()),
+        "every measurement is numeric"
+    );
+    assert_eq!(
+        report["fonts"][0]["id"],
+        json!("main"),
+        "the manifest names the grading fonts"
+    );
 }
 
 #[test]

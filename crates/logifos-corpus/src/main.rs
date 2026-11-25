@@ -10,6 +10,11 @@ const REFERENCE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../corpus/r
 const USAGE: &str = "Usage: logifos-corpus [manifest.json] [--font font.ttf --sha256 SHA256] | --reference | --canon <renderer>\nGrades a manifest (or every fetched reference corpus with --reference) and reports observations as JSON. Exit 0: no failures (refusals allowed); 1: case failures; 2: configuration/manifest error.";
 
 fn run(args: &[String]) -> Result<bool, String> {
+    if args.len() == 2 && args[0] == "--desired" {
+        let report = logifos_corpus::emit_desired(Path::new(REFERENCE_DIR), Path::new(&args[1]))?;
+        print!("{}", logifos_corpus::report_json(&report));
+        return Ok(false);
+    }
     if args.len() == 2 && args[0] == "--canon" {
         let report = logifos_corpus::canon_report(Path::new(REFERENCE_DIR), &args[1])?;
         print!("{}", logifos_corpus::report_json(&report));
