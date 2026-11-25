@@ -32,6 +32,12 @@ fn round_trip(wire: &Value, expected: &Formula) {
     );
 }
 
+fn round_trips(wire: &Value) {
+    let typed = Formula::try_from(wire).expect("wire decodes");
+    let output = typed.to_wire().expect("model re-encodes");
+    assert_eq!(&output, wire);
+}
+
 fn refused(wire: &Value, code: WireErrorCode, path: &str) {
     let snapshot = wire.clone();
     assert_eq!(
@@ -334,6 +340,17 @@ fn bootstrap_field_alias_is_refused_instead_of_reinterpreted() {
 
 #[test]
 fn exact_depth_limit_round_trips_and_the_next_level_refuses_both_directions() {
+    // The recursion at the exact depth limit needs frames the default test
+    // stack cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(exact_depth_limit_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn exact_depth_limit_body() {
     let mut wire = symbol("leaf");
     let mut typed = Formula::Symbol("leaf".into());
     for _ in 1..MAX_DEPTH {
@@ -377,21 +394,22 @@ fn exact_node_limit_round_trips_and_the_next_node_refuses_both_directions() {
 
 #[test]
 fn upstream_constructor_information_is_refused_even_when_default_valued() {
+    // left_right_wrapper stays constructor information with no retained
+    // meaning. displaystyle moved to the retained-hint class and round
+    // trips (see root_display_hint_round_trips_below).
     for value in [json!(true), json!(false), Value::Null] {
-        for field in ["displaystyle", "left_right_wrapper"] {
-            let mut wire = sequence(vec![symbol("kept")]);
-            wire["fields"][field] = value.clone();
-            refused(
-                &wire,
-                WireErrorCode::UnsupportedField,
-                &format!("/fields/{field}"),
-            );
-            refused(
-                &sequence(vec![symbol("before"), wire, symbol("after")]),
-                WireErrorCode::UnsupportedField,
-                &format!("/fields/value/1/fields/{field}"),
-            );
-        }
+        let mut wire = sequence(vec![symbol("kept")]);
+        wire["fields"]["left_right_wrapper"] = value.clone();
+        refused(
+            &wire,
+            WireErrorCode::UnsupportedField,
+            "/fields/left_right_wrapper",
+        );
+        refused(
+            &sequence(vec![symbol("before"), wire, symbol("after")]),
+            WireErrorCode::UnsupportedField,
+            "/fields/value/1/fields/left_right_wrapper",
+        );
     }
     let wire = json!({
         "class": "Math::Formula",
@@ -400,6 +418,93 @@ fn upstream_constructor_information_is_refused_even_when_default_valued() {
     refused(
         &wire,
         WireErrorCode::UnsupportedField,
-        "/fields/displaystyle",
+        "/fields/left_right_wrapper",
     );
+}
+
+#[test]
+fn root_display_hint_round_trips() {
+    for displaystyle in [true, false] {
+        let wire = json!({
+            "class": "Math::Formula",
+            "fields": {"value": [symbol("kept")], "displaystyle": displaystyle}
+        });
+        round_trips(&wire);
+    }
+    let wire = json!({
+        "class": "Math::Formula",
+        "fields": {"value": [symbol("kept")], "displaystyle": Value::Null}
+    });
+    refused(&wire, WireErrorCode::InvalidValue, "/fields/displaystyle");
+}
+
+#[test]
+fn presentation_attributes_beyond_the_display_hint_refuse() {
+    for (field, value) in [
+        ("display", json!("block")),
+        ("scriptlevel", json!(1)),
+        ("mathvariant", json!("bold")),
+        ("mathcolor", json!("#112233")),
+    ] {
+        let wire = json!({
+            "class": "Math::Formula",
+            "fields": {"value": [symbol("kept")], field: value}
+        });
+        refused(
+            &wire,
+            WireErrorCode::UnsupportedField,
+            &format!("/fields/{field}"),
+        );
+    }
+}
+
+#[test]
+fn construct_classes_round_trip_and_preserve_children() {
+    let base = symbol("x");
+    let script = symbol("n");
+    let under = json!({
+        "class": "Math::Function::Underset",
+        "fields": {"parameter_one": base, "parameter_two": script}
+    });
+    round_trips(&under);
+    let over = json!({
+        "class": "Math::Function::Overset",
+        "fields": {"parameter_one": base, "parameter_two": script}
+    });
+    round_trips(&over);
+    let underover = json!({
+        "class": "Math::Function::Underover",
+        "fields": {
+            "parameter_one": base, "parameter_two": script, "parameter_three": symbol("k")
+        }
+    });
+    round_trips(&underover);
+    let power_base = json!({
+        "class": "Math::Function::PowerBase",
+        "fields": {
+            "parameter_one": base, "parameter_two": script, "parameter_three": symbol("k")
+        }
+    });
+    round_trips(&power_base);
+    let mstyle = json!({
+        "class": "Math::Formula::Mstyle",
+        "fields": {"value": [symbol("kept")]}
+    });
+    round_trips(&mstyle);
+    for class in [
+        "Math::Function::Merror",
+        "Math::Function::Mpadded",
+        "Math::Function::Phantom",
+    ] {
+        let group = json!({
+            "class": class,
+            "fields": {"parameter_one": [symbol("a"), symbol("b")]}
+        });
+        round_trips(&group);
+    }
+    let literal = json!({
+        "class": "Math::Function::Ms",
+        "fields": {"parameter_one": "quoted"}
+    });
+    round_trips(&literal);
 }
