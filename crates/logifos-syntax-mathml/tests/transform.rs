@@ -467,18 +467,44 @@ fn non_whitespace_and_unicode_spacing_outside_tokens_refuse() {
 
 #[test]
 fn comments_refuse_inside_and_outside_the_document_element() {
-    for (source, name, path) in [
-        ("<!--note--><math/>", "math", "/before_root/0"),
-        ("<math/><!--note-->", "math", "/after_root/0"),
-        ("<math><!--note--></math>", "math", "/root/children/0"),
-        (
-            "<math><mi>a<!--note-->b</mi></math>",
-            "mi",
-            "/root/children/0/children/1",
-        ),
-    ] {
-        refused(source, TransformErrorKind::UnsupportedContent, name, path);
-    }
+    // Comments around the root and inside a text token are authoring
+    // annotations: they drop and the characters stay. Comments where no
+    // text content exists (the root's element children, mspace, ms) refuse.
+    assert_eq!(converted("<!--note--><math/>"), Formula::Sequence(vec![]));
+    assert_eq!(converted("<math/><!--note-->"), Formula::Sequence(vec![]));
+    refused(
+        "<math><!--note--></math>",
+        TransformErrorKind::UnsupportedContent,
+        "math",
+        "/root/children/0",
+    );
+    refused(
+        "<math><mspace><!--note--></mspace></math>",
+        TransformErrorKind::UnsupportedContent,
+        "mspace",
+        "/root/children/0/children/0",
+    );
+    // A comment inside a text token annotates its characters; the
+    // annotation drops and the characters stay. ms is a literal, so its
+    // comment still refuses.
+    assert_eq!(
+        converted("<math><mi>a<!--note-->b</mi></math>"),
+        Formula::Sequence(vec![symbol("ab")]),
+    );
+    assert_eq!(
+        converted("<math><mn>1<!--note--></mn></math>"),
+        Formula::Sequence(vec![symbol("1")]),
+    );
+    assert_eq!(
+        converted("<math><mtext>t<!--note--></mtext></math>"),
+        Formula::Sequence(vec![symbol("t")]),
+    );
+    refused(
+        "<math><ms><!--note--></ms></math>",
+        TransformErrorKind::UnsupportedContent,
+        "ms",
+        "/root/children/0/children/0",
+    );
 }
 
 #[test]
