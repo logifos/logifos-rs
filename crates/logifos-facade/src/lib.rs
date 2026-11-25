@@ -5,8 +5,11 @@ mod wire;
 use serde_json::{json, Value};
 use wire::{Failure, Limits};
 
-/// Effective transport ceiling; checked before JSON allocation.
-pub const MAX_REQUEST_BYTES: usize = 262_144;
+/// Effective transport ceiling; checked before JSON allocation. Fonts ride
+/// inside the request: up to 4 MB of face bytes (the engine's
+/// MAX_FONT_BYTES) base64-encoded to about 5.6 MB, plus the model and
+/// limits, within logifos_json's 8 MB decode budget.
+pub const MAX_REQUEST_BYTES: usize = 8 << 20;
 /// Transport ownership version, independent of the package version.
 pub const ABI_VERSION: u32 = 1;
 /// JSON envelope version, independent of the package version.
