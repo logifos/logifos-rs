@@ -76,9 +76,10 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 ///
 /// `math` and `mrow` become ordered sequences (including empty or singleton rows).
 /// `mi`, `mn` and `mtext` become symbols with their decoded text preserved exactly;
-/// Formula has one shared text/identifier class. `mo` accepts only `+`, `-`, `=`,
-/// `*`, `×` and the vertical fence delimiters, with no trimming, substitution or
-/// symbol fallback. `mfrac`, `msub`
+/// Formula has one shared text/identifier class. `mo` trims its boundary
+/// whitespace per MathML Core, then accepts the operator dictionary's text —
+/// the typed operators, the fences and every non-whitespace operator
+/// character — with no substitution or symbol fallback. `mfrac`, `msub`
 /// and `msup` require exactly two element operands in source order. `msqrt`
 /// wraps every child in one radicand; `mroot` takes base then index and falls
 /// back to a row outside its two-child arity. `munder` and `mover` preserve
@@ -484,8 +485,11 @@ impl Transformer {
         if element.name.local != "mo" {
             return Ok(Formula::Symbol(text));
         }
-        if logifos_model::operator::is_operator_text(&text) {
-            Ok(Formula::Operator(text))
+        // MathML Core strips the token's boundary whitespace before the
+        // operator lookup; inner whitespace stays significant.
+        let trimmed = text.trim_matches(xml_whitespace);
+        if logifos_model::operator::is_operator_text(trimmed) {
+            Ok(Formula::Operator(trimmed.to_owned()))
         } else {
             Err(refusal(
                 TransformErrorKind::UnsupportedOperator,
