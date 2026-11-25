@@ -1,5 +1,5 @@
 {
-  "comment": "The grading font replays reference corpora through layout and SVG emission. Pinned like the corpora: fetch with scripts/fetch-reference-corpus.sh, which materializes the pinned file at corpus/fonts/<file>.",
+  "comment": "The grading fonts replay reference corpora through layout and SVG emission per font: glyph metrics and renders differ per face, so outcomes are recorded for each. Fetched to corpus/fonts/<id>/ by scripts/fetch-reference-corpus.sh; Cambria Math rides its TTC's second face (index 1).",
   "fonts": [
     {
       "id": "stix-two-math",
@@ -7,7 +7,15 @@
       "revision": "823468bd7825152bce2b8fd2cf740432ad2fce8d",
       "path": "ofl/stixtwomath/STIXTwoMath-Regular.ttf",
       "sha256": "562551b15b836e6e01d1b7350909baf3c8c8d83260c1190fbf4544333e6936de",
-      "description": "The canonical MATH-table face for grading: layout and emission outcomes on the reference corpora are measured against it."
+      "face_index": 0
+    },
+    {
+      "id": "cambria-math",
+      "fontist_formula": "cambria",
+      "path": "cambria.ttc",
+      "sha256": "fd0d6fea5a3318e39bdcd14bf60fb6bae5af787ce4dd42a048be2a1cf62a2d1f",
+      "face_index": 1,
+      "description": "Microsoft's Cambria Math face; fetch with fontist (fontist download cambria) and pin the file sha256."
     }
   ]
 }

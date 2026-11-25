@@ -242,26 +242,33 @@ fn extract(id: &str, dir: &Path) -> Result<Vec<ExtractedCase>, String> {
     }
 }
 
-/// Builds the grading-font provider from the fetched `corpus/fonts.json`
-/// entries: the recorded revision must match `.fetched` and the file bytes
-/// must match the pinned hash. No fetched font grades without one; cases
-/// then stop at the layout gate exactly as before.
-fn grading_font(parent: &Path) -> Result<Option<FontProvider>, String> {
+/// One verified, fetched grading font: its provider plus its pinned hash.
+struct GradingFont {
+    id: String,
+    sha256: String,
+    provider: FontProvider,
+}
+
+/// Builds one verified provider per fetched `corpus/fonts.json` entry: the
+/// file bytes must match the pinned hash, and a git-sourced entry's
+/// recorded revision must match its `.fetched` marker. Fontist-sourced
+/// faces have no fetch marker; their hash is the pin. No fetched font
+/// grades without verification; an empty list keeps cases at the layout
+/// gate exactly as before.
+fn grading_fonts(parent: &Path) -> Result<Vec<GradingFont>, String> {
     let Some(parent) = parent.parent() else {
-        return Ok(None);
+        return Ok(Vec::new());
     };
     let Ok(listing) = read_bounded(&parent.join("fonts.json")) else {
-        return Ok(None);
+        return Ok(Vec::new());
     };
     let listing = logifos_json::decode(&listing)?;
-    let mut provider = None;
+    let mut fonts = Vec::new();
     for font in listing["fonts"].as_array().ok_or("invalid fonts.json")? {
         let id = font["id"].as_str().ok_or("invalid fonts.json")?;
-        let revision = font["revision"]
-            .as_str()
-            .ok_or("invalid fonts.json")?
-            .to_owned();
         let expected = font["sha256"].as_str().ok_or("invalid fonts.json")?;
+        let face_index = u16::try_from(font["face_index"].as_u64().unwrap_or(0))
+            .map_err(|_| "invalid fonts.json face_index")?;
         let file = font["path"]
             .as_str()
             .and_then(|p| Path::new(p).file_name())
@@ -269,13 +276,15 @@ fn grading_font(parent: &Path) -> Result<Option<FontProvider>, String> {
             .to_string_lossy()
             .into_owned();
         let dir = parent.join("fonts").join(id);
-        let fetched = std::fs::read_to_string(dir.join(".fetched"))
-            .map_err(|_| format!("{id} font is not fetched"))?;
-        if fetched.trim() != revision {
-            return Err(format!(
-                "{id} font is at {}, pinned to {revision}",
-                fetched.trim()
-            ));
+        if let Some(revision) = font["revision"].as_str() {
+            let recorded = std::fs::read_to_string(dir.join(".fetched"))
+                .map_err(|_| format!("{id} font is not fetched"))?;
+            if recorded.trim() != revision {
+                return Err(format!(
+                    "{id} font is at {}, pinned to {revision}",
+                    recorded.trim()
+                ));
+            }
         }
         let bytes =
             read_bounded(&dir.join(&file)).map_err(|_| format!("{id} font is unreadable"))?;
@@ -284,48 +293,65 @@ fn grading_font(parent: &Path) -> Result<Option<FontProvider>, String> {
         }
         let sha = expected.to_owned();
         let id = id.to_owned();
-        provider.get_or_insert_with(|| {
-            FontProvider::new(
-                &[FontResource {
-                    id: &id,
-                    sha256: &sha,
-                    bytes: &bytes,
-                    face_index: 0,
-                }],
-                &[&id],
-            )
-            .expect("a hash-verified font always builds a provider")
+        let provider = FontProvider::new(
+            &[FontResource {
+                id: &id,
+                sha256: &sha,
+                bytes: &bytes,
+                face_index,
+            }],
+            &[&id],
+        )
+        .expect("a hash-verified font always builds a provider");
+        fonts.push(GradingFont {
+            id,
+            sha256: sha,
+            provider,
         });
     }
-    Ok(provider)
+    fonts.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(fonts)
 }
 
-/// Grades every fetched corpus and returns the aggregate scoreboard. The
-/// `sources.json` revision and the corpus's recorded `.fetched` revision
-/// must agree; manifests and cases derive deterministically from the
-/// fetched bytes.
+/// Grades every fetched corpus and returns the aggregate scoreboard, one
+/// entry per corpus per grading font: glyph metrics and renders differ per
+/// face, so outcomes are recorded for each. Without any fetched font, each
+/// corpus is graded once and stops at the layout gate. The `sources.json`
+/// revision and the corpus's recorded `.fetched` revision must agree;
+/// manifests and cases derive deterministically from the fetched bytes.
 pub fn replay_reference(reference: &Path) -> Result<Value, String> {
     let listed = listed_corpora(reference)?;
+    let mut grading = grading_fonts(reference)?;
     let mut reports = Vec::new();
     let mut totals = json!({"pass":0,"refusal":0,"failure":0});
-    let mut fonts = grading_font(reference)?;
     for (id, revision) in &listed {
         let dir = reference.join(id);
-        let mut captures = BTreeMap::new();
-        let report = run_corpus(id, revision, &dir, fonts.as_mut(), &mut captures)?;
-        for key in ["pass", "refusal", "failure"] {
-            let n = totals[key].as_u64().unwrap_or(0);
-            totals[key] = json!(n + report["counts"][key].as_u64().unwrap_or(0));
+        let loops: Vec<Option<&mut GradingFont>> = if grading.is_empty() {
+            vec![None]
+        } else {
+            grading.iter_mut().map(Some).collect()
+        };
+        for mut font in loops {
+            let mut captures = BTreeMap::new();
+            let meta = font
+                .as_ref()
+                .map(|f| json!({"id": f.id, "sha256": f.sha256}));
+            let provider = font.as_mut().map(|f| &mut f.provider);
+            let report = run_corpus(id, revision, &dir, provider, &mut captures)?;
+            for key in ["pass", "refusal", "failure"] {
+                let n = totals[key].as_u64().unwrap_or(0);
+                totals[key] = json!(n + report["counts"][key].as_u64().unwrap_or(0));
+            }
+            reports.push(json!({
+                "id": id,
+                "revision": revision,
+                "font": meta,
+                "total": report["total"],
+                "counts": report["counts"],
+                "categories": report["categories"],
+                "stage_counts": report["stage_counts"],
+            }));
         }
-        reports.push(json!({
-            "id": id,
-            "revision": revision,
-            "total": report["total"],
-            "counts": report["counts"],
-            "categories": report["categories"],
-            "stage_counts": report["stage_counts"],
-            "font": report["font"],
-        }));
     }
     Ok(json!({
         "format_version": 1,
@@ -356,13 +382,13 @@ fn listed_corpora(reference: &Path) -> Result<BTreeMap<String, String>, String> 
 }
 
 /// Verifies the fetched revision, regenerates the manifest, and grades one
-/// corpus; `captures` receives the emitted SVG of every fully passing case.
+/// corpus; `captures` receives the outcomes of every fully passing case.
 fn run_corpus(
     id: &str,
     revision: &str,
     dir: &Path,
     fonts: Option<&mut FontProvider>,
-    captures: &mut BTreeMap<String, String>,
+    captures: &mut BTreeMap<String, crate::Capture>,
 ) -> Result<Value, String> {
     let fetched = std::fs::read_to_string(dir.join(".fetched"))
         .map_err(|_| format!("{id} is not fetched"))?;
@@ -421,11 +447,63 @@ fn artifact_name(corpus: &str, case_id: &str) -> String {
     format!("{corpus}__{}", case_id.replace('/', "__"))
 }
 
+/// Materializes the desired render of every fully passing reference-corpus
+/// case for every fetched grading font: `<out>/<font>/<corpus>/<case>.svg`
+/// plus a checksums manifest whose `metrics` records each case's laid-out
+/// width/height/depth per font — the SVG is one outcome, not the only one.
+/// Deterministic per pinned corpus revisions and engine version.
+pub fn emit_desired(reference: &Path, out: &Path) -> Result<Value, String> {
+    let listed = listed_corpora(reference)?;
+    let mut grading = grading_fonts(reference)?;
+    let engine = env!("CARGO_PKG_VERSION");
+    std::fs::create_dir_all(out).map_err(|_| "desired dir is unwritable")?;
+    let mut written = 0u64;
+    let mut checksums = serde_json::Map::new();
+    let mut metrics = serde_json::Map::new();
+    for font in &mut grading {
+        for (id, revision) in &listed {
+            let dir = reference.join(id);
+            let mut captures = BTreeMap::new();
+            run_corpus(id, revision, &dir, Some(&mut font.provider), &mut captures)?;
+            let corpus_dir = out.join(&font.id).join(id);
+            std::fs::create_dir_all(&corpus_dir).map_err(|_| "desired corpus dir is unwritable")?;
+            let mut case_ids = captures.keys().cloned().collect::<Vec<_>>();
+            case_ids.sort();
+            for case_id in case_ids {
+                let capture = &captures[&case_id];
+                let name = format!("{}.svg", case_id.replace('/', "__"));
+                let relative = format!("{}/{}/{}", font.id, id, name);
+                std::fs::write(corpus_dir.join(&name), &capture.svg)
+                    .map_err(|_| "desired render is unwritable")?;
+                checksums.insert(
+                    relative.clone(),
+                    json!(format!("{:x}", Sha256::digest(capture.svg.as_bytes()))),
+                );
+                let (width, height, depth) = capture.metrics;
+                metrics.insert(relative, json!([width, height, depth]));
+                written += 1;
+            }
+        }
+    }
+    Ok(json!({
+        "format_version": 2,
+        "engine_version": engine,
+        "fonts": grading
+            .iter()
+            .map(|f| json!({"id": f.id, "sha256": f.sha256}))
+            .collect::<Vec<_>>(),
+        "written": written,
+        "sha256": checksums,
+        "metrics": metrics,
+    }))
+}
+
 /// Structural comparison of logifos's renders against a reference
-/// renderer's artifacts for the shared cases. The pin at
+/// renderer's artifacts for the shared cases, per grading font. The pin at
 /// `canon/<renderer>.json` records the renderer version; artifacts live in
 /// `canon/<renderer>/` as `.svg` (or `.error` for cases the reference
-/// could not render). Cases logifos does not fully render stay out of the
+/// could not render), while ours land in `canon/logifos/<font>/`. Cases
+/// logifos does not fully render with a font stay out of that font's
 /// shared set, and the aggregate counts carry the pass-rate gate.
 pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
     let parent = reference.parent().ok_or("reference has no parent")?;
@@ -438,43 +516,53 @@ pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
     let artifacts = parent.join("canon").join(renderer);
     let ours = parent.join("canon").join("logifos");
     let listed = listed_corpora(reference)?;
-    let mut fonts = grading_font(reference)?;
+    let mut grading = grading_fonts(reference)?;
     let mut shared = Vec::new();
     let mut logifos_renders = 0u64;
     let mut reference_renders = 0u64;
     let mut reference_errors = 0u64;
     let mut total = 0u64;
-    for corpus in listed.keys() {
-        let dir = reference.join(corpus);
-        let mut captures = BTreeMap::new();
-        let report = run_corpus(corpus, &listed[corpus], &dir, fonts.as_mut(), &mut captures)?;
-        total += report["total"].as_u64().unwrap_or(0);
-        logifos_renders += report["counts"]["pass"].as_u64().unwrap_or(0);
-        // The emitted renders persist under canon/logifos/ so the visible
-        // review set pairs them with the reference artifacts.
-        std::fs::create_dir_all(&ours).map_err(|_| "logifos canon dir is unwritable")?;
-        for (case_id, svg) in captures {
-            let name = artifact_name(corpus, &case_id);
-            std::fs::write(ours.join(format!("{name}.svg")), &svg)
-                .map_err(|_| "logifos canon artifact is unwritable")?;
-            let ours = svg_record(svg.as_bytes());
-            let svg_path = artifacts.join(format!("{name}.svg"));
-            let error_path = artifacts.join(format!("{name}.error"));
-            let theirs = if let Ok(bytes) = read_bounded(&svg_path) {
-                reference_renders += 1;
-                svg_record(&bytes)
-            } else if let Ok(bytes) = read_bounded(&error_path) {
-                reference_errors += 1;
-                json!({"error": String::from_utf8_lossy(bytes.trim_ascii()).into_owned()})
-            } else {
-                continue;
-            };
-            shared.push(json!({
-                "corpus": corpus,
-                "id": case_id,
-                "logifos": ours,
-                renderer: theirs,
-            }));
+    for font in &mut grading {
+        for corpus in listed.keys() {
+            let dir = reference.join(corpus);
+            let mut captures = BTreeMap::new();
+            let report = run_corpus(
+                corpus,
+                &listed[corpus],
+                &dir,
+                Some(&mut font.provider),
+                &mut captures,
+            )?;
+            total += report["total"].as_u64().unwrap_or(0);
+            logifos_renders += report["counts"]["pass"].as_u64().unwrap_or(0);
+            // The emitted renders persist under canon/logifos/<font>/ so the
+            // visible review set pairs them with the reference artifacts.
+            let font_dir = ours.join(&font.id);
+            std::fs::create_dir_all(&font_dir).map_err(|_| "logifos canon dir is unwritable")?;
+            for (case_id, capture) in &captures {
+                let name = artifact_name(corpus, case_id);
+                std::fs::write(font_dir.join(format!("{name}.svg")), &capture.svg)
+                    .map_err(|_| "logifos canon artifact is unwritable")?;
+                let ours = svg_record(capture.svg.as_bytes());
+                let svg_path = artifacts.join(format!("{name}.svg"));
+                let error_path = artifacts.join(format!("{name}.error"));
+                let theirs = if let Ok(bytes) = read_bounded(&svg_path) {
+                    reference_renders += 1;
+                    svg_record(&bytes)
+                } else if let Ok(bytes) = read_bounded(&error_path) {
+                    reference_errors += 1;
+                    json!({"error": String::from_utf8_lossy(bytes.trim_ascii()).into_owned()})
+                } else {
+                    continue;
+                };
+                shared.push(json!({
+                    "font": font.id,
+                    "corpus": corpus,
+                    "id": case_id,
+                    "logifos": ours,
+                    renderer: theirs,
+                }));
+            }
         }
     }
     let matching = shared

@@ -79,12 +79,21 @@ pub fn grade(manifest_path: &Path, fonts: Option<&mut FontProvider>) -> Result<V
     grade_inner(manifest_path, fonts, &mut BTreeMap::new())
 }
 
-/// Grades a manifest and captures the emitted SVG of every fully passing
-/// case, keyed by case id, for the canon comparison.
+/// One fully passing case's captured outcomes: the deterministic SVG and
+/// the laid-out metrics (width, height, depth in CSS pixels).
+#[derive(Debug, Clone)]
+pub struct Capture {
+    pub svg: String,
+    pub metrics: (f64, f64, f64),
+}
+
+/// Grades a manifest and captures the outcomes of every fully passing
+/// case, keyed by case id, for the canon comparison and the desired-render
+/// emission.
 pub fn grade_with_captures(
     manifest_path: &Path,
     fonts: Option<&mut FontProvider>,
-    captures: &mut BTreeMap<String, String>,
+    captures: &mut BTreeMap<String, Capture>,
 ) -> Result<Value, String> {
     grade_inner(manifest_path, fonts, captures)
 }
@@ -92,7 +101,7 @@ pub fn grade_with_captures(
 fn grade_inner(
     manifest_path: &Path,
     mut fonts: Option<&mut FontProvider>,
-    captures: &mut BTreeMap<String, String>,
+    captures: &mut BTreeMap<String, Capture>,
 ) -> Result<Value, String> {
     let manifest_bytes = read_bounded(manifest_path)?;
     let manifest = logifos_json::decode(&manifest_bytes)?;
@@ -154,8 +163,8 @@ fn grade_inner(
                         });
                     if let Some(last) = observations.last() {
                         if last.outcome == Outcome::Pass {
-                            if let Some(svg) = svg {
-                                captures.insert(id.to_owned(), svg);
+                            if let Some(capture) = svg {
+                                captures.insert(id.to_owned(), capture);
                             }
                         }
                     }
@@ -214,4 +223,10 @@ pub fn replay_reference(reference: &Path) -> Result<Value, String> {
 /// the shared reference-corpus cases.
 pub fn canon_report(reference: &Path, renderer: &str) -> Result<Value, String> {
     reference::canon_report(reference, renderer)
+}
+
+/// Writes the desired render of every fully passing reference-corpus case
+/// into `out`, with a checksums manifest.
+pub fn emit_desired(reference: &Path, out: &Path) -> Result<Value, String> {
+    reference::emit_desired(reference, out)
 }

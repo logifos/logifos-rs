@@ -46,9 +46,22 @@ for (const s of sources) console.log(s.id + " " + s.repository + " " + s.revisio
 done
 
 mkdir -p corpus/fonts
+# fontist-sourced fonts (Microsoft faces) are verified in place: fetch them
+# with `fontist download <formula>` and copy the file to
+# corpus/fonts/<id>/<file>; the script checks the pinned hash.
 node -e '
 const { fonts } = require("./corpus/fonts.json");
-for (const f of fonts) console.log(f.id + " " + f.repository + " " + f.revision + " " + f.path);
-' | while read -r id repo revision path; do
-  fetch_pinned "$repo" "$revision" "$(dirname "$path")" "corpus/fonts/$id" "$path"
+for (const f of fonts) console.log((f.repository ? "git" : "fontist") + " " + f.id + " " + (f.repository || f.fontist_formula) + " " + (f.revision || f.sha256) + " " + f.path + " " + f.sha256);
+' | while read -r kind id repo revision path sha256; do
+  if [ "$kind" = "fontist" ]; then
+    file="corpus/fonts/$id/$(basename "$path")"
+    if [ -f "$file" ] && [ "$(shasum -a 256 "$file" | awk '{print $1}')" = "$sha256" ]; then
+      echo "skip $id (hash matches)"
+    else
+      echo "fetch $id with: fontist download $repo; copy the face to $file (sha256 $sha256)" >&2
+      exit 1
+    fi
+  else
+    fetch_pinned "$repo" "$revision" "$(dirname "$path")" "corpus/fonts/$id" "$path"
+  fi
 done
