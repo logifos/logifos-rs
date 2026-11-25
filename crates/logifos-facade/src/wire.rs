@@ -79,8 +79,10 @@ const CEILINGS: &[(&str, u64)] = &[
     ("tree_nodes", 100_000),
     ("tree_depth", 128),
     ("font_count", 16),
-    ("font_bytes", 131_072),
-    ("total_font_bytes", 131_072),
+    // The engine's own MAX_FONT_BYTES: a real math face (STIX Two Math,
+    // 838 KB) must pass the wire, and the engine keeps its own ceiling.
+    ("font_bytes", 4_194_304),
+    ("total_font_bytes", 4_194_304),
     ("response_bytes", super::MAX_RESPONSE_BYTES as u64),
     ("glyphs", 100_000),
 ];
