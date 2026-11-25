@@ -17,6 +17,14 @@ pub(super) fn attributes(
     );
     for (index, attribute) in element.attributes.iter().enumerate() {
         let value = &attribute.value;
+        // Namespace declarations identify names and semantic-annotation
+        // attributes carry no presentation data; both drop here.
+        if attribute.name.local == "xmlns"
+            || attribute.name.prefix.as_deref() == Some("xmlns")
+            || matches!(attribute.name.local.as_str(), "xref" | "intent")
+        {
+            continue;
+        }
         let valid = attribute.name.namespace.is_none()
             && match attribute.name.local.as_str() {
                 "display" if element.name.local == "math" => {
@@ -43,7 +51,8 @@ pub(super) fn attributes(
                     style.script_level = script_level(value);
                     style.script_level.is_some()
                 }
-                "mathvariant" if grouping => {
+                // A token's mathvariant styles the token itself.
+                "mathvariant" if grouping || is_token(&element.name.local) => {
                     style.math_variant = MathVariant::parse(value);
                     style.math_variant.is_some()
                 }
@@ -74,6 +83,9 @@ pub(super) fn attributes(
                 // mspace's extents are content, consumed by the mspace arm
                 // (Core 3.2.5); presentation just admits them here.
                 "width" | "height" | "depth" if element.name.local == "mspace" => true,
+                // A layout-owned hint: the model keeps the fraction's
+                // structure, the thickness stays with the layout batch.
+                "linethickness" if element.name.local == "mfrac" => true,
                 _ => false,
             };
         if !valid {
@@ -108,4 +120,9 @@ fn script_level(value: &str) -> Option<ScriptLevel> {
         -1 => ScriptLevel::Subtract(level),
         _ => ScriptLevel::Absolute(level),
     })
+}
+
+/// The MathML token elements: identifiers, numbers, operators and text.
+fn is_token(name: &str) -> bool {
+    matches!(name, "mi" | "mn" | "mo" | "mtext")
 }

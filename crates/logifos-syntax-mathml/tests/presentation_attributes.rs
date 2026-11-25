@@ -193,7 +193,6 @@ fn additional_attribute_values_and_wrong_owners_refuse_precisely() {
         "<mstyle mathcolor='red&quot; onclick=&quot;evil'><mi>x</mi></mstyle>",
         "<mo rspace='1em'>+</mo>",
         "<mover accent='yes'><mi>x</mi><mi>y</mi></mover>",
-        "<mi mathvariant='bold'>x</mi>",
         "<mstyle rspace='thickmathspace'><mi>x</mi></mstyle>",
         "<mrow accent='true'><mi>x</mi><mi>y</mi></mrow>",
         "<mrow columnalign='center'><mi>x</mi></mrow>",
@@ -213,6 +212,17 @@ fn additional_attribute_values_and_wrong_owners_refuse_precisely() {
         .unwrap_err();
     assert_eq!(error.kind, TransformErrorKind::InvalidStructure);
     assert_eq!(error.location, "/root/children/0");
+    // A token's mathvariant styles the token; the retained hint survives
+    // the roundtrip and unknown spellings still refuse.
+    let formula = transform(&parse("<math><mi mathvariant='bold'>x</mi></math>").unwrap()).unwrap();
+    assert!(matches!(
+        formula,
+        Formula::Styled { .. } | Formula::Sequence(_)
+    ));
+    assert!(
+        transform(&parse("<math><mi mathvariant='unknown'>x</mi></math>").unwrap()).is_err(),
+        "unknown mathvariant refuses"
+    );
 }
 
 #[test]

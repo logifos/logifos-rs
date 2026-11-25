@@ -169,9 +169,11 @@ impl PresentationStyle {
                 | Formula::Padded(_)
                 | Formula::Phantom(_)
         );
+        let variant_symbol = self.math_variant.is_some() && matches!(content, Formula::Symbol(_));
         self != Self::default()
             && !matches!(content, Formula::Styled { .. })
             && (grouping
+                || variant_symbol
                 || matches!(
                     content,
                     Formula::Operator(_) | Formula::Over(..) | Formula::UnderOver(..)
@@ -181,7 +183,14 @@ impl PresentationStyle {
                 && self.script_level.is_none()
                 && self.math_variant.is_none()
                 && self.math_color.is_none())
-                || (grouping && !cell))
+                || (grouping && !cell)
+                || (variant_symbol
+                    && self.display.is_none()
+                    && self.displaystyle.is_none()
+                    && self.script_level.is_none()
+                    && self.math_color.is_none()
+                    && self.accent.is_none()
+                    && !cell))
             && (self.right_space.is_none() || matches!(content, Formula::Operator(_)))
             && (self.accent.is_none()
                 || matches!(content, Formula::Over(..) | Formula::UnderOver(..)))

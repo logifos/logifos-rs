@@ -410,16 +410,10 @@ fn inherited_presentation_attributes_refuse_at_their_owner() {
 #[test]
 fn construct_attributes_refuse_even_when_empty_or_default() {
     for (name, markup, attribute) in [
-        ("mi", "<mi mathvariant='italic'>x</mi>", "mathvariant"),
         ("mn", "<mn id=''>1</mn>", "id"),
         ("mtext", "<mtext class=''>text</mtext>", "class"),
         ("mo", "<mo stretchy='false'>+</mo>", "stretchy"),
         ("mrow", "<mrow data-label=''/>", "data-label"),
-        (
-            "mfrac",
-            "<mfrac linethickness='1'><mi>x</mi><mi>y</mi></mfrac>",
-            "linethickness",
-        ),
         (
             "msub",
             "<msub subscriptshift='0'><mi>x</mi><mi>i</mi></msub>",
@@ -439,6 +433,26 @@ fn construct_attributes_refuse_even_when_empty_or_default() {
         );
         assert_eq!(error.attribute.unwrap().local, attribute);
     }
+    // A token's mathvariant styles the token (see the comment contract),
+    // and the fraction's linethickness stays with the layout batch: the
+    // model keeps the fraction structure and the attribute drops.
+    assert_eq!(
+        converted("<math><mi mathvariant='italic'>x</mi></math>"),
+        Formula::Sequence(vec![Formula::Styled {
+            style: logifos_model::PresentationStyle {
+                math_variant: Some(logifos_model::MathVariant::Italic),
+                ..Default::default()
+            },
+            content: Box::new(symbol("x")),
+        }]),
+    );
+    assert_eq!(
+        converted("<math><mfrac linethickness='1'><mi>x</mi><mi>y</mi></mfrac></math>"),
+        Formula::Sequence(vec![Formula::Fraction(
+            Box::new(symbol("x")),
+            Box::new(symbol("y")),
+        )]),
+    );
 }
 
 #[test]
