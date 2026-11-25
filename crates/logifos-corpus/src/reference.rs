@@ -143,10 +143,85 @@ fn html_mathml_cases(dir: &Path, relative: &str) -> Result<Vec<ExtractedCase>, S
         .collect())
 }
 
+/// The plurimath-testsuite mathml stage: YAML payload rows whose `input`
+/// strings are the graded MathML. Each row materializes as a derived file
+/// under `derived/` (the corpus directory is gitignored), so the manifest
+/// stays in the file-per-case shape the grader consumes.
+fn testsuite_cases(dir: &Path) -> Result<Vec<ExtractedCase>, String> {
+    let mut payloads = walk(dir, OsStr::new("yaml"))?;
+    payloads.retain(|p| p.contains("payloads/"));
+    let mut cases = Vec::new();
+    let derived = dir.join("derived");
+    std::fs::create_dir_all(&derived).map_err(|_| "derived dir is unwritable")?;
+    for relative in payloads {
+        let bytes = read_bounded(&dir.join(&relative)).map_err(|_| "unreadable corpus entry")?;
+        let text = std::str::from_utf8(&bytes).map_err(|_| "payload is not utf-8")?;
+        let document = yaml_rust2::YamlLoader::load_from_str(text)
+            .map_err(|_| "unexpected payload shape")?
+            .into_iter()
+            .next()
+            .ok_or("unexpected payload shape")?;
+        let rows = document
+            .as_hash()
+            .ok_or("unexpected payload shape")?
+            .get(&yaml_rust2::Yaml::String("cases".into()))
+            .and_then(|cases| cases.as_vec())
+            .ok_or("unexpected payload shape")?;
+        // generations/000003/payloads/fences.yaml from the walk path; the
+        // generation number is the directory before payloads.
+        let generation = relative
+            .split('/')
+            .take_while(|part| *part != "payloads")
+            .last()
+            .unwrap_or("generations")
+            .to_owned();
+        let payload = Path::new(&relative)
+            .file_stem()
+            .map(|stem| stem.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        for row in rows {
+            let entry = row
+                .as_hash()
+                .and_then(|h| h.get(&yaml_rust2::Yaml::String("input".into())))
+                .ok_or("unexpected payload shape")?;
+            // Plain rows carry a string; model-roundtrip rows wrap the
+            // MathML in a `str` mapping.
+            let input = entry.as_str().map(str::to_owned).or_else(|| {
+                entry
+                    .as_hash()
+                    .and_then(|h| h.get(&yaml_rust2::Yaml::String("str".into())))
+                    .and_then(|str| str.as_str().map(str::to_owned))
+            });
+            let input = match input {
+                Some(input) => input,
+                None => continue,
+            };
+            let id = row
+                .as_hash()
+                .and_then(|h| h.get(&yaml_rust2::Yaml::String("id".into())))
+                .and_then(|id| id.as_str().map(str::to_owned))
+                .ok_or("unexpected payload shape")?;
+            let name = format!("{generation}__{payload}__{id}.mml");
+            let path = format!("derived/{name}");
+            std::fs::write(derived.join(&name), &input)
+                .map_err(|_| "derived case is unwritable")?;
+            let written = read_bounded(&dir.join(&path)).map_err(|_| "unreadable corpus entry")?;
+            cases.push(ExtractedCase {
+                id: format!("{generation}/{payload}/{id}"),
+                kind: "mathml",
+                path,
+                sha256: file_hash(&written),
+            });
+        }
+    }
+    Ok(cases)
+}
+
 /// One corpus adapter: from the fetched corpus directory to replayable cases.
 fn extract(id: &str, dir: &Path) -> Result<Vec<ExtractedCase>, String> {
     match id {
         "katex" => katex_cases(dir),
+        "plurimath-testsuite" => testsuite_cases(dir),
         "mathjax" | "webkit-mathml" => {
             let mut cases = Vec::new();
             for relative in walk(dir, OsStr::new("html"))? {

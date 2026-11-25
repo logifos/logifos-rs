@@ -30,8 +30,10 @@
   fetched to `corpus/fonts/` by the same script). With it materialized,
   `--reference` replays through layout and SVG emission with real glyph
   outlines; the first run rendered 85 lasem cases end to end.
-* The plurimath-testsuite mathml stage and the vendored W3C MathML suites
-  (in plurimath-testsuite) remain the primary parse/round-trip corpora.
+* `plurimath-testsuite/` replays the mathml stage rows: every payload row
+  materializes as a derived `.mml` case (its YAML `input`, including the
+  `str:` mapping form of the model-roundtrip rows) and grades through the
+  same pipeline. The stage's `rejections` rows are expected refusals.
 
 The offline [grading tool](../crates/logifos-corpus/README.md) replays every
 case in the canonical conformance manifest and reports observed outcomes
