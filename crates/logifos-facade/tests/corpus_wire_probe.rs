@@ -1,0 +1,48 @@
+use logifos_model::Formula;
+use std::{collections::BTreeMap, path::Path};
+
+/// Tallies, over the derived plurimath-testsuite cases, which stage refuses
+/// each case on the wire path — the follow-up wire slices' work list.
+/// Ignored: a reporting tool, not a gate. Run with the corpus fetched:
+///   cargo test -p logifos-facade --test corpus_wire_probe -- --ignored --nocapture
+#[test]
+#[ignore = "work-list probe; run with --ignored --nocapture"]
+fn tally_wire_refusals_over_the_corpus() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/reference/plurimath-testsuite/derived");
+    if !dir.is_dir() {
+        eprintln!("corpus not fetched; skipping");
+        return;
+    }
+    let mut tallies: BTreeMap<String, u64> = BTreeMap::new();
+    for entry in std::fs::read_dir(&dir).expect("derived dir reads") {
+        let path = entry.expect("entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("mml") {
+            continue;
+        }
+        let bytes = std::fs::read(&path).expect("case reads");
+        let mut tally = |key: &str| *tallies.entry(key.to_owned()).or_default() += 1;
+        let parsed = logifos_syntax_mathml::parse(&bytes);
+        match parsed
+            .map_err(|_| "transform:parse_refused")
+            .and_then(|d| logifos_syntax_mathml::transform(&d).map_err(|_| "transform:refused"))
+        {
+            Err(kind) => tally(kind),
+            Ok(formula) => match formula.to_wire() {
+                Ok(_) => tally("encoded"),
+                Err(e) => {
+                    let mut root = formula;
+                    let kind = classify(&mut root);
+                    tally(&format!("wire:{:?} at {} ({kind})", e.code, e.path));
+                }
+            },
+        }
+    }
+    for (key, count) in &tallies {
+        println!("{count:5}  {key}");
+    }
+}
+
+fn classify(_formula: &mut Formula) -> &'static str {
+    "unclassified"
+}
