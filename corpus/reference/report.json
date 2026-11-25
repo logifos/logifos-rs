@@ -119,6 +119,43 @@
     },
     {
       "categories": {
+        "pass:emit:complete": 455,
+        "refusal:layout:MISSING_GLYPH": 5,
+        "refusal:parse:malformed_xml": 60,
+        "refusal:transform:unsupported_attribute": 176,
+        "refusal:transform:unsupported_content": 625,
+        "refusal:transform:unsupported_element": 100,
+        "refusal:transform:unsupported_operator": 85
+      },
+      "counts": {
+        "failure": 0,
+        "pass": 455,
+        "refusal": 1051
+      },
+      "font": {
+        "face_index": 0,
+        "sha256": "562551b15b836e6e01d1b7350909baf3c8c8d83260c1190fbf4544333e6936de"
+      },
+      "id": "plurimath-testsuite",
+      "revision": "7c7b4c628a8e1db149594519f7f2cc00bd08fa73",
+      "stage_counts": {
+        "emit:pass:complete": 455,
+        "layout:pass:complete": 455,
+        "layout:refusal:MISSING_GLYPH": 5,
+        "parse:pass:complete": 1446,
+        "parse:refusal:malformed_xml": 60,
+        "roundtrip:pass:complete": 460,
+        "transform:pass:complete": 460,
+        "transform:refusal:unsupported_attribute": 176,
+        "transform:refusal:unsupported_content": 625,
+        "transform:refusal:unsupported_element": 100,
+        "transform:refusal:unsupported_operator": 85,
+        "writer:pass:complete": 460
+      },
+      "total": 1506
+    },
+    {
+      "categories": {
         "refusal:parse:malformed_xml": 1233,
         "refusal:parse:unsafe_xml": 2729,
         "refusal:parse:unsupported_syntax": 67
@@ -144,7 +181,7 @@
   ],
   "totals": {
     "failure": 0,
-    "pass": 85,
-    "refusal": 6752
+    "pass": 540,
+    "refusal": 7803
   }
 }

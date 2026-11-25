@@ -30,6 +30,13 @@
       "description": "WebKit's per-construct MathML layout and rendering expectations."
     },
     {
+      "id": "plurimath-testsuite",
+      "repository": "https://github.com/plurimath/plurimath-testsuite",
+      "revision": "7c7b4c628a8e1db149594519f7f2cc00bd08fa73",
+      "subpath": "stages/mathml",
+      "description": "The mathml stage rows (the primary parse/transform corpus): YAML payloads generated from the Ruby plurimath gem, including the expected-refusal rows."
+    },
+    {
       "id": "lasem",
       "repository": "https://github.com/LasemProject/lasem",
       "revision": "e657038b7f348a91fabd06da192aedef137bd2f2",
