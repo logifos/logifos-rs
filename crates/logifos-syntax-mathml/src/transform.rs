@@ -114,18 +114,9 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
 /// presentation content. Ignored semantics subtrees are not traversed. These
 /// checks apply to manually constructed syntax trees as well as parsed input.
 pub fn transform(document: &MathmlDocument) -> Result<Formula, TransformError> {
-    for (comments, path) in [
-        (&document.before_root, "/before_root/0"),
-        (&document.after_root, "/after_root/0"),
-    ] {
-        if !comments.is_empty() {
-            return Err(refusal(
-                TransformErrorKind::UnsupportedContent,
-                &document.root,
-                path,
-            ));
-        }
-    }
+    // Comments around the root are authoring annotations, not formula
+    // content; they carry no Formula representation and drop silently.
+    let _ = (&document.before_root, &document.after_root);
     if document.root.name.local != "math" {
         return Err(refusal(
             TransformErrorKind::InvalidStructure,
@@ -468,6 +459,15 @@ impl Transformer {
                 }
                 Node::Element(child) => {
                     return Err(refusal(TransformErrorKind::InvalidStructure, child, &path));
+                }
+                // Comments inside a text token annotate its characters and
+                // carry no Formula meaning; ms is a literal (its content must
+                // stay exact) and an element with no text content model
+                // refuses.
+                Node::Comment(_)
+                    if matches!(element.name.local.as_str(), "mi" | "mn" | "mo" | "mtext") =>
+                {
+                    self.visit(element, &path, depth + 1)?;
                 }
                 Node::Comment(_) => {
                     return Err(refusal(

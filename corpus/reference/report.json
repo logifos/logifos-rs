@@ -58,8 +58,8 @@
         "refusal:parse:unsafe_xml": 22,
         "refusal:parse:unsupported_syntax": 6,
         "refusal:transform:invalid_structure": 2,
-        "refusal:transform:unsupported_attribute": 221,
-        "refusal:transform:unsupported_content": 14,
+        "refusal:transform:unsupported_attribute": 232,
+        "refusal:transform:unsupported_content": 3,
         "refusal:transform:unsupported_element": 14,
         "refusal:transform:unsupported_operator": 37
       },
@@ -87,8 +87,8 @@
         "roundtrip:pass:complete": 105,
         "transform:pass:complete": 105,
         "transform:refusal:invalid_structure": 2,
-        "transform:refusal:unsupported_attribute": 221,
-        "transform:refusal:unsupported_content": 14,
+        "transform:refusal:unsupported_attribute": 232,
+        "transform:refusal:unsupported_content": 3,
         "transform:refusal:unsupported_element": 14,
         "transform:refusal:unsupported_operator": 37,
         "writer:pass:complete": 105
@@ -119,18 +119,18 @@
     },
     {
       "categories": {
-        "pass:emit:complete": 455,
+        "pass:emit:complete": 690,
         "refusal:layout:MISSING_GLYPH": 5,
         "refusal:parse:malformed_xml": 60,
-        "refusal:transform:unsupported_attribute": 176,
-        "refusal:transform:unsupported_content": 625,
-        "refusal:transform:unsupported_element": 100,
-        "refusal:transform:unsupported_operator": 85
+        "refusal:transform:unsupported_attribute": 201,
+        "refusal:transform:unsupported_content": 20,
+        "refusal:transform:unsupported_element": 125,
+        "refusal:transform:unsupported_operator": 405
       },
       "counts": {
         "failure": 0,
-        "pass": 455,
-        "refusal": 1051
+        "pass": 690,
+        "refusal": 816
       },
       "font": {
         "face_index": 0,
@@ -139,18 +139,18 @@
       "id": "plurimath-testsuite",
       "revision": "7c7b4c628a8e1db149594519f7f2cc00bd08fa73",
       "stage_counts": {
-        "emit:pass:complete": 455,
-        "layout:pass:complete": 455,
+        "emit:pass:complete": 690,
+        "layout:pass:complete": 690,
         "layout:refusal:MISSING_GLYPH": 5,
         "parse:pass:complete": 1446,
         "parse:refusal:malformed_xml": 60,
-        "roundtrip:pass:complete": 460,
-        "transform:pass:complete": 460,
-        "transform:refusal:unsupported_attribute": 176,
-        "transform:refusal:unsupported_content": 625,
-        "transform:refusal:unsupported_element": 100,
-        "transform:refusal:unsupported_operator": 85,
-        "writer:pass:complete": 460
+        "roundtrip:pass:complete": 695,
+        "transform:pass:complete": 695,
+        "transform:refusal:unsupported_attribute": 201,
+        "transform:refusal:unsupported_content": 20,
+        "transform:refusal:unsupported_element": 125,
+        "transform:refusal:unsupported_operator": 405,
+        "writer:pass:complete": 695
       },
       "total": 1506
     },
@@ -181,7 +181,7 @@
   ],
   "totals": {
     "failure": 0,
-    "pass": 540,
-    "refusal": 7803
+    "pass": 775,
+    "refusal": 7568
   }
 }
