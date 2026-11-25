@@ -4,7 +4,7 @@ use std::fmt;
 
 use serde_json::{json, Map, Value};
 
-use crate::Formula;
+use crate::{Formula, MathDisplay, PresentationStyle};
 
 /// Immutable upstream definition identity; this is Rust source, not a JSON schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +70,15 @@ fn refusal(code: WireErrorCode, path: &str) -> WireError {
     WireError {
         code,
         path: path.to_owned(),
+    }
+}
+
+/// The wrapped content of a styled group: a lone child stays itself,
+/// several children become their sequence.
+fn group_content(nodes: Vec<Formula>) -> Formula {
+    match nodes.len() {
+        1 => nodes.into_iter().next().expect("one child"),
+        _ => Formula::Sequence(nodes),
     }
 }
 
@@ -223,7 +232,7 @@ fn decode_node(
         .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
     match class {
         "Math::Formula" => {
-            closed(fields, &["value"], &fields_path)?;
+            closed(fields, &["value", "displaystyle"], &fields_path)?;
             let value_path = pointer(&fields_path, "value");
             let children = required(fields, "value", &fields_path)?
                 .as_array()
@@ -240,7 +249,25 @@ fn decode_node(
                     )
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            Ok(Formula::Sequence(nodes))
+            match fields.get("displaystyle") {
+                None => Ok(Formula::Sequence(nodes)),
+                Some(style) => {
+                    let displaystyle = style.as_bool().ok_or_else(|| {
+                        refusal(
+                            WireErrorCode::InvalidValue,
+                            &pointer(&fields_path, "displaystyle"),
+                        )
+                    })?;
+                    let content = group_content(nodes);
+                    Ok(Formula::Styled {
+                        style: PresentationStyle {
+                            displaystyle: Some(displaystyle),
+                            ..PresentationStyle::default()
+                        },
+                        content: Box::new(content),
+                    })
+                }
+            }
         }
         "Math::Symbols::Symbol" => {
             closed(fields, &["value"], &fields_path)?;
@@ -297,6 +324,106 @@ fn decode_node(
                 budget,
             )?;
             Ok(Formula::Root(Box::new(radicand), Box::new(index)))
+        }
+        "Math::Formula::Mstyle" => {
+            closed(fields, &["value"], &fields_path)?;
+            let value_path = pointer(&fields_path, "value");
+            let children = required(fields, "value", &fields_path)?
+                .as_array()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &value_path))?;
+            let nodes = children
+                .iter()
+                .enumerate()
+                .map(|(index, child)| {
+                    decode_value(
+                        child,
+                        &pointer(&value_path, &index.to_string()),
+                        depth + 1,
+                        budget,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Formula::Style(nodes))
+        }
+        "Math::Function::Merror" | "Math::Function::Mpadded" | "Math::Function::Phantom" => {
+            closed(fields, &["parameter_one"], &fields_path)?;
+            let value_path = pointer(&fields_path, "parameter_one");
+            let children = required(fields, "parameter_one", &fields_path)?
+                .as_array()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &value_path))?;
+            let nodes = children
+                .iter()
+                .enumerate()
+                .map(|(index, child)| {
+                    decode_value(
+                        child,
+                        &pointer(&value_path, &index.to_string()),
+                        depth + 1,
+                        budget,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(match class {
+                "Math::Function::Merror" => Formula::ErrorGroup(nodes),
+                "Math::Function::Mpadded" => Formula::Padded(nodes),
+                _ => Formula::Phantom(nodes),
+            })
+        }
+        "Math::Function::Underset" | "Math::Function::Overset" => {
+            closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            let first = decode_value(
+                required(fields, "parameter_one", &fields_path)?,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            let second = decode_value(
+                required(fields, "parameter_two", &fields_path)?,
+                &pointer(&fields_path, "parameter_two"),
+                depth + 1,
+                budget,
+            )?;
+            let pair = (Box::new(first), Box::new(second));
+            Ok(match class {
+                "Math::Function::Underset" => Formula::Under(pair.0, pair.1),
+                _ => Formula::Over(pair.0, pair.1),
+            })
+        }
+        "Math::Function::Underover" | "Math::Function::PowerBase" => {
+            closed(
+                fields,
+                &["parameter_one", "parameter_two", "parameter_three"],
+                &fields_path,
+            )?;
+            let mut parameters = [None, None, None];
+            for (index, name) in ["parameter_one", "parameter_two", "parameter_three"]
+                .into_iter()
+                .enumerate()
+            {
+                parameters[index] = Some(decode_value(
+                    required(fields, name, &fields_path)?,
+                    &pointer(&fields_path, name),
+                    depth + 1,
+                    budget,
+                )?);
+            }
+            let [first, second, third] = parameters.map(|p| Box::new(p.expect("all decoded")));
+            Ok(match class {
+                "Math::Function::Underover" => Formula::UnderOver(first, second, third),
+                _ => Formula::SubSup(first, second, third),
+            })
+        }
+        "Math::Function::Ms" => {
+            closed(fields, &["parameter_one"], &fields_path)?;
+            let text = required(fields, "parameter_one", &fields_path)?
+                .as_str()
+                .ok_or_else(|| {
+                    refusal(
+                        WireErrorCode::InvalidValue,
+                        &pointer(&fields_path, "parameter_one"),
+                    )
+                })?;
+            Ok(Formula::StringLiteral(text.to_owned()))
         }
         "Math::Function::Table" => {
             closed(
@@ -451,20 +578,126 @@ fn encode_node(
         }
         // These syntax-side constructs have no mapping in the pinned subset.
         // Refuse rather than inventing a class or losing their placement.
-        Formula::Styled { .. }
-        | Formula::Under(..)
-        | Formula::Over(..)
-        | Formula::UnderOver(..)
-        | Formula::SubSup(..)
-        | Formula::MultiScripts { .. }
-        | Formula::Style(_)
-        | Formula::ErrorGroup(_)
-        | Formula::Padded(_)
-        | Formula::Phantom(_)
-        | Formula::Space(..)
-        | Formula::StringLiteral(_) => {
+        Formula::MultiScripts { .. } | Formula::Space(..) => {
             return Err(refusal(WireErrorCode::UnsupportedClass, path));
         }
+        Formula::Styled { style, content } => {
+            // The upstream Formula carries only the displaystyle hint. Under
+            // MathML Core (§3.1) the display style derives from display or is
+            // overridden by displaystyle, so a display hint that AGREES with
+            // the carried hint (or is alone) is redundant, not lost — it
+            // encodes as the displaystyle. A contradiction refuses. Every
+            // other presentation attribute has no source class and stays
+            // refused rather than dropped.
+            let carries = style.script_level.is_some()
+                || style.math_variant.is_some()
+                || style.math_color.is_some()
+                || style.right_space.is_some()
+                || style.accent.is_some()
+                || style.column_align.is_some();
+            let derived = match style.display {
+                Some(MathDisplay::Block) => Some(true),
+                Some(MathDisplay::Inline) => Some(false),
+                None => None,
+            };
+            let displaystyle = match (style.displaystyle, derived) {
+                (Some(explicit), Some(from_display)) if explicit != from_display => {
+                    return Err(refusal(WireErrorCode::UnsupportedClass, path));
+                }
+                (Some(explicit), _) => Some(explicit),
+                (None, redundant) => redundant,
+            };
+            if carries || displaystyle.is_none() {
+                return Err(refusal(WireErrorCode::UnsupportedClass, path));
+            }
+            let content = encode_node(content, &pointer(&fields_path, "value"), depth + 1, budget)?;
+            (
+                "Math::Formula",
+                json!({"value": [content], "displaystyle": displaystyle}),
+            )
+        }
+        Formula::Style(children) => {
+            let value_path = pointer(&fields_path, "value");
+            let mut encoded = Vec::with_capacity(children.len());
+            for (index, child) in children.iter().enumerate() {
+                encoded.push(encode_node(
+                    child,
+                    &pointer(&value_path, &index.to_string()),
+                    depth + 1,
+                    budget,
+                )?);
+            }
+            ("Math::Formula::Mstyle", json!({"value": encoded}))
+        }
+        Formula::ErrorGroup(children) | Formula::Padded(children) | Formula::Phantom(children) => {
+            let class = match node {
+                Formula::ErrorGroup(_) => "Math::Function::Merror",
+                Formula::Padded(_) => "Math::Function::Mpadded",
+                _ => "Math::Function::Phantom",
+            };
+            let value_path = pointer(&fields_path, "parameter_one");
+            let mut encoded = Vec::with_capacity(children.len());
+            for (index, child) in children.iter().enumerate() {
+                encoded.push(encode_node(
+                    child,
+                    &pointer(&value_path, &index.to_string()),
+                    depth + 1,
+                    budget,
+                )?);
+            }
+            (class, json!({"parameter_one": encoded}))
+        }
+        Formula::Under(first, second) | Formula::Over(first, second) => {
+            let class = match node {
+                Formula::Under(..) => "Math::Function::Underset",
+                _ => "Math::Function::Overset",
+            };
+            let first = encode_node(
+                first,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            let second = encode_node(
+                second,
+                &pointer(&fields_path, "parameter_two"),
+                depth + 1,
+                budget,
+            )?;
+            (
+                class,
+                json!({"parameter_one": first, "parameter_two": second}),
+            )
+        }
+        Formula::UnderOver(first, second, third) | Formula::SubSup(first, second, third) => {
+            let class = match node {
+                Formula::UnderOver(..) => "Math::Function::Underover",
+                _ => "Math::Function::PowerBase",
+            };
+            let first = encode_node(
+                first,
+                &pointer(&fields_path, "parameter_one"),
+                depth + 1,
+                budget,
+            )?;
+            let second = encode_node(
+                second,
+                &pointer(&fields_path, "parameter_two"),
+                depth + 1,
+                budget,
+            )?;
+            let third = encode_node(
+                third,
+                &pointer(&fields_path, "parameter_three"),
+                depth + 1,
+                budget,
+            )?;
+            (
+                class,
+                json!({"parameter_one": first, "parameter_two": second, "parameter_three": third}),
+            )
+        }
+        Formula::StringLiteral(text) => ("Math::Function::Ms", json!({"parameter_one": text})),
         Formula::Symbol(text) => ("Math::Symbols::Symbol", json!({"value": text})),
         Formula::Operator(text) => {
             let class = operator_class(text)
