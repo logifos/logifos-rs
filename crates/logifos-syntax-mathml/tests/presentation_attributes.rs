@@ -155,12 +155,16 @@ fn additional_attribute_families_preserve_values_and_owning_elements() {
         assert!(formula.to_wire().is_ok(), "the variant crosses: {source}");
     }
     let mut bodies = Vec::new();
+    // Color crosses as plurimath's Color-over-Text wrapper.
     for value in ["red", "blue"] {
-        bodies.push(format!("<mstyle mathcolor=\"{value}\"><mi>x</mi><mstyle mathcolor=\"blue\"><mi>y</mi></mstyle></mstyle>"));
+        let source = format!("<math><mstyle mathcolor=\"{value}\"><mi>x</mi></mstyle></math>");
+        let formula = transform(&parse(&source).unwrap()).unwrap();
+        assert!(formula.to_wire().is_ok(), "color crosses: {source}");
     }
     for value in spaces {
         bodies.push(format!("<mo rspace=\"{value}\">+</mo>"));
     }
+    // Accent now crosses the wire as the construct's options hash.
     for name in ["mover", "munderover"] {
         for value in ["true", "false"] {
             let extra = if name == "munderover" {
@@ -168,9 +172,11 @@ fn additional_attribute_families_preserve_values_and_owning_elements() {
             } else {
                 ""
             };
-            bodies.push(format!(
-                "<{name} accent=\"{value}\"><mi>x</mi><mi>y</mi>{extra}</{name}>"
-            ));
+            let source = format!(
+                "<math><{name} accent=\"{value}\"><mi>x</mi><mi>y</mi>{extra}</{name}></math>"
+            );
+            let formula = transform(&parse(&source).unwrap()).unwrap();
+            assert!(formula.to_wire().is_ok(), "accent crosses: {source}");
         }
     }
     bodies.push("<mtable><mtr><mtd columnalign=\"center\"><mi>x</mi></mtd><mtd columnalign=\"center\"></mtd></mtr></mtable>".into());

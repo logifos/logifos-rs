@@ -560,3 +560,66 @@ fn font_style_and_multiscript_round_trip() {
     });
     round_trips(&posts_only);
 }
+
+#[test]
+fn color_and_accent_round_trip() {
+    // Color wraps the content innermost as a Color over a Text carrying the
+    // name (plurimath's own wrapping order).
+    let colored = json!({
+        "class": "Math::Function::Color",
+        "fields": {
+            "parameter_one": {
+                "class": "Math::Function::Text",
+                "fields": {"parameter_one": "red"}
+            },
+            "parameter_two": symbol("x")
+        }
+    });
+    round_trips(&colored);
+    // An unknown color name refuses rather than re-coercing.
+    let unknown = json!({
+        "class": "Math::Function::Color",
+        "fields": {
+            "parameter_one": {
+                "class": "Math::Function::Text",
+                "fields": {"parameter_one": "chartreuse"}
+            },
+            "parameter_two": symbol("x")
+        }
+    });
+    refused(
+        &unknown,
+        WireErrorCode::UnsupportedClass,
+        "/fields/parameter_one/parameter_one",
+    );
+
+    // Accent rides the under/over construct's options hash.
+    let accented = json!({
+        "class": "Math::Function::Overset",
+        "fields": {
+            "parameter_one": symbol("x"),
+            "parameter_two": symbol("."),
+            "options": {"accent": true}
+        }
+    });
+    round_trips(&accented);
+    let unaccented = json!({
+        "class": "Math::Function::Overset",
+        "fields": {
+            "parameter_one": symbol("x"),
+            "parameter_two": symbol("."),
+            "options": {"accent": false}
+        }
+    });
+    round_trips(&unaccented);
+    // A foreign option key refuses.
+    let foreign = json!({
+        "class": "Math::Function::Overset",
+        "fields": {
+            "parameter_one": symbol("x"),
+            "parameter_two": symbol("."),
+            "options": {"align": "center"}
+        }
+    });
+    refused(&foreign, WireErrorCode::UnsupportedField, "/options/align");
+}

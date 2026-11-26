@@ -4,7 +4,7 @@ use std::fmt;
 
 use serde_json::{json, Map, Value};
 
-use crate::{Formula, MathDisplay, MathVariant, PresentationStyle};
+use crate::{Formula, MathColor, MathDisplay, MathVariant, PresentationStyle};
 
 /// Immutable upstream definition identity; this is Rust source, not a JSON schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +111,31 @@ fn font_variant(suffix: &str) -> Option<MathVariant> {
         "Monospace" => "monospace",
         _ => return None,
     })
+}
+
+/// Applies the under/over options hash: accent-only crosses as the accent
+/// hint over the construct; any other option key refuses.
+fn with_accent(fields: &Map<String, Value>, construct: Formula) -> Result<Formula, WireError> {
+    match fields.get("options") {
+        None => Ok(construct),
+        Some(options) => {
+            let object = options
+                .as_object()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, "/options"))?;
+            closed(object, &["accent"], "/options")?;
+            let accent = object
+                .get("accent")
+                .and_then(Value::as_bool)
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, "/options/accent"))?;
+            Ok(Formula::Styled {
+                style: PresentationStyle {
+                    accent: Some(accent),
+                    ..PresentationStyle::default()
+                },
+                content: Box::new(construct),
+            })
+        }
+    }
 }
 
 /// Decodes plurimath's parallel sub/sup lists (null, a lone node, or an
@@ -343,6 +368,61 @@ fn decode_node(
     let fields = required(model, "fields", path)?
         .as_object()
         .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+    if class == "Math::Function::Color" {
+        closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+        let name_node = required(fields, "parameter_one", &fields_path)?;
+        let name_object = name_node.as_object().ok_or_else(|| {
+            refusal(
+                WireErrorCode::InvalidValue,
+                &pointer(&fields_path, "parameter_one"),
+            )
+        })?;
+        if name_object.get("class").and_then(Value::as_str) != Some("Math::Function::Text") {
+            return Err(refusal(
+                WireErrorCode::UnsupportedClass,
+                &pointer(&fields_path, "parameter_one"),
+            ));
+        }
+        let name = required(
+            name_object
+                .get("fields")
+                .and_then(Value::as_object)
+                .ok_or_else(|| {
+                    refusal(
+                        WireErrorCode::InvalidValue,
+                        &pointer(&fields_path, "parameter_one"),
+                    )
+                })?,
+            "parameter_one",
+            &pointer(&fields_path, "parameter_one"),
+        )?
+        .as_str()
+        .ok_or_else(|| {
+            refusal(
+                WireErrorCode::InvalidValue,
+                &pointer(&pointer(&fields_path, "parameter_one"), "parameter_one"),
+            )
+        })?;
+        let color = MathColor::parse(name).ok_or_else(|| {
+            refusal(
+                WireErrorCode::UnsupportedClass,
+                &pointer(&pointer(&fields_path, "parameter_one"), "parameter_one"),
+            )
+        })?;
+        let content = decode_value(
+            required(fields, "parameter_two", &fields_path)?,
+            &pointer(&fields_path, "parameter_two"),
+            depth + 1,
+            budget,
+        )?;
+        return Ok(Formula::Styled {
+            style: PresentationStyle {
+                math_color: Some(color),
+                ..PresentationStyle::default()
+            },
+            content: Box::new(content),
+        });
+    }
     if let Some(suffix) = class.strip_prefix("Math::Function::FontStyle::") {
         let variant =
             font_variant(suffix).ok_or_else(|| refusal(WireErrorCode::UnsupportedClass, path))?;
@@ -515,7 +595,11 @@ fn decode_node(
             })
         }
         "Math::Function::Underset" | "Math::Function::Overset" => {
-            closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            closed(
+                fields,
+                &["parameter_one", "parameter_two", "options"],
+                &fields_path,
+            )?;
             let first = decode_value(
                 required(fields, "parameter_one", &fields_path)?,
                 &pointer(&fields_path, "parameter_one"),
@@ -529,15 +613,21 @@ fn decode_node(
                 budget,
             )?;
             let pair = (Box::new(first), Box::new(second));
-            Ok(match class {
+            let construct = match class {
                 "Math::Function::Underset" => Formula::Under(pair.0, pair.1),
                 _ => Formula::Over(pair.0, pair.1),
-            })
+            };
+            with_accent(fields, construct)
         }
         "Math::Function::Underover" | "Math::Function::PowerBase" => {
             closed(
                 fields,
-                &["parameter_one", "parameter_two", "parameter_three"],
+                &[
+                    "parameter_one",
+                    "parameter_two",
+                    "parameter_three",
+                    "options",
+                ],
                 &fields_path,
             )?;
             let mut parameters = [None, None, None];
@@ -553,10 +643,11 @@ fn decode_node(
                 )?);
             }
             let [first, second, third] = parameters.map(|p| Box::new(p.expect("all decoded")));
-            Ok(match class {
+            let construct = match class {
                 "Math::Function::Underover" => Formula::UnderOver(first, second, third),
                 _ => Formula::SubSup(first, second, third),
-            })
+            };
+            with_accent(fields, construct)
         }
         "Math::Function::Ms" => {
             closed(fields, &["parameter_one"], &fields_path)?;
@@ -899,16 +990,15 @@ fn encode_node(
             )
         }
         Formula::Styled { style, content } => {
-            // The display hint crosses as the displaystyle (see the Core §3.1
-            // rule above); a variant crosses as its plurimath FontStyle class
-            // (one subclass per variant, the spelling as the scalar second
-            // parameter). A hint pair the upstream classes cannot carry
-            // together, and every other presentation attribute, refuses
-            // rather than dropping.
+            // The hint mapping mirrors plurimath's own wrapping order: color
+            // wraps the content innermost (a Color over a Text carrying the
+            // name), the variant wraps that (its FontStyle class), and the
+            // display hint crosses as the displaystyle. Accent belongs to
+            // the under/over construct and rides the construct's options
+            // hash. A hint pair this mapping cannot carry, and every other
+            // presentation attribute, refuses rather than dropping.
             let carries = style.script_level.is_some()
-                || style.math_color.is_some()
                 || style.right_space.is_some()
-                || style.accent.is_some()
                 || style.column_align.is_some();
             let derived = match style.display {
                 Some(MathDisplay::Block) => Some(true),
@@ -926,6 +1016,39 @@ fn encode_node(
                 return Err(refusal(WireErrorCode::UnsupportedClass, path));
             }
             let content = encode_node(content, &pointer(&fields_path, "value"), depth + 1, budget)?;
+            let content = match style.math_color {
+                Some(color) => json!({
+                    "class": "Math::Function::Color",
+                    "fields": {
+                        "parameter_one": {
+                            "class": "Math::Function::Text",
+                            "fields": {"parameter_one": color.spelling()},
+                        },
+                        "parameter_two": content,
+                    }
+                }),
+                None => content,
+            };
+            if let Some(accent) = style.accent {
+                if displaystyle.is_some() || style.math_variant.is_some() {
+                    return Err(refusal(WireErrorCode::UnsupportedClass, path));
+                }
+                let mut node = content;
+                let class = node
+                    .get("class")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| refusal(WireErrorCode::UnsupportedClass, path))?;
+                if !matches!(
+                    class,
+                    "Math::Function::Underset"
+                        | "Math::Function::Overset"
+                        | "Math::Function::Underover"
+                ) {
+                    return Err(refusal(WireErrorCode::UnsupportedClass, path));
+                }
+                node["fields"]["options"] = json!({"accent": accent});
+                return Ok(node);
+            }
             if let Some(variant) = style.math_variant {
                 if displaystyle.is_some() {
                     return Err(refusal(WireErrorCode::UnsupportedClass, path));
@@ -939,6 +1062,9 @@ fn encode_node(
                     "Math::Formula",
                     json!({"value": [content], "displaystyle": displaystyle}),
                 )
+            } else if style.math_color.is_some() {
+                // A bare Color wrapper is itself a node; return it directly.
+                return Ok(content);
             } else {
                 return Err(refusal(WireErrorCode::UnsupportedClass, path));
             }
