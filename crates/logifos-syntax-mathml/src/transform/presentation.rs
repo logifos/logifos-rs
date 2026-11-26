@@ -65,8 +65,18 @@ pub(super) fn attributes(
                     style.math_color.is_some()
                 }
                 "rspace" if element.name.local == "mo" => {
-                    style.right_space = MathSpace::parse(value);
-                    style.right_space.is_some()
+                    // Plurimath stamps the rounded thick-space default
+                    // (0.2778em = 5/18 em) on every operator it serializes;
+                    // the stamp carries nothing, so it drops instead of
+                    // refusing. Named spaces retain; any other length stays
+                    // an explicit refusal until the spacing model carries
+                    // dimensions.
+                    if is_medium_space_stamp(value) {
+                        true
+                    } else {
+                        style.right_space = MathSpace::parse(value);
+                        style.right_space.is_some()
+                    }
                 }
                 "accent" if matches!(element.name.local.as_str(), "mover" | "munderover") => {
                     style.accent = match value.as_str() {
@@ -103,6 +113,16 @@ fn attribute_error(element: &Element, location: &str, index: usize) -> Transform
     );
     error.attribute = Some(Box::new(element.attributes[index].name.clone()));
     error
+}
+
+/// Plurimath's operator rspace stamp: the thick space (5/18 em), emitted
+/// rounded to four decimal places.
+fn is_medium_space_stamp(value: &str) -> bool {
+    value
+        .trim()
+        .strip_suffix("em")
+        .and_then(|number| number.parse::<f64>().ok())
+        .is_some_and(|em| (em - 5.0 / 18.0).abs() < 1e-4)
 }
 
 fn script_level(value: &str) -> Option<ScriptLevel> {

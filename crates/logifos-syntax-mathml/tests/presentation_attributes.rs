@@ -261,3 +261,25 @@ fn writer_refuses_attributes_attached_to_wrong_model_constructs() {
         );
     }
 }
+
+#[test]
+fn plurimath_rspace_stamp_drops_and_other_lengths_refuse() {
+    // Plurimath stamps the rounded thick-space default on every operator;
+    // the stamp drops. Named spaces retain; other lengths refuse until the
+    // spacing model carries dimensions.
+    for (rspace, accepted) in [
+        ("0.2778em", true),
+        ("0.27777778em", true),
+        ("mediummathspace", true),
+        ("0em", false),
+        ("-0.35em", false),
+        ("0.5em", false),
+    ] {
+        let source = format!(
+            "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">\
+             <mo rspace=\"{rspace}\">+</mo><mi>x</mi></math>"
+        );
+        let outcome = transform(&parse(&source).unwrap()).is_ok();
+        assert_eq!(outcome, accepted, "rspace={rspace}");
+    }
+}
