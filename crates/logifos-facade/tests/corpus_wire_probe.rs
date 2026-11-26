@@ -35,15 +35,16 @@ fn tally_wire_refusals_over_the_corpus() {
                     format!(
                         "transform:{}:{}",
                         match error.kind {
-                            logifos_syntax_mathml::TransformErrorKind::UnsupportedElement => "element",
-                            logifos_syntax_mathml::TransformErrorKind::UnsupportedAttribute => "attribute",
+                            logifos_syntax_mathml::TransformErrorKind::UnsupportedElement =>
+                                "element",
+                            logifos_syntax_mathml::TransformErrorKind::UnsupportedAttribute =>
+                                "attribute",
                             _ => "other",
                         },
                         error.element.local
                     )
                 })
-            })
-        {
+            }) {
             Err(kind) => tally(&kind),
             Ok(formula) => match formula.to_wire() {
                 Ok(_) => tally("encoded"),
