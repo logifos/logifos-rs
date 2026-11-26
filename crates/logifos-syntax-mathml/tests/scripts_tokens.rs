@@ -341,8 +341,8 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
             );
         }
     }
+    // menclose is supported now; it drops out of the foreign list.
     for content in [
-        "<menclose/>",
         "<mo>pri vate</mo>",
         "<!--private-->",
         "private",

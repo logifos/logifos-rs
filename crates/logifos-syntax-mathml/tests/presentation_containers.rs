@@ -133,7 +133,6 @@ fn row_like_content_keeps_exact_refusal_paths() {
             ("lost", TransformErrorKind::UnsupportedContent),
             ("&#xA0;", TransformErrorKind::UnsupportedContent),
             ("<!--note-->", TransformErrorKind::UnsupportedContent),
-            ("<menclose/>", TransformErrorKind::UnsupportedElement),
             (
                 "<annotation>meaning</annotation>",
                 TransformErrorKind::UnsupportedElement,
@@ -194,11 +193,8 @@ fn semantics_requires_a_presentational_first_element() {
             "/root/children/0",
         );
     }
-    refused(
-        "<semantics><menclose/><mi>x</mi></semantics>",
-        TransformErrorKind::UnsupportedElement,
-        "/root/children/0/children/0",
-    );
+    // menclose is presentational now; its first-element acceptance is
+    // covered by the menclose tests.
     refused(
         "<semantics><mi mathcolor='red'>x</mi><annotation/></semantics>",
         TransformErrorKind::UnsupportedAttribute,

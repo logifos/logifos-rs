@@ -248,6 +248,32 @@ impl SyntaxBuilder {
                 }
                 "mspace"
             }
+            Formula::Menclose { notation, content } => {
+                attributes_elem.push(crate::Attribute {
+                    name: QualifiedName {
+                        prefix: None,
+                        local: "notation".into(),
+                        namespace: None,
+                    },
+                    value: notation.clone(),
+                });
+                // menclose inlines its children, so the transform's sequence
+                // content reparses to an equal Formula.
+                let Formula::Sequence(items) = &**content else {
+                    return Err(refusal(
+                        WriteErrorKind::InvalidStructure,
+                        &format!("{location}/content"),
+                    ));
+                };
+                for (index, child) in items.iter().enumerate() {
+                    children.push(Node::Element(self.element(
+                        child,
+                        &format!("{location}/content/children/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                "menclose"
+            }
             Formula::MultiScripts {
                 base,
                 postscripts,
