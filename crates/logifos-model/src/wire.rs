@@ -124,7 +124,29 @@ impl Budget {
 }
 
 // Explicit identities keep named operators distinct from generic symbol text.
+// The arithmetic spellings and the fence classes stay hand-written (their
+// decode aliases are contract); every other spelling resolves through the
+// generated plurimath symbol inventory.
 fn operator_class(text: &str) -> Option<&'static str> {
+    hand_operator_class(text)
+        .or_else(|| lookup_sorted(crate::operator_wire::OPERATOR_CLASSES, text))
+}
+
+fn operator_text(class: &str) -> Option<&'static str> {
+    hand_operator_text(class).or_else(|| lookup_sorted(crate::operator_wire::OPERATOR_TEXTS, class))
+}
+
+fn lookup_sorted(
+    table: &'static [(&'static str, &'static str)],
+    key: &str,
+) -> Option<&'static str> {
+    table
+        .binary_search_by(|probe| probe.0.cmp(key))
+        .ok()
+        .map(|at| table[at].1)
+}
+
+fn hand_operator_class(text: &str) -> Option<&'static str> {
     match text {
         "+" => Some("Math::Symbols::Plus"),
         "-" => Some("Math::Symbols::Minus"),
@@ -148,7 +170,7 @@ fn operator_class(text: &str) -> Option<&'static str> {
     }
 }
 
-fn operator_text(class: &str) -> Option<&'static str> {
+fn hand_operator_text(class: &str) -> Option<&'static str> {
     match class {
         "Math::Symbols::Plus" => Some("+"),
         "Math::Symbols::Minus" => Some("-"),
