@@ -4,6 +4,7 @@ mod baseline;
 mod error;
 mod fraction;
 mod limits;
+mod menclose;
 mod operator;
 mod radical;
 mod rows;
@@ -128,11 +129,9 @@ fn build<'a>(
     } else {
         (formula, style)
     };
-    if let Formula::Menclose { notation, .. } = formula {
-        // The enclosure notations are MathML-3 legacy drawing; layout lands
-        // with the notation interpretation slice.
-        let _ = notation;
-        return Err(LayoutError::NotLaidOutYet);
+    if let Formula::Menclose { notation, content } = formula {
+        let inner: &Formula = content;
+        return menclose::enclose(notation, inner, fonts, style, budget, depth);
     }
     match formula {
         Formula::Sequence(children)
@@ -230,8 +229,8 @@ fn build_construct<'a>(
         | Formula::Style(_)
         | Formula::ErrorGroup(_)
         | Formula::Padded(_)
-        | Formula::Phantom(_) => unreachable!("handled by build"),
-        Formula::Menclose { .. } => unreachable!("handled by build"),
+        | Formula::Phantom(_)
+        | Formula::Menclose { .. } => unreachable!("handled by build"),
         Formula::Space(width, height, depth) => {
             let size = style.font_size_px;
             let font = fonts.primary();

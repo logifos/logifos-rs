@@ -61,6 +61,11 @@ pub struct PositionedBox {
 }
 
 impl PositionedBox {
+    /// Places a child at a top-left offset over the parent's logical box.
+    pub fn place(offset: Point, node: BoxTree) -> Self {
+        Self { offset, node }
+    }
+
     /// The child's local-to-parent translation.
     pub fn offset(&self) -> Point {
         self.offset
@@ -180,6 +185,17 @@ impl BoxTree {
         }
         let metrics = Metrics::new(width, baseline, subtract(total, baseline)?)?;
         Self::stack(BoxKind::VBox, metrics, children)
+    }
+
+    /// A custom composition: children positioned absolutely over the
+    /// parent's logical box (an overlay such as an enclosure's border);
+    /// ink unions the translated children.
+    pub fn composed(
+        kind: BoxKind,
+        metrics: Metrics,
+        children: Vec<PositionedBox>,
+    ) -> Result<Self, GeometryError> {
+        Self::stack(kind, metrics, children)
     }
 
     fn stack(
