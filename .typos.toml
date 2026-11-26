@@ -1,3 +1,8 @@
+[files]
+# The generated operator inventory carries plurimath's own symbol class
+# names verbatim (Oint, Simle, ...) — upstream spellings, not typos.
+extend-exclude = ["crates/logifos-model/src/operator_wire.rs"]
+
 [default.extend-words]
 # OpenType's glyph-location table tag.
 loca = "loca"
