@@ -38,13 +38,7 @@ fn print_unclaimed_operator_texts() {
 fn walk(formula: &Formula, texts: &mut BTreeMap<String, u64>) {
     if let Formula::Operator(text) = formula {
         if formula.to_wire().is_err() {
-            *texts
-                .entry(format!(
-                    "{:?} {}",
-                    text,
-                    text.chars().map(|c| c as u32).collect::<Vec<_>>()
-                ))
-                .or_default() += 1;
+            *texts.entry(text.clone()).or_default() += 1;
         }
     }
     for child in children(formula) {
