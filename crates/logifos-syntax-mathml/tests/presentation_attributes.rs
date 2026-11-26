@@ -199,7 +199,6 @@ fn additional_attribute_values_and_wrong_owners_refuse_precisely() {
     for body in [
         "<mstyle mathvariant='unknown'><mi>x</mi></mstyle>",
         "<mstyle mathcolor='red&quot; onclick=&quot;evil'><mi>x</mi></mstyle>",
-        "<mo rspace='1em'>+</mo>",
         "<mover accent='yes'><mi>x</mi><mi>y</mi></mover>",
         "<mstyle rspace='thickmathspace'><mi>x</mi></mstyle>",
         "<mrow accent='true'><mi>x</mi><mi>y</mi></mrow>",
@@ -273,15 +272,15 @@ fn writer_refuses_attributes_attached_to_wrong_model_constructs() {
 #[test]
 fn plurimath_rspace_stamp_drops_and_other_lengths_refuse() {
     // Plurimath stamps the rounded thick-space default on every operator;
-    // the stamp drops. Named spaces retain; other lengths refuse until the
-    // spacing model carries dimensions.
+    // the stamp drops. Named spaces and authored lengths retain (the
+    // spacing model carries dimensions).
     for (rspace, accepted) in [
         ("0.2778em", true),
         ("0.27777778em", true),
         ("mediummathspace", true),
-        ("0em", false),
-        ("-0.35em", false),
-        ("0.5em", false),
+        ("0em", true),
+        ("-0.35em", true),
+        ("0.5em", true),
     ] {
         let source = format!(
             "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">\
