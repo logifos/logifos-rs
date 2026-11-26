@@ -119,6 +119,24 @@ pub enum MathColor {
     Blue,
 }
 
+impl MathColor {
+    /// The MathML spelling plurimath's Color wrapper carries as its Text.
+    pub fn spelling(self) -> &'static str {
+        match self {
+            Self::Red => "red",
+            Self::Blue => "blue",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "red" => Some(Self::Red),
+            "blue" => Some(Self::Blue),
+            _ => None,
+        }
+    }
+}
+
 /// Named positive MathML spaces, measured in eighteenths of an em.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathSpace {
