@@ -147,12 +147,14 @@ fn additional_attribute_families_preserve_values_and_owning_elements() {
         "verythickmathspace",
         "veryverythickmathspace",
     ];
-    let mut bodies = Vec::new();
+    // A token's or group's variant crosses the wire as its plurimath
+    // FontStyle class (see the wire tests), so it no longer refuses there.
     for value in variants {
-        bodies.push(format!(
-            "<mstyle mathvariant=\"{value}\"><mi>x</mi></mstyle>"
-        ));
+        let source = format!("<math><mstyle mathvariant=\"{value}\"><mi>x</mi></mstyle></math>");
+        let formula = transform(&parse(&source).unwrap()).unwrap();
+        assert!(formula.to_wire().is_ok(), "the variant crosses: {source}");
     }
+    let mut bodies = Vec::new();
     for value in ["red", "blue"] {
         bodies.push(format!("<mstyle mathcolor=\"{value}\"><mi>x</mi><mstyle mathcolor=\"blue\"><mi>y</mi></mstyle></mstyle>"));
     }

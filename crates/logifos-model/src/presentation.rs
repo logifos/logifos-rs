@@ -71,6 +71,27 @@ impl MathVariant {
         })
     }
 
+    /// The canonical MathML spelling; the plurimath FontStyle subclasses
+    /// carry it as their second parameter.
+    pub fn spelling(self) -> &'static str {
+        match self {
+            Self::Normal => "normal",
+            Self::Bold => "bold",
+            Self::Italic => "italic",
+            Self::BoldItalic => "bold-italic",
+            Self::DoubleStruck => "double-struck",
+            Self::BoldFraktur => "bold-fraktur",
+            Self::Script => "script",
+            Self::BoldScript => "bold-script",
+            Self::Fraktur => "fraktur",
+            Self::SansSerif => "sans-serif",
+            Self::BoldSansSerif => "bold-sans-serif",
+            Self::SansSerifItalic => "sans-serif-italic",
+            Self::SansSerifBoldItalic => "sans-serif-bold-italic",
+            Self::Monospace => "monospace",
+        }
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Normal => "normal",

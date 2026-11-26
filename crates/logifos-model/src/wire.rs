@@ -4,7 +4,7 @@ use std::fmt;
 
 use serde_json::{json, Map, Value};
 
-use crate::{Formula, MathDisplay, PresentationStyle};
+use crate::{Formula, MathDisplay, MathVariant, PresentationStyle};
 
 /// Immutable upstream definition identity; this is Rust source, not a JSON schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,6 +71,93 @@ fn refusal(code: WireErrorCode, path: &str) -> WireError {
         code,
         path: path.to_owned(),
     }
+}
+
+/// The plurimath FontStyle subclass suffix -> the variant it carries.
+fn font_style_class(variant: MathVariant) -> &'static str {
+    match variant {
+        MathVariant::Normal => "Math::Function::FontStyle::Normal",
+        MathVariant::Bold => "Math::Function::FontStyle::Bold",
+        MathVariant::Italic => "Math::Function::FontStyle::Italic",
+        MathVariant::BoldItalic => "Math::Function::FontStyle::BoldItalic",
+        MathVariant::DoubleStruck => "Math::Function::FontStyle::DoubleStruck",
+        MathVariant::BoldFraktur => "Math::Function::FontStyle::BoldFraktur",
+        MathVariant::Script => "Math::Function::FontStyle::Script",
+        MathVariant::BoldScript => "Math::Function::FontStyle::BoldScript",
+        MathVariant::Fraktur => "Math::Function::FontStyle::Fraktur",
+        MathVariant::SansSerif => "Math::Function::FontStyle::SansSerif",
+        MathVariant::BoldSansSerif => "Math::Function::FontStyle::BoldSansSerif",
+        MathVariant::SansSerifItalic => "Math::Function::FontStyle::SansSerifItalic",
+        MathVariant::SansSerifBoldItalic => "Math::Function::FontStyle::SansSerifBoldItalic",
+        MathVariant::Monospace => "Math::Function::FontStyle::Monospace",
+    }
+}
+
+fn font_variant(suffix: &str) -> Option<MathVariant> {
+    MathVariant::parse(match suffix {
+        "Normal" => "normal",
+        "Bold" => "bold",
+        "Italic" => "italic",
+        "BoldItalic" => "bold-italic",
+        "DoubleStruck" => "double-struck",
+        "BoldFraktur" => "bold-fraktur",
+        "Script" => "script",
+        "BoldScript" => "bold-script",
+        "Fraktur" => "fraktur",
+        "SansSerif" => "sans-serif",
+        "BoldSansSerif" => "bold-sans-serif",
+        "SansSerifItalic" => "sans-serif-italic",
+        "SansSerifBoldItalic" => "sans-serif-bold-italic",
+        "Monospace" => "monospace",
+        _ => return None,
+    })
+}
+
+/// Decodes plurimath's parallel sub/sup lists (null, a lone node, or an
+/// array) into aligned script pairs; a hole or a length mismatch refuses.
+fn script_pairs(
+    subs: Value,
+    sups: Value,
+    path: &str,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<Vec<crate::ScriptPair>, WireError> {
+    let mut expand = |value: &Value, side: &str| -> Result<Vec<Option<Formula>>, WireError> {
+        match value {
+            Value::Null => Ok(Vec::new()),
+            Value::Array(items) => {
+                let mut out = Vec::with_capacity(items.len());
+                for (index, item) in items.iter().enumerate() {
+                    out.push(Some(decode_value(
+                        item,
+                        &pointer(&pointer(path, side), &index.to_string()),
+                        depth + 1,
+                        budget,
+                    )?));
+                }
+                Ok(out)
+            }
+            node => Ok(vec![Some(decode_value(
+                node,
+                &pointer(path, side),
+                depth + 1,
+                budget,
+            )?)]),
+        }
+    };
+    let subs = expand(&subs, "parameter_two")?;
+    let sups = expand(&sups, "parameter_three")?;
+    if subs.len() != sups.len() {
+        return Err(refusal(WireErrorCode::UnsupportedField, path));
+    }
+    Ok(subs
+        .into_iter()
+        .zip(sups)
+        .map(|(subscript, superscript)| crate::ScriptPair {
+            subscript: subscript.map(Box::new),
+            superscript: superscript.map(Box::new),
+        })
+        .collect())
 }
 
 /// The wrapped content of a styled group: a lone child stays itself,
@@ -252,6 +339,38 @@ fn decode_node(
     let fields = required(model, "fields", path)?
         .as_object()
         .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+    if let Some(suffix) = class.strip_prefix("Math::Function::FontStyle::") {
+        let variant =
+            font_variant(suffix).ok_or_else(|| refusal(WireErrorCode::UnsupportedClass, path))?;
+        closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+        let spelling = required(fields, "parameter_two", &fields_path)?
+            .as_str()
+            .ok_or_else(|| {
+                refusal(
+                    WireErrorCode::InvalidValue,
+                    &pointer(&fields_path, "parameter_two"),
+                )
+            })?;
+        if spelling != variant.spelling() {
+            return Err(refusal(
+                WireErrorCode::InvalidValue,
+                &pointer(&fields_path, "parameter_two"),
+            ));
+        }
+        let content = decode_value(
+            required(fields, "parameter_one", &fields_path)?,
+            &pointer(&fields_path, "parameter_one"),
+            depth + 1,
+            budget,
+        )?;
+        return Ok(Formula::Styled {
+            style: PresentationStyle {
+                math_variant: Some(variant),
+                ..PresentationStyle::default()
+            },
+            content: Box::new(content),
+        });
+    }
     match class {
         "Math::Formula" => {
             closed(fields, &["value", "displaystyle"], &fields_path)?;
@@ -447,6 +566,85 @@ fn decode_node(
                 })?;
             Ok(Formula::StringLiteral(text.to_owned()))
         }
+        "Math::Function::Multiscript" => {
+            closed(
+                fields,
+                &["parameter_one", "parameter_two", "parameter_three"],
+                &fields_path,
+            )?;
+            let base_node = required(fields, "parameter_one", &fields_path)?;
+            let base_object = base_node.as_object().ok_or_else(|| {
+                refusal(
+                    WireErrorCode::InvalidValue,
+                    &pointer(&fields_path, "parameter_one"),
+                )
+            })?;
+            let (base, postscripts) = if base_object.get("class").and_then(Value::as_str)
+                == Some("Math::Function::PowerBase")
+            {
+                let nested = base_object
+                    .get("fields")
+                    .and_then(Value::as_object)
+                    .ok_or_else(|| {
+                        refusal(
+                            WireErrorCode::InvalidValue,
+                            &pointer(&fields_path, "parameter_one"),
+                        )
+                    })?;
+                let base = decode_value(
+                    required(
+                        nested,
+                        "parameter_one",
+                        &pointer(&fields_path, "parameter_one"),
+                    )?,
+                    &pointer(&fields_path, "parameter_one/parameter_one"),
+                    depth + 1,
+                    budget,
+                )?;
+                let pairs_path = pointer(&fields_path, "parameter_one");
+                let pairs = script_pairs(
+                    required(
+                        nested,
+                        "parameter_two",
+                        &pointer(&pairs_path, "parameter_two"),
+                    )?
+                    .clone(),
+                    required(
+                        nested,
+                        "parameter_three",
+                        &pointer(&pairs_path, "parameter_three"),
+                    )?
+                    .clone(),
+                    &pairs_path,
+                    depth + 1,
+                    budget,
+                )?;
+                (base, pairs)
+            } else {
+                let base = decode_value(
+                    base_node,
+                    &pointer(&fields_path, "parameter_one"),
+                    depth + 1,
+                    budget,
+                )?;
+                (base, Vec::new())
+            };
+            let prescripts = match fields.get("parameter_two") {
+                None | Some(Value::Null) => None,
+                Some(subs) => {
+                    let sups = required(fields, "parameter_three", &fields_path)?;
+                    let pairs_path = pointer(&fields_path, "parameter_two");
+                    let pairs =
+                        script_pairs(subs.clone(), sups.clone(), &pairs_path, depth + 1, budget)?;
+                    Some(pairs)
+                }
+            };
+            Ok(Formula::MultiScripts {
+                base: Box::new(base),
+                postscripts,
+                prescripts,
+            })
+        }
         "Math::Function::Table" => {
             closed(
                 fields,
@@ -600,19 +798,110 @@ fn encode_node(
         }
         // These syntax-side constructs have no mapping in the pinned subset.
         // Refuse rather than inventing a class or losing their placement.
-        Formula::MultiScripts { .. } | Formula::Space(..) => {
+        Formula::Space(..) => {
             return Err(refusal(WireErrorCode::UnsupportedClass, path));
         }
+        Formula::MultiScripts {
+            base,
+            postscripts,
+            prescripts,
+        } => {
+            // Plurimath nests the postscripts into the base (a PowerBase
+            // over the parallel sub/sup lists, single-element lists unwrapped
+            // to the bare node) and carries the prescripts as the ternary's
+            // parallel parameters. A pair with an empty slot has no aligned
+            // plurimath representation and refuses.
+            let mut flatten =
+                |pairs: &[crate::ScriptPair], path: &str| -> Result<(Value, Value), WireError> {
+                    let mut subs = Vec::with_capacity(pairs.len());
+                    let mut sups = Vec::with_capacity(pairs.len());
+                    for (index, pair) in pairs.iter().enumerate() {
+                        let (sub, sup) = match (&pair.subscript, &pair.superscript) {
+                            (Some(sub), Some(sup)) => (sub, sup),
+                            _ => {
+                                return Err(refusal(
+                                    WireErrorCode::UnsupportedClass,
+                                    &pointer(path, &index.to_string()),
+                                ))
+                            }
+                        };
+                        subs.push(encode_node(
+                            sub,
+                            &pointer(path, &format!("{index}/subscript")),
+                            depth + 1,
+                            budget,
+                        )?);
+                        sups.push(encode_node(
+                            sup,
+                            &pointer(path, &format!("{index}/superscript")),
+                            depth + 1,
+                            budget,
+                        )?);
+                    }
+                    let unwrap_single = |mut items: Vec<Value>| {
+                        if items.len() == 1 {
+                            items.pop().expect("one item")
+                        } else {
+                            Value::Array(items)
+                        }
+                    };
+                    Ok((unwrap_single(subs), unwrap_single(sups)))
+                };
+            let posts = if postscripts.is_empty() {
+                None
+            } else {
+                Some(flatten(
+                    postscripts,
+                    &pointer(&fields_path, "parameter_one/postscripts"),
+                )?)
+            };
+            let pres = match prescripts {
+                None => None,
+                Some(pairs) => Some(flatten(pairs, &pointer(&fields_path, "parameter_two"))?),
+            };
+            let parameter_one = match (&posts, postscripts.is_empty()) {
+                (&None, true) => encode_node(
+                    base,
+                    &pointer(&fields_path, "parameter_one"),
+                    depth + 1,
+                    budget,
+                )?,
+                (Some((subs, sups)), _) => json!({
+                    "class": "Math::Function::PowerBase",
+                    "fields": {
+                        "parameter_one": encode_node(
+                            base,
+                            &pointer(&fields_path, "parameter_one/base"),
+                            depth + 1,
+                            budget,
+                        )?,
+                        "parameter_two": subs,
+                        "parameter_three": sups,
+                    }
+                }),
+                _ => unreachable!("posts exist only when nonempty"),
+            };
+            let (parameter_two, parameter_three) = match pres {
+                None => (Value::Null, Value::Null),
+                Some((subs, sups)) => (subs, sups),
+            };
+            (
+                "Math::Function::Multiscript",
+                json!({
+                    "parameter_one": parameter_one,
+                    "parameter_two": parameter_two,
+                    "parameter_three": parameter_three,
+                }),
+            )
+        }
         Formula::Styled { style, content } => {
-            // The upstream Formula carries only the displaystyle hint. Under
-            // MathML Core (§3.1) the display style derives from display or is
-            // overridden by displaystyle, so a display hint that AGREES with
-            // the carried hint (or is alone) is redundant, not lost — it
-            // encodes as the displaystyle. A contradiction refuses. Every
-            // other presentation attribute has no source class and stays
-            // refused rather than dropped.
+            // The display hint crosses as the displaystyle (see the Core §3.1
+            // rule above); a variant crosses as its plurimath FontStyle class
+            // (one subclass per variant, the spelling as the scalar second
+            // parameter). A hint pair the upstream classes cannot carry
+            // together, and every other presentation attribute, refuses
+            // rather than dropping.
             let carries = style.script_level.is_some()
-                || style.math_variant.is_some()
                 || style.math_color.is_some()
                 || style.right_space.is_some()
                 || style.accent.is_some()
@@ -629,14 +918,26 @@ fn encode_node(
                 (Some(explicit), _) => Some(explicit),
                 (None, redundant) => redundant,
             };
-            if carries || displaystyle.is_none() {
+            if carries {
                 return Err(refusal(WireErrorCode::UnsupportedClass, path));
             }
             let content = encode_node(content, &pointer(&fields_path, "value"), depth + 1, budget)?;
-            (
-                "Math::Formula",
-                json!({"value": [content], "displaystyle": displaystyle}),
-            )
+            if let Some(variant) = style.math_variant {
+                if displaystyle.is_some() {
+                    return Err(refusal(WireErrorCode::UnsupportedClass, path));
+                }
+                (
+                    font_style_class(variant),
+                    json!({"parameter_one": content, "parameter_two": variant.spelling()}),
+                )
+            } else if let Some(displaystyle) = displaystyle {
+                (
+                    "Math::Formula",
+                    json!({"value": [content], "displaystyle": displaystyle}),
+                )
+            } else {
+                return Err(refusal(WireErrorCode::UnsupportedClass, path));
+            }
         }
         Formula::Style(children) => {
             let value_path = pointer(&fields_path, "value");
