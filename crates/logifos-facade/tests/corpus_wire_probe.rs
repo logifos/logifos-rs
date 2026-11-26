@@ -29,7 +29,7 @@ fn tally_wire_refusals_over_the_corpus() {
         let mut tally = |key: &str| *tallies.entry(key.to_owned()).or_default() += 1;
         let parsed = logifos_syntax_mathml::parse(&bytes);
         match parsed
-            .map_err(|_| "transform:parse_refused".to_owned())
+            .map_err(|error| format!("transform:parse_refused:{:?}", error.kind))
             .and_then(|document| {
                 logifos_syntax_mathml::transform(&document).map_err(|error| {
                     format!(

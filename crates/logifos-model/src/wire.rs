@@ -252,6 +252,10 @@ fn hand_operator_class(text: &str) -> Option<&'static str> {
         "\u{230a}" => Some("Math::Symbols::Paren::Lfloor"),
         "\u{230b}" => Some("Math::Symbols::Paren::Rfloor"),
         "\u{27e8}" => Some("Math::Symbols::Paren::Langle"),
+        // The deprecated confusable spellings decode to the mathematical
+        // primaries (the Lbrack/Rbrack convention).
+        "\u{2329}" => Some("Math::Symbols::Paren::Langle"),
+        "\u{232a}" => Some("Math::Symbols::Paren::Rangle"),
         "\u{27e9}" => Some("Math::Symbols::Paren::Rangle"),
         _ => None,
     }
