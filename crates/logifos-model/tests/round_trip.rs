@@ -641,3 +641,15 @@ fn authored_space_lengths_round_trip_through_named_ones() {
     );
     assert_eq!(logifos_model::MathSpace::parse("notalength"), None);
 }
+
+#[test]
+fn menclose_round_trips_with_its_verbatim_notation() {
+    let menclose = json!({
+        "class": "Math::Function::Menclose",
+        "fields": {
+            "parameter_one": "circle box",
+            "parameter_two": symbol("x")
+        }
+    });
+    round_trips(&menclose);
+}

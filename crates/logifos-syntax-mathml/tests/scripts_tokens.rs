@@ -341,12 +341,8 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
             );
         }
     }
-    for content in [
-        "<menclose/>",
-        "<mo>pri vate</mo>",
-        "<!--private-->",
-        "private",
-    ] {
+    // menclose is supported now; it drops out of the foreign list.
+    for content in ["<mo>pri vate</mo>", "<!--private-->", "private"] {
         for name in ["msubsup", "mmultiscripts"] {
             let error = transform(
                 &parse(format!("<math><{name}><mi>x</mi>{content}</{name}></math>")).unwrap(),

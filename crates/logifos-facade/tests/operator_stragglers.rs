@@ -109,7 +109,7 @@ fn children(formula: &Formula) -> Vec<&Formula> {
                 other => vec![other],
             })
             .collect(),
-        Formula::Space(..) => Vec::new(),
+        Formula::Space(..) | Formula::Menclose { .. } => Vec::new(),
         Formula::Symbol(_) | Formula::StringLiteral(_) | Formula::Operator(_) => Vec::new(),
     }
 }

@@ -88,8 +88,9 @@ fn typed_refusals_and_integrity_failures_are_counted_without_skips() {
         ("refusal:parse:malformed_xml", 1),
         ("refusal:parse:unsafe_xml", 1),
         ("refusal:transform:unsupported_attribute", 1),
-        ("refusal:transform:unsupported_element", 1),
-        ("refusal:layout:font_not_configured", 1),
+        // menclose transforms now and stops at the layout gate like the
+        // plain row.
+        ("refusal:layout:font_not_configured", 2),
         ("failure:input:hash_mismatch", 1),
     ] {
         assert_eq!(report["categories"][category], count);

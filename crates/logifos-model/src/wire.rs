@@ -649,6 +649,27 @@ fn decode_node(
             };
             with_accent(fields, construct)
         }
+        "Math::Function::Menclose" => {
+            closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            let notation = required(fields, "parameter_one", &fields_path)?
+                .as_str()
+                .ok_or_else(|| {
+                    refusal(
+                        WireErrorCode::InvalidValue,
+                        &pointer(&fields_path, "parameter_one"),
+                    )
+                })?;
+            let content = decode_value(
+                required(fields, "parameter_two", &fields_path)?,
+                &pointer(&fields_path, "parameter_two"),
+                depth + 1,
+                budget,
+            )?;
+            Ok(Formula::Menclose {
+                notation: notation.to_owned().into_boxed_str(),
+                content: Box::new(content),
+            })
+        }
         "Math::Function::Ms" => {
             closed(fields, &["parameter_one"], &fields_path)?;
             let text = required(fields, "parameter_one", &fields_path)?
@@ -895,6 +916,18 @@ fn encode_node(
         // Refuse rather than inventing a class or losing their placement.
         Formula::Space(..) => {
             return Err(refusal(WireErrorCode::UnsupportedClass, path));
+        }
+        Formula::Menclose { notation, content } => {
+            let content = encode_node(
+                content,
+                &pointer(&fields_path, "parameter_two"),
+                depth + 1,
+                budget,
+            )?;
+            (
+                "Math::Function::Menclose",
+                json!({"parameter_one": notation, "parameter_two": content}),
+            )
         }
         Formula::MultiScripts {
             base,

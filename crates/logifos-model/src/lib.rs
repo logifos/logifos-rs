@@ -88,6 +88,13 @@ pub enum Formula {
     Space(Option<Length>, Option<Length>, Option<Length>),
     /// A string literal, distinct from identifier text and with default quotes.
     StringLiteral(String),
+    /// A MathML-3 enclosure around one content child; the notation is the
+    /// element's verbatim attribute value (space-separated spellings),
+    /// interpreted at layout.
+    Menclose {
+        notation: Box<str>,
+        content: Box<Formula>,
+    },
     /// Base with an underscript child, distinct from a subscript.
     Under(Box<Formula>, Box<Formula>),
     /// Base with an overscript child, distinct from a superscript.

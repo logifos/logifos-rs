@@ -128,6 +128,12 @@ fn build<'a>(
     } else {
         (formula, style)
     };
+    if let Formula::Menclose { notation, .. } = formula {
+        // The enclosure notations are MathML-3 legacy drawing; layout lands
+        // with the notation interpretation slice.
+        let _ = notation;
+        return Err(LayoutError::NotLaidOutYet);
+    }
     match formula {
         Formula::Sequence(children)
         | Formula::Style(children)
@@ -225,6 +231,7 @@ fn build_construct<'a>(
         | Formula::ErrorGroup(_)
         | Formula::Padded(_)
         | Formula::Phantom(_) => unreachable!("handled by build"),
+        Formula::Menclose { .. } => unreachable!("handled by build"),
         Formula::Space(width, height, depth) => {
             let size = style.font_size_px;
             let font = fonts.primary();

@@ -349,11 +349,6 @@ fn standalone_multiscript_markers_refuse() {
 }
 
 #[test]
-fn enclosures_refuse() {
-    unsupported(&[("menclose", "<menclose><mi>x</mi></menclose>")]);
-}
-
-#[test]
 fn standalone_annotations_refuse() {
     unsupported(&[
         ("annotation", "<annotation>meaning</annotation>"),
@@ -596,9 +591,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:menclose><mi>y</mi><mo>^</mo></m:menclose></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:msgroup><mi>y</mi><mo>^</mo></m:msgroup></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "menclose",
+        "msgroup",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));
@@ -648,4 +643,25 @@ fn manually_constructed_trees_count_ignored_whitespace_toward_node_limit() {
     let error = transform(&document).unwrap_err();
     assert_eq!(error.kind, TransformErrorKind::ResourceLimit);
     assert_eq!(error.location, format!("/root/children/{}", MAX_NODES - 1));
+}
+
+#[test]
+fn menclose_carries_its_notation_verbatim_and_defaults_to_box() {
+    let with_notation =
+        converted("<math><menclose notation=\"circle box\"><mi>x</mi></menclose></math>");
+    assert_eq!(
+        with_notation,
+        Formula::Sequence(vec![Formula::Menclose {
+            notation: "circle box".into(),
+            content: Box::new(Formula::Sequence(vec![Formula::Symbol("x".into())]))
+        }])
+    );
+    let default = converted("<math><menclose><mi>x</mi></menclose></math>");
+    assert_eq!(
+        default,
+        Formula::Sequence(vec![Formula::Menclose {
+            notation: "box".into(),
+            content: Box::new(Formula::Sequence(vec![Formula::Symbol("x".into())]))
+        }])
+    );
 }

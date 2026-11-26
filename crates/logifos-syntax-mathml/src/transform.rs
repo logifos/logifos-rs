@@ -186,14 +186,15 @@ impl Transformer {
         location: &str,
         depth: usize,
     ) -> Result<Formula, TransformError> {
-        // mfenced consumes its own attributes; every other element gets the
-        // budget visit and the presentation-attribute validation.
-        if element.name.local != "mfenced" {
+        // mfenced and menclose consume their own attributes; every other
+        // element gets the budget visit and the presentation-attribute
+        // validation.
+        if !matches!(element.name.local.as_str(), "mfenced" | "menclose") {
             self.check_element(element, location, depth)?;
         } else {
             self.visit(element, location, depth)?;
         }
-        let style = if element.name.local == "mfenced" {
+        let style = if matches!(element.name.local.as_str(), "mfenced" | "menclose") {
             logifos_model::PresentationStyle::default()
         } else {
             presentation::attributes(element, location)?
@@ -209,6 +210,28 @@ impl Transformer {
         }
     }
 
+    /// MathML-3 `<menclose>`: the notation attribute carries verbatim
+    /// (space-separated spellings; the MathML-3 default is a box) and the
+    /// single visible child wraps. Layout interprets the notation.
+    fn menclose(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Formula, TransformError> {
+        let notation = element
+            .attributes
+            .iter()
+            .find(|attribute| attribute.name.local == "notation")
+            .map(|attribute| attribute.value.clone().into_boxed_str())
+            .unwrap_or_else(|| Box::from("box"));
+        let children = self.row_like(element, location, depth)?;
+        Ok(Formula::Menclose {
+            notation,
+            content: Box::new(Formula::Sequence(children)),
+        })
+    }
+
     fn content(
         &mut self,
         element: &Element,
@@ -218,6 +241,7 @@ impl Transformer {
         match element.name.local.as_str() {
             "semantics" => self.semantics(element, location, depth),
             "mfenced" => self.mfenced(element, location, depth),
+            "menclose" => self.menclose(element, location, depth),
             "mstyle" | "merror" | "mpadded" | "mphantom" => {
                 let children = self.row_like(element, location, depth)?;
                 Ok(match element.name.local.as_str() {
