@@ -4,7 +4,7 @@ loca = "loca"
 # plurimath's own symbol class names, carried verbatim by the generated
 # operator inventory (scripts/generate-operator-wire.rb) — upstream
 # spellings, not typos.
-nin = "Nin"
-oint = "Oint"
-pointint = "Pointint"
-simle = "Simle"
+Nin = "Nin"
+Oint = "Oint"
+Pointint = "Pointint"
+Simle = "Simle"
