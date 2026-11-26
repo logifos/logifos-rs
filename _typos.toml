@@ -1,0 +1,10 @@
+[default.extend-words]
+# OpenType's glyph-location table tag.
+loca = "loca"
+# plurimath's own symbol class names, carried verbatim by the generated
+# operator inventory (scripts/generate-operator-wire.rb) — upstream
+# spellings, not typos.
+Nin = "Nin"
+Oint = "Oint"
+Pointint = "Pointint"
+Simle = "Simle"

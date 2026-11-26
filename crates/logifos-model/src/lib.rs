@@ -12,6 +12,7 @@ pub use presentation::{
     ColumnAlign, MathColor, MathDisplay, MathSpace, MathVariant, PresentationStyle, ScriptLevel,
 };
 
+mod operator_wire;
 mod wire;
 pub use wire::{ContractPin, WireError, WireErrorCode, FORMULA_CONTRACT, MAX_DEPTH, MAX_NODES};
 

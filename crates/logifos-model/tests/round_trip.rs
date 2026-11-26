@@ -300,7 +300,9 @@ fn named_operators_refuse_missing_or_overridden_values() {
 
 #[test]
 fn unsupported_typed_operators_refuse_without_partial_wire_output() {
-    for text in ["", "arbitrary", "∑", "÷"] {
+    // The plurimath symbol inventory carries most operator spellings now;
+    // only text no source class claims refuses.
+    for text in ["", "arbitrary"] {
         let node = Formula::Operator(text.into());
         assert_eq!(
             node.to_wire(),
