@@ -1508,3 +1508,51 @@ fn msubsup_and_multiscripts_place_pre_and_post_scripts() {
     assert!(result.glyphs[1].origin.x() > base_x);
     assert_eq!(result, layout(&multi, &mut fonts, options(0)).unwrap());
 }
+
+#[test]
+fn menclose_draws_box_rules_and_the_bottom_rule() {
+    let box_enclosed = Formula::Menclose {
+        notation: "box".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    let boxed = layout(&box_enclosed, &mut provider(&font()), options(0)).unwrap();
+    let rules = count_rules(&boxed.tree);
+    assert_eq!(rules, 4, "a full box draws four border rules");
+    // The enclosure pads the content by the rule thickness on every edge.
+    let plain = layout(
+        &sequence(vec![symbol("x")]),
+        &mut provider(&font()),
+        options(0),
+    )
+    .unwrap();
+    assert!(
+        boxed.tree.metrics().width() > plain.tree.metrics().width(),
+        "the border band widens the box"
+    );
+
+    let bottom = Formula::Menclose {
+        notation: "bottom".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    let underlined = layout(&bottom, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(count_rules(&underlined.tree), 1, "bottom draws one rule");
+
+    // The curved and diagonal spellings refuse typed until the arcs land.
+    let curved = Formula::Menclose {
+        notation: "phasorangle".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    assert_eq!(
+        layout(&curved, &mut provider(&font()), options(0)).unwrap_err(),
+        LayoutError::NotLaidOutYet
+    );
+}
+
+fn count_rules(tree: &BoxTree) -> usize {
+    use logifos_layout::BoxKind;
+    let mut count = usize::from(tree.kind() == BoxKind::Rule);
+    for child in tree.children() {
+        count += count_rules(child.node());
+    }
+    count
+}
