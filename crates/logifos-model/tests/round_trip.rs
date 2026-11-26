@@ -631,7 +631,13 @@ fn authored_space_lengths_round_trip_through_named_ones() {
     let space = logifos_model::MathSpace::Em(-0.35);
     assert_eq!(space.units(), -6.3);
     assert_eq!(space.to_css(), "-0.35em");
-    assert_eq!(logifos_model::MathSpace::parse("0.2778em"), Some(logifos_model::MathSpace::Em(0.2778)));
-    assert_eq!(logifos_model::MathSpace::parse("thickmathspace"), Some(logifos_model::MathSpace::Thick));
+    assert_eq!(
+        logifos_model::MathSpace::parse("0.2778em"),
+        Some(logifos_model::MathSpace::Em(0.2778))
+    );
+    assert_eq!(
+        logifos_model::MathSpace::parse("thickmathspace"),
+        Some(logifos_model::MathSpace::Thick)
+    );
     assert_eq!(logifos_model::MathSpace::parse("notalength"), None);
 }
