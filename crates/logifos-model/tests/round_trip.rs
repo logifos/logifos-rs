@@ -510,3 +510,53 @@ fn construct_classes_round_trip_and_preserve_children() {
     });
     round_trips(&literal);
 }
+
+#[test]
+fn font_style_and_multiscript_round_trip() {
+    // A token's variant crosses as its plurimath FontStyle class with the
+    // canonical spelling as the scalar second parameter.
+    let styled = json!({
+        "class": "Math::Function::FontStyle::Bold",
+        "fields": {"parameter_one": symbol("x"), "parameter_two": "bold"}
+    });
+    round_trips(&styled);
+    // A misspelled parameter refuses rather than re-coercing.
+    let mismatched = json!({
+        "class": "Math::Function::FontStyle::Bold",
+        "fields": {"parameter_one": symbol("x"), "parameter_two": "italic"}
+    });
+    refused(
+        &mismatched,
+        WireErrorCode::InvalidValue,
+        "/fields/parameter_two",
+    );
+
+    // Postscripts nest into the base as a PowerBase over the parallel
+    // lists; prescripts are the ternary's parallel parameters.
+    let multiscript = json!({
+        "class": "Math::Function::Multiscript",
+        "fields": {
+            "parameter_one": {
+                "class": "Math::Function::PowerBase",
+                "fields": {
+                    "parameter_one": symbol("x"),
+                    "parameter_two": symbol("a"),
+                    "parameter_three": symbol("b")
+                }
+            },
+            "parameter_two": symbol("c"),
+            "parameter_three": symbol("d")
+        }
+    });
+    round_trips(&multiscript);
+    // Without prescripts the ternary's trailing parameters are null.
+    let posts_only = json!({
+        "class": "Math::Function::Multiscript",
+        "fields": {
+            "parameter_one": symbol("x"),
+            "parameter_two": Value::Null,
+            "parameter_three": Value::Null
+        }
+    });
+    round_trips(&posts_only);
+}
