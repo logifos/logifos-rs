@@ -1,8 +1,10 @@
-[files]
-# The generated operator inventory carries plurimath's own symbol class
-# names verbatim (Oint, Simle, ...) — upstream spellings, not typos.
-extend-exclude = ["**/operator_wire.rs"]
-
 [default.extend-words]
 # OpenType's glyph-location table tag.
 loca = "loca"
+# plurimath's own symbol class names, carried verbatim by the generated
+# operator inventory (scripts/generate-operator-wire.rb) — upstream
+# spellings, not typos.
+nin = "Nin"
+oint = "Oint"
+pointint = "Pointint"
+simle = "Simle"
