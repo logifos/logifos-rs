@@ -1,4 +1,3 @@
-use logifos_model::Formula;
 use std::{collections::BTreeMap, path::Path};
 
 /// Tallies, over the derived plurimath-testsuite cases, which stage refuses
@@ -29,7 +28,7 @@ fn tally_wire_refusals_over_the_corpus() {
         let mut tally = |key: &str| *tallies.entry(key.to_owned()).or_default() += 1;
         let parsed = logifos_syntax_mathml::parse(&bytes);
         match parsed
-            .map_err(|_| "transform:parse_refused".to_owned())
+            .map_err(|error| format!("transform:parse_refused:{:?}", error.kind))
             .and_then(|document| {
                 logifos_syntax_mathml::transform(&document).map_err(|error| {
                     format!(
@@ -53,19 +52,16 @@ fn tally_wire_refusals_over_the_corpus() {
             Err(kind) => tally(&kind),
             Ok(formula) => match formula.to_wire() {
                 Ok(_) => tally("encoded"),
-                Err(e) => {
-                    let mut root = formula;
-                    let kind = classify(&mut root);
-                    tally(&format!("wire:{:?} at {} ({kind})", e.code, e.path));
-                }
+                Err(e) => tally(&format!(
+                    "wire:{:?} at {} :: {}",
+                    e.code,
+                    e.path,
+                    path.file_name().and_then(|n| n.to_str()).unwrap_or("?")
+                )),
             },
         }
     }
     for (key, count) in &tallies {
         println!("{count:5}  {key}");
     }
-}
-
-fn classify(_formula: &mut Formula) -> &'static str {
-    "unclassified"
 }
