@@ -33,7 +33,7 @@ fn tally_wire_refusals_over_the_corpus() {
             .and_then(|document| {
                 logifos_syntax_mathml::transform(&document).map_err(|error| {
                     format!(
-                        "transform:{}:{}",
+                        "transform:{}:{}:{}",
                         match error.kind {
                             logifos_syntax_mathml::TransformErrorKind::UnsupportedElement =>
                                 "element",
@@ -41,7 +41,12 @@ fn tally_wire_refusals_over_the_corpus() {
                                 "attribute",
                             _ => "other",
                         },
-                        error.element.local
+                        error.element.local,
+                        error
+                            .attribute
+                            .as_ref()
+                            .map(|a| a.local.as_str())
+                            .unwrap_or("-")
                     )
                 })
             }) {

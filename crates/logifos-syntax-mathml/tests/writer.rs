@@ -24,7 +24,7 @@ fn roundtrip(formula: &Formula) -> String {
 #[test]
 fn dictionary_operators_roundtrip_exactly() {
     let formula = Formula::Sequence(
-        ["≤", "±", "→", "∑", "¯", ",", "lim", "\u{2004}", ""]
+        ["≤", "±", "→", "∑", "¯", ",", "lim", "\u{2004}"]
             .into_iter()
             .map(|text| Formula::Operator(text.into()))
             .collect(),

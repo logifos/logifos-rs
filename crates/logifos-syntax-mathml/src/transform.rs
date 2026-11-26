@@ -568,6 +568,13 @@ impl Transformer {
         // MathML Core strips the token's boundary whitespace before the
         // operator lookup; inner whitespace stays significant.
         let trimmed = text.trim_matches(xml_whitespace);
+        if element.name.local == "mo" && trimmed.is_empty() {
+            // An operator with no content paints nothing and carries no
+            // spacing of its own — plurimath serializes its operator rspace
+            // stamp as an empty mo — so it is a no-op token, not an
+            // unsupported operator.
+            return Ok(Formula::Sequence(Vec::new()));
+        }
         if logifos_model::operator::is_operator_text(trimmed) {
             Ok(Formula::Operator(trimmed.to_owned()))
         } else {
