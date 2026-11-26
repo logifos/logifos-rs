@@ -47,7 +47,7 @@ fn unsupported(elements: &[(&str, &str)]) {
 #[test]
 fn dictionary_operators_keep_their_exact_spelling() {
     for text in [
-        "≤", "±", "→", "∑", "∫", "¯", ",", "lim", "..", "−", "\u{2004}", "",
+        "≤", "±", "→", "∑", "∫", "¯", ",", "lim", "..", "−", "\u{2004}",
     ] {
         assert_eq!(
             converted(&format!("<math><mo>{text}</mo></math>")),
@@ -55,6 +55,17 @@ fn dictionary_operators_keep_their_exact_spelling() {
             "{text:?}"
         );
     }
+}
+
+#[test]
+fn an_empty_operator_is_a_noop_token() {
+    // An operator with no content paints nothing and carries no spacing of
+    // its own — plurimath serializes its operator rspace stamp as an empty
+    // mo — so it transforms to an empty sequence instead of an operator.
+    assert_eq!(
+        converted("<math><mo></mo></math>"),
+        Formula::Sequence(vec![Formula::Sequence(vec![])])
+    );
 }
 
 #[test]
