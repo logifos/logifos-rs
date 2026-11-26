@@ -234,6 +234,17 @@ fn container_writing_reports_invalid_descendants() {
 
 #[test]
 fn container_depth_limits_apply_to_transform_and_writer() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks (windows-arm in particular) cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(container_depth_limits_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn container_depth_limits_body() {
     for name in CONTAINERS {
         let nested = (1..MAX_DEPTH).fold(container(name, vec![]), |child, _| {
             container(name, vec![child])
