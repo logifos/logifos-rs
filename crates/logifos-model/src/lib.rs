@@ -92,7 +92,7 @@ pub enum Formula {
     /// element's verbatim attribute value (space-separated spellings),
     /// interpreted at layout.
     Menclose {
-        notation: String,
+        notation: Box<str>,
         content: Box<Formula>,
     },
     /// Base with an underscript child, distinct from a subscript.

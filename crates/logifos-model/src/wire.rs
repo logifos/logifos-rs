@@ -666,7 +666,7 @@ fn decode_node(
                 budget,
             )?;
             Ok(Formula::Menclose {
-                notation: notation.to_owned(),
+                notation: notation.to_owned().into_boxed_str(),
                 content: Box::new(content),
             })
         }

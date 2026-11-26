@@ -223,8 +223,8 @@ impl Transformer {
             .attributes
             .iter()
             .find(|attribute| attribute.name.local == "notation")
-            .map(|attribute| attribute.value.clone())
-            .unwrap_or_else(|| "box".to_owned());
+            .map(|attribute| attribute.value.clone().into_boxed_str())
+            .unwrap_or_else(|| Box::from("box"));
         let children = self.row_like(element, location, depth)?;
         Ok(Formula::Menclose {
             notation,

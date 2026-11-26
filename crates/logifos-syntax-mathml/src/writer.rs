@@ -255,7 +255,7 @@ impl SyntaxBuilder {
                         local: "notation".into(),
                         namespace: None,
                     },
-                    value: notation.clone(),
+                    value: notation.to_string(),
                 });
                 // menclose inlines its children, so the transform's sequence
                 // content reparses to an equal Formula.
