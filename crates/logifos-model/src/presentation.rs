@@ -137,8 +137,10 @@ impl MathColor {
     }
 }
 
-/// Named positive MathML spaces, measured in eighteenths of an em.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// MathML spaces, measured in eighteenths of an em: the named spaces plus
+/// an authored em length (Core deprecates the names in favor of lengths;
+/// both carry here).
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MathSpace {
     VeryVeryThin,
     VeryThin,
@@ -147,7 +149,12 @@ pub enum MathSpace {
     Thick,
     VeryThick,
     VeryVeryThick,
+    /// An authored em length; parse rejects non-finite values, so equality
+    /// stays reflexive.
+    Em(f64),
 }
+
+impl Eq for MathSpace {}
 
 impl MathSpace {
     pub fn parse(value: &str) -> Option<Self> {
@@ -159,7 +166,18 @@ impl MathSpace {
             "thickmathspace" => Self::Thick,
             "verythickmathspace" => Self::VeryThick,
             "veryverythickmathspace" => Self::VeryVeryThick,
-            _ => return None,
+            _ => {
+                let text = value.trim();
+                let number = text
+                    .strip_suffix("em")
+                    .unwrap_or(text)
+                    .parse::<f64>()
+                    .ok()?;
+                if !number.is_finite() {
+                    return None;
+                }
+                Self::Em(number)
+            }
         })
     }
 
@@ -173,18 +191,22 @@ impl MathSpace {
             Self::Thick => 5.0,
             Self::VeryThick => 6.0,
             Self::VeryVeryThick => 7.0,
+            Self::Em(em) => em * 18.0,
         }
     }
 
-    pub fn as_str(self) -> &'static str {
+    /// The CSS value the writer serializes; lengths render as their em
+    /// spelling.
+    pub fn to_css(self) -> String {
         match self {
-            Self::VeryVeryThin => "veryverythinmathspace",
-            Self::VeryThin => "verythinmathspace",
-            Self::Thin => "thinmathspace",
-            Self::Medium => "mediummathspace",
-            Self::Thick => "thickmathspace",
-            Self::VeryThick => "verythickmathspace",
-            Self::VeryVeryThick => "veryverythickmathspace",
+            Self::Em(em) => format!("{em}em"),
+            Self::VeryVeryThin => "veryverythinmathspace".to_owned(),
+            Self::VeryThin => "verythinmathspace".to_owned(),
+            Self::Thin => "thinmathspace".to_owned(),
+            Self::Medium => "mediummathspace".to_owned(),
+            Self::Thick => "thickmathspace".to_owned(),
+            Self::VeryThick => "verythickmathspace".to_owned(),
+            Self::VeryVeryThick => "veryverythickmathspace".to_owned(),
         }
     }
 }

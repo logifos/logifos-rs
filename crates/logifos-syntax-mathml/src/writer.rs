@@ -416,7 +416,7 @@ impl SyntaxBuilder {
             );
         }
         if let Some(space) = style.right_space {
-            attribute("rspace", space.as_str().into());
+            attribute("rspace", space.to_css().into());
         }
         if let Some(accent) = style.accent {
             attribute("accent", accent.to_string());
