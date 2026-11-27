@@ -3,6 +3,9 @@ use crate::font::math::{Direction, MathConstant};
 use crate::font::FontProvider;
 use crate::{BoxTree, Metrics, Point};
 
+/// The invisible operators (Core 3.2.4): zero advance, zero spacing, no ink.
+const INVISIBLE_OPERATORS: [&str; 4] = ["\u{2061}", "\u{2062}", "\u{2063}", "\u{2064}"];
+
 pub(super) fn token<'a>(
     text: &str,
     operator: Option<&'a str>,
@@ -12,6 +15,11 @@ pub(super) fn token<'a>(
 ) -> Result<Node<'a>, LayoutError> {
     if operator.is_some_and(|text| text.is_empty()) {
         // An empty operator has no ink, spacing or embellishment.
+        return super::rows::stack(Vec::new());
+    }
+    if operator.is_some_and(|text| INVISIBLE_OPERATORS.contains(&text)) {
+        // Core 3.2.4: the four invisible operators carry no glyph and no
+        // advance; spacing treats them as absent entirely.
         return super::rows::stack(Vec::new());
     }
     if style.display && operator.is_some_and(operator::large) {

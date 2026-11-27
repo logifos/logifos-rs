@@ -284,6 +284,8 @@ fn hand_operator_class(text: &str) -> Option<&'static str> {
         "\u{2329}" => Some("Math::Symbols::Paren::Langle"),
         "\u{232a}" => Some("Math::Symbols::Paren::Rangle"),
         "\u{27e9}" => Some("Math::Symbols::Paren::Rangle"),
+        // The word operators carry Function classes, not Symbols spellings.
+        "mod" => Some("Math::Function::Mod"),
         _ => None,
     }
 }
@@ -308,6 +310,7 @@ fn hand_operator_text(class: &str) -> Option<&'static str> {
         "Math::Symbols::Paren::Rfloor" => Some("\u{230b}"),
         "Math::Symbols::Paren::Langle" => Some("\u{27e8}"),
         "Math::Symbols::Paren::Rangle" => Some("\u{27e9}"),
+        "Math::Function::Mod" => Some("mod"),
         _ => None,
     }
 }
@@ -1193,9 +1196,13 @@ fn encode_node(
         Formula::StringLiteral(text) => ("Math::Function::Ms", json!({"parameter_one": text})),
         Formula::Symbol(text) => ("Math::Symbols::Symbol", json!({"value": text})),
         Formula::Operator(text) => {
-            let class = operator_class(text)
-                .ok_or_else(|| refusal(WireErrorCode::UnsupportedOperator, path))?;
-            (class, json!({"value": null}))
+            // A spelling with no Symbols class rides plurimath's generic
+            // Symbols::Symbol carrying the text, exactly as plurimath's own
+            // tree holds unknown operators.
+            match operator_class(text) {
+                Some(class) => (class, json!({"value": null})),
+                None => ("Math::Symbols::Symbol", json!({"value": text})),
+            }
         }
         Formula::Fraction(first, second)
         | Formula::Superscript(first, second)

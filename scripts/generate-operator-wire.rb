@@ -46,13 +46,23 @@ by_class = by_text.map { |text, short| [short, text] }.sort.to_h
 
 def rust_str(value)
   value.chars.map do |char|
-    if char.ord < 0x20 || char.ord == 0x7f ||
-       format("%c", char.ord) =~ /[\p{Cf}\p{Cc}\p{Co}\p{Cn}]/u
+    if char == "\\"
+      "\\\\"
+    elsif char == '"'
+      '\\"'
+    elsif char.ord < 0x20 || char.ord == 0x7f ||
+          format("%c", char.ord) =~ /[\p{Cf}\p{Cc}\p{Co}\p{Cn}]/u
       format("\\u{%x}", char.ord)
     else
       char
     end
   end.join
+end
+
+# The generated Rust string literal: rust_str already escaped everything a
+# Rust literal cannot carry raw; inspect would double the escapes again.
+def rust_literal(value)
+  %("#{value}")
 end
 
 File.open(File.join(__dir__, "../crates/logifos-model/src/operator_wire.rs"), "w") do |file|
@@ -65,13 +75,13 @@ File.open(File.join(__dir__, "../crates/logifos-model/src/operator_wire.rs"), "w
   file.puts "/// MathML spelling -> the plurimath Symbols class short name, sorted by"
   file.puts "/// spelling for binary search."
   file.puts "pub(crate) static OPERATOR_CLASSES: &[(&str, &str)] = &["
-  by_text.each { |text, short| file.puts("    (#{rust_str(text).inspect}, #{rust_str(short).inspect}),") }
+  by_text.each { |text, short| file.puts("    (#{rust_literal(rust_str(text))}, #{rust_str(short).inspect}),") }
   file.puts "];"
   file.puts
   file.puts "/// plurimath Symbols class short name -> MathML spelling, sorted by"
   file.puts "/// class name for binary search."
   file.puts "pub(crate) static OPERATOR_TEXTS: &[(&str, &str)] = &["
-  by_class.each { |short, text| file.puts("    (#{rust_str(short).inspect}, #{rust_str(text).inspect}),") }
+  by_class.each { |short, text| file.puts("    (#{rust_str(short).inspect}, #{rust_literal(rust_str(text))}),") }
   file.puts "];"
 end
 puts "spellings: #{by_text.size}, collisions dropped: #{collisions}"
