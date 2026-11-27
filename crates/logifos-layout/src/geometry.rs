@@ -13,6 +13,8 @@ pub enum GeometryError {
     Overflow,
     /// A vertical stack's baseline was outside its logical vertical extent.
     BaselineOutOfBounds,
+    /// A stroked shape was asked for a nonpositive stroke width.
+    ZeroStroke,
 }
 
 impl fmt::Display for GeometryError {
@@ -22,6 +24,7 @@ impl fmt::Display for GeometryError {
             Self::NegativeExtent => "geometry extent must be nonnegative",
             Self::Overflow => "geometry arithmetic exceeded finite binary64 range",
             Self::BaselineOutOfBounds => "baseline must lie within the vertical stack",
+            Self::ZeroStroke => "a stroked shape needs a positive stroke width",
         })
     }
 }

@@ -28,7 +28,7 @@ use std::fmt;
 use outline::{GlyphOutline, OutlineError};
 
 use logifos_layout::layout::{MathColor, PlacedGlyph};
-use logifos_layout::{Bounds, BoxKind, BoxTree, GeometryError, Metrics, Point};
+use logifos_layout::{ArcCorner, Bounds, BoxKind, BoxTree, GeometryError, Metrics, Point};
 
 /// Per-emission presentation. No CSS, URLs, or raw XML are accepted.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -211,6 +211,48 @@ pub fn emit(
                 number(node.metrics().width()),
                 number(node.metrics().total_height()),
             ));
+        }
+        match node.kind() {
+            BoxKind::Ellipse => {
+                let width = node.metrics().width();
+                let height = node.metrics().total_height();
+                svg.push_str(&format!(
+                    "<ellipse cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>",
+                    number(width / 2.0),
+                    number(height / 2.0),
+                    number(width / 2.0),
+                    number(height / 2.0),
+                    options.color.to_ascii_lowercase(),
+                    number(node.stroke_width()),
+                ));
+            }
+            BoxKind::Arc(corner) => {
+                let width = node.metrics().width();
+                let height = node.metrics().total_height();
+                // The quarter ellipse is centered on `corner` and connects
+                // the two bbox corners adjacent to it, bulging toward the
+                // opposite corner. Start point and sweep follow from the
+                // centered ellipse's angle range.
+                let (from, to, sweep) = match corner {
+                    ArcCorner::TopLeft => ((0.0, height), (width, 0.0), 0),
+                    ArcCorner::TopRight => ((0.0, 0.0), (width, height), 0),
+                    ArcCorner::BottomLeft => ((0.0, 0.0), (width, height), 1),
+                    ArcCorner::BottomRight => ((width, 0.0), (0.0, height), 0),
+                };
+                svg.push_str(&format!(
+                    "<path d=\"M {} {} A {} {} 0 0 {} {} {}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>",
+                    number(from.0),
+                    number(from.1),
+                    number(width),
+                    number(height),
+                    sweep,
+                    number(to.0),
+                    number(to.1),
+                    options.color.to_ascii_lowercase(),
+                    number(node.stroke_width()),
+                ));
+            }
+            _ => {}
         }
         pending.push(Visit::Close);
         for child in node.children().iter().rev() {

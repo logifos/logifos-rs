@@ -124,7 +124,8 @@ fn parse_xml(document: &str) -> Parsed {
                     "svg" => &["xmlns", "width", "height", "viewBox"][..],
                     "g" => &["id", "transform", "fill"][..],
                     "rect" => &["x", "y", "width", "height"][..],
-                    "path" => &["d"][..],
+                    "ellipse" => &["cx", "cy", "rx", "ry", "fill", "stroke", "stroke-width"][..],
+                    "path" => &["d", "fill", "stroke", "stroke-width"][..],
                     "title" => &[][..],
                     other => panic!("unexpected SVG element: {other}"),
                 };
@@ -144,7 +145,10 @@ fn parse_xml(document: &str) -> Parsed {
             } => {
                 let index = pending.take().expect("missing start tag");
                 let name = elements[index].name.as_str();
-                assert!(matches!(name, "svg" | "g" | "rect" | "path" | "title"));
+                assert!(matches!(
+                    name,
+                    "svg" | "g" | "rect" | "ellipse" | "path" | "title"
+                ));
                 if name == "title" {
                     assert!(title.replace(String::new()).is_none(), "duplicate title");
                 }
@@ -822,4 +826,74 @@ fn colored_glyphs_fill_their_own_path_only() {
         1
     );
     assert_eq!(document.as_str().matches("<path d=").count(), 1);
+}
+
+#[test]
+fn stroked_ellipse_emits_exact_bytes_with_the_stroke_attributes() {
+    let tree = BoxTree::ellipse(Metrics::new(20.0, 3.0, 5.0).unwrap(), 0.75).unwrap();
+    let document = emit_default(&tree);
+    assert_eq!(
+        document.as_str(),
+        concat!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20px\" height=\"8px\" viewBox=\"0 0 20 8\">",
+            "<g fill=\"#000000\"><g id=\"box-0\" transform=\"translate(0 0)\">",
+            "<ellipse cx=\"10\" cy=\"4\" rx=\"10\" ry=\"4\" fill=\"none\" stroke=\"#000000\" stroke-width=\"0.75\"/>",
+            "</g></g></svg>",
+        )
+    );
+    assert_eq!(
+        document.ink_bounds(),
+        Some(Bounds::new(0.0, 0.0, 20.0, 8.0).unwrap())
+    );
+    parse(&document).assert_viewport([0.0, 0.0, 20.0, 8.0]);
+}
+
+#[test]
+fn stroked_arc_emits_the_centered_quarter_per_corner() {
+    // BottomLeft is centered at the lower-left corner: it connects the
+    // upper-left and lower-right corners bulging up-right (sweep 1).
+    let bottom_left = BoxTree::arc(
+        logifos_layout::ArcCorner::BottomLeft,
+        Metrics::new(6.0, 0.0, 6.0).unwrap(),
+        1.5,
+    )
+    .unwrap();
+    let document = emit_default(&bottom_left);
+    assert!(document.as_str().contains(
+        "<path d=\"M 0 0 A 6 6 0 0 1 6 6\" fill=\"none\" stroke=\"#000000\" stroke-width=\"1.5\"/>"
+    ));
+    // TopRight is centered at the upper-right corner: it connects the
+    // upper-left and lower-right corners bulging down-left (sweep 0).
+    let top_right = BoxTree::arc(
+        logifos_layout::ArcCorner::TopRight,
+        Metrics::new(6.0, 0.0, 6.0).unwrap(),
+        1.5,
+    )
+    .unwrap();
+    let document = emit_default(&top_right);
+    assert!(document.as_str().contains(
+        "<path d=\"M 0 0 A 6 6 0 0 0 6 6\" fill=\"none\" stroke=\"#000000\" stroke-width=\"1.5\"/>"
+    ));
+    for corner in [
+        logifos_layout::ArcCorner::TopLeft,
+        logifos_layout::ArcCorner::BottomRight,
+    ] {
+        let tree = BoxTree::arc(corner, Metrics::new(6.0, 6.0, 0.0).unwrap(), 1.5).unwrap();
+        let document = emit_default(&tree);
+        assert!(document.as_str().contains("fill=\"none\" stroke="));
+        parse(&document).assert_viewport([0.0, 0.0, 6.0, 6.0]);
+    }
+}
+
+#[test]
+fn nonpositive_stroke_width_refuses() {
+    let metrics = Metrics::new(4.0, 4.0, 0.0).unwrap();
+    assert_eq!(
+        BoxTree::ellipse(metrics, 0.0).unwrap_err(),
+        GeometryError::ZeroStroke
+    );
+    assert_eq!(
+        BoxTree::arc(logifos_layout::ArcCorner::TopLeft, metrics, -1.0).unwrap_err(),
+        GeometryError::ZeroStroke
+    );
 }

@@ -51,6 +51,20 @@ pub enum BoxKind {
     HBox,
     /// A left-aligned vertical stack with an explicit parent baseline.
     VBox,
+    /// A stroked ellipse inscribed in the logical box.
+    Ellipse,
+    /// A stroked quarter ellipse centered at the corner, spanning between
+    /// the two edges adjacent to that corner.
+    Arc(ArcCorner),
+}
+
+/// The corner an [`BoxKind::Arc`] is centered on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArcCorner {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
 }
 
 /// A child's top-left position relative to its parent's top-left origin.
@@ -89,6 +103,7 @@ pub struct BoxTree {
     metrics: Metrics,
     ink_bounds: Option<Bounds>,
     children: Vec<PositionedBox>,
+    stroke_width: f64,
 }
 
 impl BoxTree {
@@ -99,7 +114,53 @@ impl BoxTree {
             metrics,
             ink_bounds,
             children: Vec::new(),
+            stroke_width: 0.0,
         }
+    }
+
+    /// Constructs a stroked ellipse inscribed in the logical box; the stroke
+    /// band is the node's ink.
+    pub fn ellipse(metrics: Metrics, stroke_width: f64) -> Result<Self, GeometryError> {
+        let stroke_width = finite(stroke_width)?;
+        if stroke_width <= 0.0 {
+            return Err(GeometryError::ZeroStroke);
+        }
+        Ok(Self {
+            kind: BoxKind::Ellipse,
+            ink_bounds: Some(Bounds::new(
+                0.0,
+                0.0,
+                metrics.width(),
+                metrics.total_height(),
+            )?),
+            stroke_width,
+            ..Self::leaf(metrics, None)
+        })
+    }
+
+    /// Constructs a stroked quarter ellipse centered at `corner`, spanning
+    /// between the two edges adjacent to it; the stroke band is the node's
+    /// ink.
+    pub fn arc(
+        corner: ArcCorner,
+        metrics: Metrics,
+        stroke_width: f64,
+    ) -> Result<Self, GeometryError> {
+        let stroke_width = finite(stroke_width)?;
+        if stroke_width <= 0.0 {
+            return Err(GeometryError::ZeroStroke);
+        }
+        Ok(Self {
+            kind: BoxKind::Arc(corner),
+            ink_bounds: Some(Bounds::new(
+                0.0,
+                0.0,
+                metrics.width(),
+                metrics.total_height(),
+            )?),
+            stroke_width,
+            ..Self::leaf(metrics, None)
+        })
     }
 
     /// Constructs an inkless logical spacer.
@@ -218,12 +279,18 @@ impl BoxTree {
             metrics,
             ink_bounds: ink,
             children,
+            stroke_width: 0.0,
         })
     }
 
     /// The box's geometric role.
     pub fn kind(&self) -> BoxKind {
         self.kind
+    }
+
+    /// The stroked shape's stroke width; zero on non-stroked kinds.
+    pub fn stroke_width(&self) -> f64 {
+        self.stroke_width
     }
 
     /// Logical advance metrics in CSS pixels.
