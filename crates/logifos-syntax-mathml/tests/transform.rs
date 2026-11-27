@@ -488,10 +488,11 @@ fn namespaced_metadata_and_unknown_attributes_refuse() {
 }
 
 #[test]
-fn unsupported_operator_text_is_never_coerced() {
-    // Boundary whitespace strips per MathML Core and the invisible
-    // operators are dictionary operators; inner whitespace and non-operator
-    // text still refuse without coercion.
+fn dictionary_and_arbitrary_operator_text_both_convert() {
+    // Boundary whitespace strips per MathML Core; the invisible operators
+    // are dictionary operators, and any other mo text converts with the
+    // default spacing class — the dictionary tunes spacing, it does not
+    // gate acceptance.
     assert_eq!(
         converted("<math><mo> + </mo></math>"),
         Formula::Sequence(vec![operator("+")]),
@@ -500,11 +501,9 @@ fn unsupported_operator_text_is_never_coerced() {
         converted("<math><mo>\u{2062}</mo></math>"),
         Formula::Sequence(vec![operator("\u{2062}")]),
     );
-    refused(
-        "<math><mo>a b</mo></math>",
-        TransformErrorKind::UnsupportedOperator,
-        "mo",
-        "/root/children/0",
+    assert_eq!(
+        converted("<math><mo> there exists </mo></math>"),
+        Formula::Sequence(vec![operator("there exists")]),
     );
 }
 

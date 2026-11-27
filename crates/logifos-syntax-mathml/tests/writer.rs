@@ -126,16 +126,19 @@ fn only_sequence_radicands_roundtrip_through_msqrt() {
 }
 
 #[test]
-fn unsupported_operators_refuse_at_the_exact_formula_path() {
+fn operator_text_refusals_name_the_exact_formula_path() {
+    // The dictionary does not gate operator acceptance, so the deepest
+    // operator-text refusal left is an invalid XML character — still
+    // reported at the exact nested Formula path.
     let formula = Formula::Sequence(vec![Formula::Fraction(
         Box::new(symbol("x")),
         Box::new(Formula::Superscript(
             Box::new(symbol("y")),
-            Box::new(Formula::Operator("a b".into())),
+            Box::new(Formula::Operator("a\u{7}b".into())),
         )),
     )]);
     let error = write(&formula).unwrap_err();
-    assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
+    assert_eq!(error.kind, WriteErrorKind::InvalidCharacter);
     assert_eq!(error.location, "/children/0/denominator/script");
     assert_eq!(error.code(), "UNSUPPORTED_SYNTAX");
 }
