@@ -5,7 +5,7 @@ mod scripts;
 
 use std::fmt;
 
-use logifos_model::{Formula, Length, LengthUnit, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, Length, LengthUnit, StackAlign, StackRow, MAX_DEPTH, MAX_NODES};
 
 use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
 
@@ -70,6 +70,14 @@ fn refusal(kind: TransformErrorKind, element: &Element, location: &str) -> Trans
         location: location.into(),
         attribute: None,
     }
+}
+
+fn attribute_value(element: &Element, name: &str) -> Option<String> {
+    element
+        .attributes
+        .iter()
+        .find(|attribute| attribute.name.local == name)
+        .map(|attribute| attribute.value.clone())
 }
 
 /// Transforms a parsed MathML document into the shared Formula model.
@@ -355,11 +363,148 @@ impl Transformer {
                 }
                 Ok(Formula::Table(rows))
             }
+            "mstack" => {
+                let align = match attribute_value(element, "stackalign").as_deref() {
+                    None => StackAlign::DecimalPoint,
+                    Some("left") => StackAlign::Left,
+                    Some("center") => StackAlign::Center,
+                    Some("right") => StackAlign::Right,
+                    Some("decimalpoint") => StackAlign::DecimalPoint,
+                    Some(_) => {
+                        return Err(refusal(
+                            TransformErrorKind::UnsupportedAttribute,
+                            element,
+                            location,
+                        ))
+                    }
+                };
+                let rows = self.stack_children(element, location, depth)?;
+                Ok(Formula::Stack(align, rows))
+            }
+            // The corpus carries msgroup outside any mstack; a standalone
+            // group keeps its rows as the default-aligned stack.
+            "msgroup" => {
+                let position = self.stack_position(element, location)?;
+                let shift = self.stack_shift(element, location)?;
+                let rows = self.stack_children(element, location, depth)?;
+                Ok(Formula::Stack(
+                    StackAlign::DecimalPoint,
+                    vec![StackRow::Group {
+                        position,
+                        shift,
+                        rows,
+                    }],
+                ))
+            }
             _ => Err(refusal(
                 TransformErrorKind::UnsupportedElement,
                 element,
                 location,
             )),
+        }
+    }
+
+    /// The rows of an `mstack` or `msgroup`: `msrow` is an explicit row,
+    /// `msline` a rule row, `msgroup` a shifted subgroup, and any other
+    /// element a one-cell row.
+    fn stack_children(
+        &mut self,
+        element: &Element,
+        location: &str,
+        depth: usize,
+    ) -> Result<Vec<StackRow>, TransformError> {
+        let mut rows = Vec::new();
+        for (index, node) in element.children.iter().enumerate() {
+            let child_path = format!("{location}/children/{index}");
+            match node {
+                Node::Element(child)
+                    if matches!(child.name.local.as_str(), "msrow" | "msline" | "msgroup") =>
+                {
+                    self.check_element(child, &child_path, depth + 1)?;
+                    match child.name.local.as_str() {
+                        "msrow" => {
+                            let position = self.stack_position(child, &child_path)?;
+                            let cells = self.row_like(child, &child_path, depth + 1)?;
+                            rows.push(StackRow::Cells { position, cells });
+                        }
+                        "msline" => {
+                            let position = self.stack_position(child, &child_path)?;
+                            let length = self.stack_length(child, &child_path)?;
+                            rows.push(StackRow::Line { position, length });
+                        }
+                        _ => {
+                            let position = self.stack_position(child, &child_path)?;
+                            let shift = self.stack_shift(child, &child_path)?;
+                            let group = self.stack_children(child, &child_path, depth + 1)?;
+                            rows.push(StackRow::Group {
+                                position,
+                                shift,
+                                rows: group,
+                            });
+                        }
+                    }
+                }
+                Node::Element(child) => {
+                    let cell = self.element(child, &child_path, depth + 1)?;
+                    rows.push(StackRow::Cells {
+                        position: None,
+                        cells: vec![cell],
+                    });
+                }
+                Node::Text(text) if text.chars().all(xml_whitespace) => {
+                    self.visit(element, &child_path, depth + 1)?;
+                }
+                Node::Text(_) | Node::Comment(_) => {
+                    return Err(refusal(
+                        TransformErrorKind::UnsupportedContent,
+                        element,
+                        &child_path,
+                    ));
+                }
+            }
+        }
+        Ok(rows)
+    }
+
+    fn stack_position(
+        &self,
+        element: &Element,
+        location: &str,
+    ) -> Result<Option<i32>, TransformError> {
+        match attribute_value(element, "position").as_deref() {
+            None => Ok(None),
+            Some(value) => value
+                .parse::<i32>()
+                .map(Some)
+                .map_err(|_| refusal(TransformErrorKind::UnsupportedAttribute, element, location)),
+        }
+    }
+
+    fn stack_length(
+        &self,
+        element: &Element,
+        location: &str,
+    ) -> Result<Option<i32>, TransformError> {
+        match attribute_value(element, "length").as_deref() {
+            None => Ok(None),
+            Some(value) => value
+                .parse::<i32>()
+                .map(Some)
+                .map_err(|_| refusal(TransformErrorKind::UnsupportedAttribute, element, location)),
+        }
+    }
+
+    fn stack_shift(
+        &self,
+        element: &Element,
+        location: &str,
+    ) -> Result<Option<i32>, TransformError> {
+        match attribute_value(element, "shift").as_deref() {
+            None => Ok(None),
+            Some(value) => value
+                .parse::<i32>()
+                .map(Some)
+                .map_err(|_| refusal(TransformErrorKind::UnsupportedAttribute, element, location)),
         }
     }
 

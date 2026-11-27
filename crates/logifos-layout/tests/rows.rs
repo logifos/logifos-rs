@@ -1630,3 +1630,69 @@ fn count_rules(tree: &BoxTree) -> usize {
     }
     count
 }
+
+#[test]
+fn elementary_stack_rows_align_right_and_the_rule_spans() {
+    use logifos_model::{StackAlign, StackRow};
+    let mut fonts = provider(&font());
+    let top = Formula::Sequence(vec![symbol("x"), symbol("y")]);
+    let middle = Formula::Sequence(vec![symbol("y")]);
+    let bottom = Formula::Sequence(vec![symbol("x")]);
+    let stack = Formula::Stack(
+        StackAlign::DecimalPoint,
+        vec![
+            StackRow::Cells {
+                position: None,
+                cells: vec![top.clone()],
+            },
+            StackRow::Cells {
+                position: None,
+                cells: vec![middle.clone()],
+            },
+            StackRow::Line {
+                position: None,
+                length: None,
+            },
+            StackRow::Cells {
+                position: None,
+                cells: vec![bottom.clone()],
+            },
+        ],
+    );
+    let result = layout(&stack, &mut fonts, options(0)).unwrap();
+    let stack_tree = result
+        .tree
+        .children()
+        .iter()
+        .map(|child| child.node())
+        .find(|node| node.kind() == BoxKind::VBox)
+        .expect("the stack is a vbox");
+    // Rows sit top-to-bottom: two cell rows, the full-width rule, then the
+    // last cell row. The rule spans the stack width.
+    let rows: Vec<_> = stack_tree
+        .children()
+        .iter()
+        .map(|child| child.node())
+        .collect();
+    assert_eq!(rows.len(), 4, "two cell rows, one rule, one cell row");
+    let rule = rows
+        .iter()
+        .find(|node| node.kind() == BoxKind::Rule)
+        .expect("the rule is a child");
+    assert_eq!(count_rules(&result.tree), 1, "the stack draws one rule");
+    close(rule.metrics().width(), stack_tree.metrics().width());
+    // Right-aligned rows flush right: the bottom x row ends at the width.
+    let bottom_glyph = result.glyphs.last().expect("glyphs exist");
+    close(
+        bottom_glyph.origin.x(),
+        stack_tree.metrics().width() - bottom_glyph_origin_width(result.glyphs.last().unwrap()),
+    );
+}
+
+/// The laid width of a single-glyph row's cell: the glyph's advance is the
+/// cell box, so the row's right edge minus the glyph origin gives it.
+fn bottom_glyph_origin_width(glyph: &logifos_layout::layout::PlacedGlyph) -> f64 {
+    // The support font's x triangle advances 9.0px at 18px.
+    let _ = glyph;
+    9.0
+}

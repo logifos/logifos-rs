@@ -413,6 +413,17 @@ fn writer_refusals_name_each_script_operand() {
 
 #[test]
 fn script_and_marker_depth_limits_roundtrip_at_the_boundary() {
+    // The roundtrip at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(script_and_marker_depth_limits_roundtrip_at_the_boundary_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn script_and_marker_depth_limits_roundtrip_at_the_boundary_body() {
     let node = multi(vec![pair(None, None)], Some(vec![]));
     let at_limit = (0..MAX_DEPTH - 4).fold(node, |base, _| {
         Formula::SubSup(Box::new(base), Box::new(symbol("")), Box::new(symbol("")))
@@ -451,6 +462,17 @@ fn multiscript_markers_count_toward_node_limits() {
 
 #[test]
 fn manually_built_syntax_also_checks_marker_depth() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(manually_built_syntax_also_checks_marker_depth_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn manually_built_syntax_also_checks_marker_depth_body() {
     let mut document: MathmlDocument =
         parse("<math><mmultiscripts><mi/><mprescripts/></mmultiscripts></math>").unwrap();
     let row = parse("<math><mrow/></math>")

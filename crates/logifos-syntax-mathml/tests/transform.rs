@@ -591,9 +591,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:msgroup><mi>y</mi><mo>^</mo></m:msgroup></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mscarries><mi>y</mi><mo>^</mo></m:mscarries></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "msgroup",
+        "mscarries",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));

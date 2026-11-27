@@ -111,6 +111,42 @@ pub enum Formula {
     Operator(String),
     /// A text or identifier symbol.
     Symbol(String),
+    /// An elementary stack: rows stacked vertically, each a horizontal run
+    /// of cells or a horizontal rule, aligned per `stackalign`.
+    Stack(StackAlign, Vec<StackRow>),
+}
+
+/// The elementary stack's horizontal alignment (`stackalign`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StackAlign {
+    Left,
+    Center,
+    Right,
+    /// The MathML default: align on the cells' decimal points.
+    DecimalPoint,
+}
+
+/// One elementary-stack row.
+#[derive(Debug, Clone, PartialEq)]
+pub enum StackRow {
+    /// A horizontal run of cells, offset by `position` columns.
+    Cells {
+        position: Option<i32>,
+        cells: Vec<Formula>,
+    },
+    /// A subgroup whose rows carry a starting `position` and a per-row
+    /// `shift`.
+    Group {
+        position: Option<i32>,
+        shift: Option<i32>,
+        rows: Vec<StackRow>,
+    },
+    /// A horizontal rule under the rows above it, starting at `position`
+    /// and spanning `length` columns.
+    Line {
+        position: Option<i32>,
+        length: Option<i32>,
+    },
 }
 
 /// One ordered subscript/superscript pair in a multiscript construct.
@@ -141,6 +177,61 @@ mod tests {
             formula,
             Formula::Sequence(vec![Formula::Symbol("x".into())])
         );
+    }
+
+    #[test]
+    fn stack_wire_chain_roundtrips() {
+        let stack = Formula::Stack(
+            StackAlign::DecimalPoint,
+            vec![
+                StackRow::Cells {
+                    position: None,
+                    cells: vec![Formula::Symbol("424".into())],
+                },
+                StackRow::Line {
+                    position: None,
+                    length: None,
+                },
+                StackRow::Cells {
+                    position: None,
+                    cells: vec![Formula::Symbol("33".into())],
+                },
+            ],
+        );
+        let wire = stack.to_wire().unwrap();
+        assert_eq!(wire["class"], "Math::Function::Stackrel");
+        // The chain: the top row rides parameter_two, the rest rides
+        // parameter_one.
+        assert_eq!(
+            wire["fields"]["parameter_one"]["class"],
+            "Math::Function::Stackrel"
+        );
+        assert_eq!(
+            wire["fields"]["parameter_two"]["fields"]["value"][0]["class"],
+            "Math::Symbols::Symbol"
+        );
+        let decoded = Formula::from_wire(wire.as_object().unwrap()).unwrap();
+        assert_eq!(decoded, stack);
+    }
+
+    #[test]
+    fn stack_align_and_positions_refuse_on_the_wire() {
+        let aligned = Formula::Stack(
+            StackAlign::Right,
+            vec![StackRow::Cells {
+                position: None,
+                cells: vec![Formula::Symbol("1".into())],
+            }],
+        );
+        assert!(aligned.to_wire().is_err());
+        let positioned = Formula::Stack(
+            StackAlign::DecimalPoint,
+            vec![StackRow::Cells {
+                position: Some(1),
+                cells: vec![Formula::Symbol("1".into())],
+            }],
+        );
+        assert!(positioned.to_wire().is_err());
     }
 
     #[test]

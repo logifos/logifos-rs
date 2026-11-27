@@ -96,6 +96,12 @@ pub(super) fn attributes(
                 // A layout-owned hint: the model keeps the fraction's
                 // structure, the thickness stays with the layout batch.
                 "linethickness" if element.name.local == "mfrac" => true,
+                // The elementary-stack geometry hints are consumed by the
+                // mstack/msrow/msgroup arms (the model carries them).
+                "stackalign" if element.name.local == "mstack" => true,
+                "position" if matches!(element.name.local.as_str(), "msrow" | "msgroup") => true,
+                "shift" if element.name.local == "msgroup" => true,
+                "length" if element.name.local == "msline" => true,
                 _ => false,
             };
         if !valid {

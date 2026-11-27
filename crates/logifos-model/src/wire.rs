@@ -4,7 +4,9 @@ use std::fmt;
 
 use serde_json::{json, Map, Value};
 
-use crate::{Formula, MathColor, MathDisplay, MathVariant, PresentationStyle};
+use crate::{
+    Formula, MathColor, MathDisplay, MathVariant, PresentationStyle, StackAlign, StackRow,
+};
 
 /// Immutable upstream definition identity; this is Rust source, not a JSON schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -797,6 +799,11 @@ fn decode_node(
             }
             Ok(Formula::Table(table))
         }
+        "Math::Function::Stackrel" => {
+            closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            let rows = decode_stack_chain(fields, &fields_path, depth + 1, budget)?;
+            Ok(Formula::Stack(StackAlign::DecimalPoint, rows))
+        }
         _ => {
             let text = operator_text(class)
                 .ok_or_else(|| refusal(WireErrorCode::UnsupportedClass, &pointer(path, "class")))?;
@@ -1260,6 +1267,268 @@ fn encode_node(
             }
             ("Math::Function::Table", json!({"value": encoded}))
         }
+        Formula::Stack(align, rows) => {
+            // plurimath's mstack is a Stackrel whose `parameter_two` rides
+            // over `parameter_one`, so an N-row stack encodes as the nested
+            // Stackrel chain that rendering implies. The upstream envelope
+            // has no slot for `stackalign` or the row positions: a
+            // non-default alignment or a positioned row refuses instead of
+            // dropping.
+            if *align != StackAlign::DecimalPoint {
+                return Err(refusal(WireErrorCode::UnsupportedField, &fields_path));
+            }
+            (
+                "Math::Function::Stackrel",
+                encode_stack_chain(rows, &fields_path, depth, budget)?,
+            )
+        }
     };
     Ok(json!({"class": class, "fields": fields}))
+}
+
+/// The nested Stackrel chain for an elementary stack: each row rides
+/// `parameter_two`, the rows under it ride `parameter_one`, and the empty
+/// stack is a bare Stackrel.
+fn encode_stack_chain(
+    rows: &[StackRow],
+    fields_path: &str,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<Value, WireError> {
+    let mut fields = json!({"parameter_two": Value::Null, "parameter_one": Value::Null});
+    for (index, row) in rows.iter().enumerate().rev() {
+        let row_path = pointer(fields_path, &format!("rows/{index}"));
+        fields = json!({
+            "parameter_two": encode_stack_row(row, &row_path, depth, budget)?,
+            "parameter_one": json!({
+                "class": "Math::Function::Stackrel",
+                "fields": fields,
+            }),
+        });
+    }
+    Ok(fields)
+}
+
+/// One stack row on the wire: a plain formula sequence, an Msline, or a
+/// Msgroup of rows.
+fn encode_stack_row(
+    row: &StackRow,
+    row_path: &str,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<Value, WireError> {
+    let row_fields = pointer(row_path, "fields");
+    match row {
+        StackRow::Cells { position, cells } => {
+            if position.is_some() {
+                return Err(refusal(WireErrorCode::UnsupportedField, row_path));
+            }
+            let value_path = pointer(&row_fields, "value");
+            let children = cells
+                .iter()
+                .enumerate()
+                .map(|(cell_index, cell)| {
+                    encode_node(
+                        cell,
+                        &pointer(&value_path, &cell_index.to_string()),
+                        depth + 1,
+                        budget,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(json!({
+                "class": "Math::Formula",
+                "fields": {"value": children},
+            }))
+        }
+        StackRow::Line { position, length } => {
+            // The upstream envelope has no slot for the rule's position or
+            // length; only the bare rule crosses.
+            if position.is_some() || length.is_some() {
+                return Err(refusal(WireErrorCode::UnsupportedField, row_path));
+            }
+            Ok(json!({
+                "class": "Math::Function::Msline",
+                "fields": {"parameter_one": Value::Null},
+            }))
+        }
+        StackRow::Group {
+            position,
+            shift,
+            rows: group,
+        } => {
+            if position.is_some() || shift.is_some() {
+                return Err(refusal(WireErrorCode::UnsupportedField, row_path));
+            }
+            let children = group
+                .iter()
+                .enumerate()
+                .map(|(index, row)| {
+                    encode_stack_row(
+                        row,
+                        &pointer(&row_fields, &index.to_string()),
+                        depth,
+                        budget,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(json!({
+                "class": "Math::Function::Msgroup",
+                "fields": {"parameter_one": children},
+            }))
+        }
+    }
+}
+
+/// Unwinds the nested Stackrel chain into stack rows: `parameter_two`
+/// carries the row, `parameter_one` the rest of the stack.
+fn decode_stack_chain(
+    fields: &Map<String, Value>,
+    fields_path: &str,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<Vec<StackRow>, WireError> {
+    let under_path = pointer(fields_path, "parameter_one");
+    let over = required(fields, "parameter_two", fields_path)?;
+    let mut rows = Vec::new();
+    if !over.is_null() {
+        rows.push(decode_stack_row(
+            over,
+            &pointer(fields_path, "parameter_two"),
+            depth,
+            budget,
+        )?);
+    }
+    match required(fields, "parameter_one", fields_path)? {
+        Value::Null => Ok(rows),
+        under @ Value::Object(_) => {
+            let under_path = under_path.clone();
+            let under_fields = required(
+                under.as_object().expect("object checked above"),
+                "fields",
+                &under_path,
+            )?
+            .as_object()
+            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &pointer(&under_path, "fields")))?
+            .clone();
+            let under_class = required(
+                under.as_object().expect("object checked above"),
+                "class",
+                &under_path,
+            )?
+            .as_str()
+            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &pointer(&under_path, "class")))?
+            .to_owned();
+            if under_class != "Math::Function::Stackrel" {
+                return Err(refusal(
+                    WireErrorCode::UnsupportedClass,
+                    &pointer(&under_path, "class"),
+                ));
+            }
+            let mut under_rows = decode_stack_chain(
+                &under_fields,
+                &pointer(&under_path, "fields"),
+                depth,
+                budget,
+            )?;
+            rows.append(&mut under_rows);
+            Ok(rows)
+        }
+        _ => Err(refusal(WireErrorCode::InvalidValue, &under_path)),
+    }
+}
+
+/// One stack row off the wire: a plain formula sequence, an Msline, or a
+/// Msgroup of rows.
+fn decode_stack_row(
+    value: &Value,
+    path: &str,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<StackRow, WireError> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| refusal(WireErrorCode::InvalidValue, path))?;
+    let class = required(object, "class", path)?
+        .as_str()
+        .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &pointer(path, "class")))?;
+    let fields_path = pointer(path, "fields");
+    match class {
+        "Math::Formula" => {
+            let fields = required(object, "fields", path)?
+                .as_object()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+            closed(fields, &["value"], &fields_path)?;
+            let value_path = pointer(&fields_path, "value");
+            let children = required(fields, "value", &fields_path)?
+                .as_array()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &value_path))?;
+            let cells = children
+                .iter()
+                .enumerate()
+                .map(|(index, child)| {
+                    let child_path = pointer(&value_path, &index.to_string());
+                    decode_node(
+                        child
+                            .as_object()
+                            .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &child_path))?,
+                        &child_path,
+                        depth,
+                        budget,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(StackRow::Cells {
+                position: None,
+                cells,
+            })
+        }
+        "Math::Function::Msline" => {
+            let fields = required(object, "fields", path)?
+                .as_object()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+            closed(fields, &["parameter_one"], &fields_path)?;
+            if !required(fields, "parameter_one", &fields_path)?.is_null() {
+                return Err(refusal(
+                    WireErrorCode::UnsupportedField,
+                    &pointer(&fields_path, "parameter_one"),
+                ));
+            }
+            Ok(StackRow::Line {
+                position: None,
+                length: None,
+            })
+        }
+        "Math::Function::Msgroup" => {
+            let fields = required(object, "fields", path)?
+                .as_object()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &fields_path))?;
+            closed(fields, &["parameter_one", "options"], &fields_path)?;
+            let value_path = pointer(&fields_path, "parameter_one");
+            let children = required(fields, "parameter_one", &fields_path)?
+                .as_array()
+                .ok_or_else(|| refusal(WireErrorCode::InvalidValue, &value_path))?;
+            let rows = children
+                .iter()
+                .enumerate()
+                .map(|(index, child)| {
+                    decode_stack_row(
+                        child,
+                        &pointer(&value_path, &index.to_string()),
+                        depth,
+                        budget,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(StackRow::Group {
+                position: None,
+                shift: None,
+                rows,
+            })
+        }
+        _ => Err(refusal(
+            WireErrorCode::UnsupportedClass,
+            &pointer(path, "class"),
+        )),
+    }
 }
