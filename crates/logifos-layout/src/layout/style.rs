@@ -27,6 +27,8 @@ pub struct ResolvedStyle {
     pub cramped: bool,
     /// The inherited mathcolor; glyphs carry it to the painter.
     pub color: Option<MathColor>,
+    /// The mstyle floor the script-size scaling never drops below.
+    pub script_min_size_px: Option<f64>,
     /// The inherited mathvariant, applied to symbol text.
     pub variant: Option<MathVariant>,
 }
@@ -52,6 +54,7 @@ impl LayoutOptions {
             cramped: false,
             color: None,
             variant: None,
+            script_min_size_px: None,
         })
     }
 }
@@ -77,6 +80,16 @@ impl ResolvedStyle {
         if let Some(displaystyle) = hints.displaystyle {
             style.display = displaystyle;
         }
+        if let Some(min) = hints.script_min_size {
+            let font = fonts.primary();
+            let ex = match font.x_height {
+                Some(units) => {
+                    f64::from(units) * style.font_size_px / f64::from(font.metrics.units_per_em)
+                }
+                None => style.font_size_px * 0.5,
+            };
+            style.script_min_size_px = Some(min.px(style.font_size_px, ex));
+        }
         if let Some(level) = hints.script_level {
             let level = match level {
                 ScriptLevel::Absolute(n) => i16::from(n),
@@ -92,7 +105,12 @@ impl ResolvedStyle {
         if !(-255..=255).contains(&level) {
             return Err(LayoutError::InvalidOptions);
         }
-        let font_size_px = self.font_size_px * depth_scale(fonts, self.script_level, level)?;
+        let scaled = self.font_size_px * depth_scale(fonts, self.script_level, level)?;
+        // Core 3.1.4: the script-size scaling stops at scriptminsize.
+        let font_size_px = match self.script_min_size_px {
+            Some(min) => scaled.max(min),
+            None => scaled,
+        };
         if !font_size_px.is_finite() || font_size_px <= 0.0 || font_size_px > 4096.0 {
             return Err(LayoutError::InvalidOptions);
         }

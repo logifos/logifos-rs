@@ -789,6 +789,7 @@ fn parse_length(value: &str) -> Option<Length> {
         "em" => LengthUnit::Em,
         "ex" => LengthUnit::Ex,
         "px" => LengthUnit::Px,
+        "pt" => LengthUnit::Pt,
         "%" => LengthUnit::Percent,
         "0" => LengthUnit::Px,
         _ => return None,

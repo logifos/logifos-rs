@@ -75,3 +75,23 @@ fn stack_depth_limits_still_apply() {
     let parsed = parse(&source).unwrap();
     let _ = transform(&parsed);
 }
+
+#[test]
+fn scriptminsize_maxsize_and_columnlines_none_are_accepted() {
+    let mstyle = "<math><mstyle scriptminsize=\"6pt\"><mi>x</mi></mstyle></math>";
+    let formula = transform(&parse(mstyle).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(output.contains("scriptminsize=\"6pt\""), "{output}");
+    let mo = "<math><mo maxsize=\"100%\">(</mo></math>";
+    let formula = transform(&parse(mo).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(output.contains("maxsize=\"100%\""), "{output}");
+    let none =
+        "<math><mtable columnlines=\"none\"><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>";
+    let formula = transform(&parse(none).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(!output.contains("columnlines"), "{output}");
+    let solid =
+        "<math><mtable columnlines=\"solid\"><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>";
+    assert!(transform(&parse(solid).unwrap()).is_err());
+}

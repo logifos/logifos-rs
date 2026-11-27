@@ -4,7 +4,7 @@ use logifos_model::{
     ColumnAlign, MathColor, MathDisplay, MathSpace, MathVariant, PresentationStyle, ScriptLevel,
 };
 
-use super::{refusal, Element, TransformError, TransformErrorKind};
+use super::{parse_length, refusal, Element, TransformError, TransformErrorKind};
 
 pub(super) fn attributes(
     element: &Element,
@@ -90,6 +90,20 @@ pub(super) fn attributes(
                     style.column_align = (value == "center").then_some(ColumnAlign::Center);
                     style.column_align.is_some()
                 }
+                // The script-size floor rides mstyle into layout (Core
+                // 3.1.4); a length-percentage resolves against the size.
+                "scriptminsize" if element.name.local == "mstyle" => {
+                    style.script_min_size = parse_length(value);
+                    style.script_min_size.is_some()
+                }
+                // The stretch ceiling rides mo into layout (Core 3.2.4).
+                "maxsize" if element.name.local == "mo" => {
+                    style.max_size = parse_length(value);
+                    style.max_size.is_some()
+                }
+                // columnlines="none" is the table default and carries
+                // nothing; other spellings stay authored refusals.
+                "columnlines" if element.name.local == "mtable" => value == "none",
                 // mspace's extents are content, consumed by the mspace arm
                 // (Core 3.2.5); presentation just admits them here.
                 "width" | "height" | "depth" if element.name.local == "mspace" => true,

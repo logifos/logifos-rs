@@ -103,6 +103,7 @@ fn scripted<'a>(
         italic: correction,
         empty: base.empty && script_empty,
         right_space: base.right_space,
+        max_size_percent: None,
     })
 }
 
@@ -280,5 +281,6 @@ pub(super) fn multi<'a>(
         italic: 0.0,
         empty: all_empty,
         right_space: operator.and(base.right_space),
+        max_size_percent: None,
     })
 }

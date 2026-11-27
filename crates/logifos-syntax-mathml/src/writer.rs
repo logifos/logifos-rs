@@ -468,6 +468,12 @@ impl SyntaxBuilder {
         if let Some(space) = style.right_space {
             attribute("rspace", space.to_css());
         }
+        if let Some(min) = style.script_min_size {
+            attribute("scriptminsize", Self::format_length(min));
+        }
+        if let Some(max) = style.max_size {
+            attribute("maxsize", Self::format_length(max));
+        }
         if let Some(accent) = style.accent {
             attribute("accent", accent.to_string());
         }
@@ -522,6 +528,7 @@ impl SyntaxBuilder {
             logifos_model::LengthUnit::Em => "em",
             logifos_model::LengthUnit::Ex => "ex",
             logifos_model::LengthUnit::Px => "px",
+            logifos_model::LengthUnit::Pt => "pt",
             logifos_model::LengthUnit::Percent => "%",
         };
         format!("{}{unit}", length.value)

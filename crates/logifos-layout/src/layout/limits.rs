@@ -154,5 +154,6 @@ pub(super) fn limits<'a>(
         italic: 0.0,
         empty,
         right_space,
+        max_size_percent: None,
     })
 }

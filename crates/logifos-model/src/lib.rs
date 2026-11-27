@@ -22,6 +22,8 @@ pub enum LengthUnit {
     Em,
     Ex,
     Px,
+    /// A CSS point, resolved at the 96dpi default (1pt = 96/72 px).
+    Pt,
     /// A percentage: valid on the attribute but never an mspace extent.
     Percent,
 }
@@ -41,6 +43,7 @@ impl Length {
             LengthUnit::Em => self.value * font_size_px,
             LengthUnit::Ex => self.value * ex_px,
             LengthUnit::Px => self.value,
+            LengthUnit::Pt => self.value * 96.0 / 72.0,
             LengthUnit::Percent => 0.0,
         }
     }
