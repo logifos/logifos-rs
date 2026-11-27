@@ -3,7 +3,7 @@ mod support;
 
 use logifos_layout::font::{FontErrorKind, FontFace, FontProvider, FontResource};
 use logifos_layout::layout::{layout, Layout, LayoutError, LayoutOptions};
-use logifos_layout::{BoxTree, Point};
+use logifos_layout::{BoxKind, BoxTree, Point};
 use logifos_model::Formula;
 use support::{digest, put16, put32, words, FontBuilder};
 
@@ -1537,19 +1537,93 @@ fn menclose_draws_box_rules_and_the_bottom_rule() {
     let underlined = layout(&bottom, &mut provider(&font()), options(0)).unwrap();
     assert_eq!(count_rules(&underlined.tree), 1, "bottom draws one rule");
 
-    // The curved and diagonal spellings refuse typed until the arcs land.
-    let curved = Formula::Menclose {
+    // Circle draws one stroked ellipse spanning the enclosure box.
+    let circle = Formula::Menclose {
+        notation: "circle".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    let circled = layout(&circle, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(
+        count_kinds(&circled.tree, &|kind| matches!(kind, BoxKind::Ellipse)),
+        1
+    );
+    assert!(has_stroked(&circled.tree), "the ellipse strokes");
+
+    // Actuarial encloses the top and the right with a rounded shared
+    // corner: two rules plus one arc.
+    let actuarial = Formula::Menclose {
+        notation: "actuarial".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    let actuaried = layout(&actuarial, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(count_rules(&actuaried.tree), 2);
+    assert_eq!(
+        count_kinds(&actuaried.tree, &|kind| matches!(kind, BoxKind::Arc(_))),
+        1
+    );
+
+    // Phasorangle draws the bottom rule plus the angle arc at the left.
+    let phasorangle = Formula::Menclose {
         notation: "phasorangle".into(),
         content: Box::new(sequence(vec![symbol("x")])),
     };
+    let angled = layout(&phasorangle, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(count_rules(&angled.tree), 1);
     assert_eq!(
-        layout(&curved, &mut provider(&font()), options(0)).unwrap_err(),
+        count_kinds(&angled.tree, &|kind| matches!(kind, BoxKind::Arc(_))),
+        1
+    );
+
+    // An empty notation draws nothing: the content passes through unpadded.
+    let empty = Formula::Menclose {
+        notation: "".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    let passed = layout(&empty, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(passed.tree, plain.tree, "an empty notation draws nothing");
+
+    // A list draws each understood notation; the corpus's circle box draws
+    // both the ellipse and the four box rules.
+    let both = Formula::Menclose {
+        notation: "circle box".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    let bothed = layout(&both, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(count_rules(&bothed.tree), 4);
+    assert_eq!(
+        count_kinds(&bothed.tree, &|kind| matches!(kind, BoxKind::Ellipse)),
+        1
+    );
+
+    // A list containing an unsupported spelling refuses typed so the gap
+    // surfaces.
+    let unsupported = Formula::Menclose {
+        notation: "box updiagonalstrike".into(),
+        content: Box::new(sequence(vec![symbol("x")])),
+    };
+    assert_eq!(
+        layout(&unsupported, &mut provider(&font()), options(0)).unwrap_err(),
         LayoutError::NotLaidOutYet
     );
 }
 
+fn has_stroked(tree: &BoxTree) -> bool {
+    tree.stroke_width() > 0.0
+        || tree
+            .children()
+            .iter()
+            .any(|child| has_stroked(child.node()))
+}
+
+fn count_kinds(tree: &BoxTree, matches: &dyn Fn(BoxKind) -> bool) -> usize {
+    let mut count = usize::from(matches(tree.kind()));
+    for child in tree.children() {
+        count += count_kinds(child.node(), matches);
+    }
+    count
+}
+
 fn count_rules(tree: &BoxTree) -> usize {
-    use logifos_layout::BoxKind;
     let mut count = usize::from(tree.kind() == BoxKind::Rule);
     for child in tree.children() {
         count += count_rules(child.node());

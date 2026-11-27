@@ -1,11 +1,14 @@
 //! MathML-3 enclosures: the content draws inside rule-drawn borders. The
-//! box family and the bottom rule draw as filled rules; the curved and
-//! diagonal notations land with the arc primitives.
+//! box family and the line rules draw as filled rules; circle draws a
+//! stroked ellipse; actuarial and phasorangle join their rules with a
+//! corner arc. An empty notation draws nothing (the MathML 4 default), and
+//! a list containing an unsupported spelling refuses typed so the gap
+//! surfaces.
 
 use super::{build, LayoutError, Node, ResolvedStyle};
 use crate::font::math::MathConstant;
 use crate::font::FontProvider;
-use crate::{BoxKind, BoxTree, Metrics, Point, PositionedBox};
+use crate::{ArcCorner, BoxKind, BoxTree, Metrics, Point, PositionedBox};
 use logifos_model::Formula;
 
 pub(super) fn enclose<'a>(
@@ -17,14 +20,15 @@ pub(super) fn enclose<'a>(
     depth: usize,
 ) -> Result<Node<'a>, LayoutError> {
     let names: Vec<&str> = notation.split_whitespace().collect();
-    // The box family and the bottom rule draw as rules; the curved and
-    // diagonal spellings land with the arc primitives and refuse typed
-    // until then.
-    let bottom_only = matches!(names.as_slice(), ["bottom"]);
-    let full_box = names.is_empty() || matches!(names.as_slice(), ["box"]);
-    if !bottom_only && !full_box {
-        return Err(LayoutError::NotLaidOutYet);
+    // MathML 4: no notation, or an empty string, draws nothing.
+    if names.is_empty() {
+        return build(content, fonts, style, budget, depth);
     }
+    let draws: Vec<Enclosure> = names
+        .iter()
+        .map(|name| Enclosure::parse(name))
+        .collect::<Option<Vec<_>>>()
+        .ok_or(LayoutError::NotLaidOutYet)?;
     let thickness =
         fonts.math_constant_px(MathConstant::FractionRuleThickness, style.font_size_px)?;
     let pad = thickness;
@@ -36,33 +40,12 @@ pub(super) fn enclose<'a>(
     let height = inner_h + pad;
     let depth_out = inner_d + pad;
     let metrics = Metrics::new(width, height, depth_out)?;
+    let total = height + depth_out;
 
     let mut children = Vec::new();
     children.push(PositionedBox::place(Point::new(pad, pad)?, inner.tree));
-    if bottom_only {
-        let y = pad + inner_h + inner_d;
-        children.push(PositionedBox::place(
-            Point::new(pad, y)?,
-            BoxTree::rule(inner_w, thickness, 0.0)?,
-        ));
-    } else {
-        let total = height + depth_out;
-        children.push(PositionedBox::place(
-            Point::new(0.0, 0.0)?,
-            BoxTree::rule(width, thickness, 0.0)?,
-        ));
-        children.push(PositionedBox::place(
-            Point::new(0.0, total - thickness)?,
-            BoxTree::rule(width, thickness, 0.0)?,
-        ));
-        children.push(PositionedBox::place(
-            Point::new(0.0, thickness)?,
-            BoxTree::rule(thickness, total - thickness * 2.0, 0.0)?,
-        ));
-        children.push(PositionedBox::place(
-            Point::new(width - thickness, thickness)?,
-            BoxTree::rule(thickness, total - thickness * 2.0, 0.0)?,
-        ));
+    for draw in &draws {
+        draw.draw(width, total, thickness, &mut children)?;
     }
     let tree = BoxTree::composed(BoxKind::HBox, metrics, children)?;
 
@@ -79,6 +62,109 @@ pub(super) fn enclose<'a>(
         empty: false,
         right_space: None,
     })
+}
+
+/// One understood enclosure spelling, drawn independently of the others.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Enclosure {
+    Box,
+    Top,
+    Bottom,
+    Left,
+    Right,
+    Circle,
+    Actuarial,
+    Phasorangle,
+}
+
+impl Enclosure {
+    fn parse(name: &str) -> Option<Self> {
+        match name {
+            "box" => Some(Self::Box),
+            "top" => Some(Self::Top),
+            "bottom" => Some(Self::Bottom),
+            "left" => Some(Self::Left),
+            "right" => Some(Self::Right),
+            "circle" => Some(Self::Circle),
+            "actuarial" => Some(Self::Actuarial),
+            "phasorangle" => Some(Self::Phasorangle),
+            _ => None,
+        }
+    }
+
+    fn draw(
+        self,
+        width: f64,
+        total: f64,
+        thickness: f64,
+        children: &mut Vec<PositionedBox>,
+    ) -> Result<(), LayoutError> {
+        match self {
+            Self::Box => {
+                children.push(rule(0.0, 0.0, width, thickness)?);
+                children.push(rule(0.0, total - thickness, width, thickness)?);
+                children.push(rule(0.0, thickness, thickness, total - thickness * 2.0)?);
+                children.push(rule(
+                    width - thickness,
+                    thickness,
+                    thickness,
+                    total - thickness * 2.0,
+                )?);
+            }
+            Self::Top => children.push(rule(0.0, 0.0, width, thickness)?),
+            Self::Bottom => children.push(rule(0.0, total - thickness, width, thickness)?),
+            Self::Left => children.push(rule(0.0, 0.0, thickness, total)?),
+            Self::Right => children.push(rule(width - thickness, 0.0, thickness, total)?),
+            Self::Circle => {
+                let metrics = Metrics::new(width, total, 0.0)?;
+                children.push(PositionedBox::place(
+                    Point::new(0.0, 0.0)?,
+                    BoxTree::ellipse(metrics, thickness)?,
+                ));
+            }
+            // The actuarial symbol encloses the top and the right, with the
+            // shared corner rounded: the arc is centered on the rounded
+            // band's inner corner and bulges out to the top right.
+            Self::Actuarial => {
+                let radius = self.arc_radius(thickness);
+                children.push(rule(0.0, 0.0, width - radius, thickness)?);
+                children.push(rule(width - thickness, radius, thickness, total - radius)?);
+                let metrics = Metrics::new(radius, radius, 0.0)?;
+                children.push(PositionedBox::place(
+                    Point::new(width - radius, 0.0)?,
+                    BoxTree::arc(ArcCorner::BottomLeft, metrics, thickness)?,
+                ));
+            }
+            // The phasor angle is a bottom rule with the angle's arc rising
+            // from the baseline's left corner.
+            Self::Phasorangle => {
+                let radius = self.arc_radius(thickness);
+                children.push(rule(0.0, total - thickness, width, thickness)?);
+                let metrics = Metrics::new(radius, radius, 0.0)?;
+                children.push(PositionedBox::place(
+                    Point::new(0.0, total - radius)?,
+                    BoxTree::arc(ArcCorner::BottomLeft, metrics, thickness)?,
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// The rounded-corner radius: a multiple of the rule thickness so the
+    /// arc reads as a corner and not a seam.
+    fn arc_radius(self, thickness: f64) -> f64 {
+        match self {
+            Self::Actuarial | Self::Phasorangle => thickness * 3.0,
+            _ => thickness,
+        }
+    }
+}
+
+fn rule(x: f64, y: f64, width: f64, thickness: f64) -> Result<PositionedBox, LayoutError> {
+    Ok(PositionedBox::place(
+        Point::new(x, y)?,
+        BoxTree::rule(width, thickness, 0.0)?,
+    ))
 }
 
 use super::Budget;
