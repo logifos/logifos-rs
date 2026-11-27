@@ -137,7 +137,6 @@ fn row_like_content_keeps_exact_refusal_paths() {
                 "<annotation>meaning</annotation>",
                 TransformErrorKind::UnsupportedElement,
             ),
-            ("<mo>a b</mo>", TransformErrorKind::UnsupportedOperator),
         ] {
             refused(
                 &format!("<{name}><mi>x</mi>{content}</{name}>"),
@@ -220,15 +219,18 @@ fn semantics_keeps_row_like_whitespace_and_content_policy() {
 
 #[test]
 fn container_writing_reports_invalid_descendants() {
+    // The dictionary does not gate operator acceptance, so the refusal the
+    // writer still reports for a descendant is an invalid XML character —
+    // and diagnostics never echo the token contents.
     for name in CONTAINERS {
         let error = write(&Formula::Sequence(vec![container(
             name,
-            vec![Formula::Operator("pri vate".into())],
+            vec![Formula::Operator("pri\u{7}vate".into())],
         )]))
         .unwrap_err();
-        assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
+        assert_eq!(error.kind, WriteErrorKind::InvalidCharacter);
         assert_eq!(error.location, "/children/0/children/0");
-        assert!(!error.to_string().contains("pri vate"));
+        assert!(!error.to_string().contains("pri"));
     }
 }
 

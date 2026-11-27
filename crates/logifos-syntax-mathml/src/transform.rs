@@ -744,15 +744,10 @@ impl Transformer {
             // unsupported operator.
             return Ok(Formula::Sequence(Vec::new()));
         }
-        if logifos_model::operator::is_operator_text(trimmed) {
-            Ok(Formula::Operator(trimmed.to_owned()))
-        } else {
-            Err(refusal(
-                TransformErrorKind::UnsupportedOperator,
-                element,
-                location,
-            ))
-        }
+        // Core 3.2.4: any mo text the operator dictionary lacks still
+        // renders with the default spacing class — the dictionary only
+        // tunes spacing, it does not gate acceptance.
+        Ok(Formula::Operator(trimmed.to_owned()))
     }
 }
 

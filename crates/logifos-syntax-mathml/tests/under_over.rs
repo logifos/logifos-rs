@@ -159,7 +159,7 @@ fn foreign_under_over_elements_refuse_despite_known_local_names() {
 #[test]
 fn writer_refusals_name_each_under_over_operand() {
     let valid = Box::new(symbol("x"));
-    let invalid = Box::new(Formula::Operator("pri vate".into()));
+    let invalid = Box::new(Formula::Operator("pri\u{7}vate".into()));
     for (node, field) in [
         (Formula::Under(invalid.clone(), valid.clone()), "base"),
         (Formula::Under(valid.clone(), invalid.clone()), "under"),
@@ -176,7 +176,7 @@ fn writer_refusals_name_each_under_over_operand() {
         (Formula::UnderOver(valid.clone(), valid, invalid), "over"),
     ] {
         let error = write(&Formula::Sequence(vec![node.clone()])).unwrap_err();
-        assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
+        assert_eq!(error.kind, WriteErrorKind::InvalidCharacter);
         assert_eq!(error.location, format!("/children/0/{field}"));
         assert!(!error.to_string().contains("private"));
         assert_eq!(

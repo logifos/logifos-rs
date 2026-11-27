@@ -163,10 +163,9 @@ impl SyntaxBuilder {
                 }
             }
             Formula::Symbol(text) | Formula::Operator(text) | Formula::StringLiteral(text) => {
+                // Core 3.2.4: the operator dictionary tunes spacing but does
+                // not gate acceptance, so any operator text writes back.
                 let operator = matches!(formula, Formula::Operator(_));
-                if operator && !logifos_model::operator::is_operator_text(text) {
-                    return Err(refusal(WriteErrorKind::UnsupportedOperator, location));
-                }
                 if text.len() > ParseLimits::default().source_bytes - self.text_bytes {
                     return Err(refusal(WriteErrorKind::ResourceLimit, location));
                 }

@@ -342,7 +342,7 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
         }
     }
     // menclose is supported now; it drops out of the foreign list.
-    for content in ["<mo>pri vate</mo>", "<!--private-->", "private"] {
+    for content in ["<annotation>x</annotation>", "<!--private-->", "private"] {
         for name in ["msubsup", "mmultiscripts"] {
             let error = transform(
                 &parse(format!("<math><{name}><mi>x</mi>{content}</{name}></math>")).unwrap(),
@@ -357,7 +357,7 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
 #[test]
 fn writer_refusals_name_each_script_operand() {
     let valid = Box::new(symbol("x"));
-    let invalid = Box::new(Formula::Operator("pri vate".into()));
+    let invalid = Box::new(Formula::Operator("pri\u{7}vate".into()));
     let nodes = [
         (
             Formula::SubSup(invalid.clone(), valid.clone(), valid.clone()),
@@ -398,9 +398,9 @@ fn writer_refusals_name_each_script_operand() {
     ];
     for (node, field) in nodes {
         let error = write(&Formula::Sequence(vec![node])).unwrap_err();
-        assert_eq!(error.kind, WriteErrorKind::UnsupportedOperator);
+        assert_eq!(error.kind, WriteErrorKind::InvalidCharacter);
         assert_eq!(error.location, format!("/children/0/{field}"));
-        assert!(!error.to_string().contains("private"));
+        assert!(!error.to_string().contains("pri"));
     }
     let error = write(&Formula::Sequence(vec![Formula::StringLiteral(
         "private\0".into(),
