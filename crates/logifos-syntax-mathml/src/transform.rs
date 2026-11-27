@@ -390,6 +390,93 @@ impl Transformer {
                 let rows = self.stack_children(element, location, depth)?;
                 Ok(Formula::Stack(align, rows))
             }
+            // Plurimath serializes stacks lossily: its mstack rows flatten
+            // into plain mrows, leaving msline/mscarries/none stranded
+            // outside any stack. Each keeps its own meaning as a
+            // one-row stack.
+            "msline" => {
+                let position = self.stack_position(element, location)?;
+                let length = self.stack_length(element, location)?;
+                Ok(Formula::Stack(
+                    StackAlign::DecimalPoint,
+                    vec![StackRow::Line { position, length }],
+                ))
+            }
+            "mscarries" => {
+                let position = self.stack_position(element, location)?;
+                let group_crossout = self.stack_crossout(element, location)?;
+                let group_location = self.stack_location(element, location)?;
+                let mut cells = Vec::new();
+                for (carry_index, carry_node) in element.children.iter().enumerate() {
+                    let carry_path = format!("{location}/children/{carry_index}");
+                    match carry_node {
+                        Node::Element(carry) if carry.name.local.as_str() == "mscarry" => {
+                            self.check_element(carry, &carry_path, depth + 1)?;
+                            let crossout =
+                                self.stack_crossout(carry, &carry_path)?.or(group_crossout);
+                            let content = match carry.children.first() {
+                                Some(Node::Element(inner))
+                                    if inner.name.local.as_str() == "none" =>
+                                {
+                                    let none_path = format!("{carry_path}/children/0");
+                                    self.check_element(inner, &none_path, depth + 1)?;
+                                    None
+                                }
+                                Some(Node::Element(inner)) => {
+                                    Some(self.element(inner, &carry_path, depth + 1)?)
+                                }
+                                _ => None,
+                            };
+                            cells.push(CarryCell {
+                                content,
+                                crossout,
+                                location: self
+                                    .stack_location(carry, &carry_path)?
+                                    .or(group_location),
+                            });
+                        }
+                        Node::Element(inner) if inner.name.local.as_str() == "none" => {
+                            self.check_element(inner, &carry_path, depth + 1)?;
+                            cells.push(CarryCell {
+                                content: None,
+                                crossout: group_crossout,
+                                location: group_location,
+                            });
+                        }
+                        Node::Element(inner) => {
+                            let cell = self.element(inner, &carry_path, depth + 1)?;
+                            cells.push(CarryCell {
+                                content: Some(cell),
+                                crossout: group_crossout,
+                                location: group_location,
+                            });
+                        }
+                        Node::Text(text) if text.chars().all(xml_whitespace) => {
+                            self.visit(element, &carry_path, depth + 1)?;
+                        }
+                        _ => {
+                            return Err(refusal(
+                                TransformErrorKind::UnsupportedContent,
+                                element,
+                                &carry_path,
+                            ));
+                        }
+                    }
+                }
+                Ok(Formula::Stack(
+                    StackAlign::DecimalPoint,
+                    vec![StackRow::Carries {
+                        position,
+                        location: group_location,
+                        cells,
+                    }],
+                ))
+            }
+            // A stranded none paints nothing.
+            "none" => {
+                self.visit(element, location, depth)?;
+                Ok(Formula::Sequence(Vec::new()))
+            }
             // MathML-3 long division: the head children compose per style
             // above the working stack.
             "mlongdiv" => {

@@ -57,11 +57,7 @@ pub(super) fn attributes(
                     style.math_variant.is_some()
                 }
                 "mathcolor" if grouping => {
-                    style.math_color = match value.as_str() {
-                        "red" => Some(MathColor::Red),
-                        "blue" => Some(MathColor::Blue),
-                        _ => None,
-                    };
+                    style.math_color = MathColor::parse(value);
                     style.math_color.is_some()
                 }
                 "rspace" if element.name.local == "mo" => {

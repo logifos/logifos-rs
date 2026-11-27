@@ -345,7 +345,11 @@ fn loose_table_content_refuses_at_the_offending_element() {
 
 #[test]
 fn standalone_multiscript_markers_refuse() {
-    unsupported(&[("mprescripts", "<mprescripts/>"), ("none", "<none/>")]);
+    // A bare none outside any multiscript is a stranded placeholder: it
+    // paints nothing (Core has it as a carry slot; plurimath serializes
+    // stranded ones under lossy stacks).
+    converted("<math><none/></math>");
+    unsupported(&[("mprescripts", "<mprescripts/>")]);
 }
 
 #[test]
@@ -596,9 +600,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mscarries><mi>y</mi><mo>^</mo></m:mscarries></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mprescripts/></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "mscarries",
+        "mprescripts",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));

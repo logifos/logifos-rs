@@ -309,6 +309,9 @@ fn glyph_layer(glyphs: &[PlacedGlyph]) -> Result<String, SvgError> {
             let fill = match glyph.color {
                 Some(MathColor::Red) => " fill=\"#ff0000\"",
                 Some(MathColor::Blue) => " fill=\"#0000ff\"",
+                Some(MathColor::Hex(value)) => {
+                    format!(" fill=\"#{value:06x}\"").leak() as &'static str
+                }
                 None => "",
             };
             layer.push_str(&format!("<path{fill} d=\"{data}\"/>"));
