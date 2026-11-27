@@ -534,13 +534,19 @@ fn nested_token_markup_refuses_instead_of_flattening() {
 }
 
 #[test]
-fn non_whitespace_and_unicode_spacing_outside_tokens_refuse() {
+fn non_whitespace_character_data_becomes_an_implied_token() {
+    // Core 3.2: character data in a container is an implied token, kept
+    // verbatim like an mi.
     for text in ["lost", "\u{a0}", "\u{2003}"] {
-        refused(
-            &format!("<math><mrow><mi>x</mi>{text}<mi>y</mi></mrow></math>"),
-            TransformErrorKind::UnsupportedContent,
-            "mrow",
-            "/root/children/0/children/1",
+        assert_eq!(
+            converted(&format!(
+                "<math><mrow><mi>x</mi>{text}<mi>y</mi></mrow></math>"
+            )),
+            Formula::Sequence(vec![Formula::Sequence(vec![
+                symbol("x"),
+                symbol(text),
+                symbol("y"),
+            ])]),
         );
     }
 }
