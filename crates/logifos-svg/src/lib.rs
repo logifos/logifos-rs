@@ -226,6 +226,17 @@ pub fn emit(
                     number(node.stroke_width()),
                 ));
             }
+            BoxKind::Diagonal => {
+                let width = node.metrics().width();
+                let height = node.metrics().total_height();
+                svg.push_str(&format!(
+                    "<path d=\"M 0 0 L {} {}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>",
+                    number(width),
+                    number(height),
+                    options.color.to_ascii_lowercase(),
+                    number(node.stroke_width()),
+                ));
+            }
             BoxKind::Arc(corner) => {
                 let width = node.metrics().width();
                 let height = node.metrics().total_height();

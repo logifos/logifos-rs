@@ -1289,6 +1289,11 @@ fn encode_node(
                 encode_stack_chain(rows, &fields_path, depth, budget)?,
             )
         }
+        // The carries and long-division vocabulary has no slot in the
+        // pinned upstream envelope; refuse instead of inventing classes.
+        Formula::LongDivision(_) => {
+            return Err(refusal(WireErrorCode::UnsupportedClass, path));
+        }
     };
     Ok(json!({"class": class, "fields": fields}))
 }
@@ -1326,6 +1331,7 @@ fn encode_stack_row(
 ) -> Result<Value, WireError> {
     let row_fields = pointer(row_path, "fields");
     match row {
+        StackRow::Carries { .. } => Err(refusal(WireErrorCode::UnsupportedField, row_path)),
         StackRow::Cells { position, cells } => {
             if position.is_some() {
                 return Err(refusal(WireErrorCode::UnsupportedField, row_path));

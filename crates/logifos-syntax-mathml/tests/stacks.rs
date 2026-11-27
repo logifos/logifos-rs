@@ -95,3 +95,58 @@ fn scriptminsize_maxsize_and_columnlines_none_are_accepted() {
         "<math><mtable columnlines=\"solid\"><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>";
     assert!(transform(&parse(solid).unwrap()).is_err());
 }
+
+#[test]
+fn carries_rows_roundtrip_with_crossouts_and_placeholders() {
+    let source = concat!(
+        "<math><mstack>",
+        "<mscarries crossout=\"updiagonalstrike\">",
+        "<mn>2</mn>",
+        "<mscarry crossout=\"none\"><none/></mscarry>",
+        "</mscarries>",
+        "<mn>2,327</mn>",
+        "</mstack></math>",
+    );
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    // The group crossout distributes onto the cells that lack their own;
+    // the crossed placeholder keeps its mscarry wrapper.
+    assert!(output.contains("<mscarry crossout=\"updiagonalstrike\"><mi>2</mi></mscarry>"));
+    assert!(output.contains("<mscarry crossout=\"updiagonalstrike\"><none></none></mscarry>"));
+}
+
+#[test]
+fn mscarries_locations_retain() {
+    let source = concat!(
+        "<math><mstack><mscarries location=\"nw\">",
+        "<mscarry location=\"n\"><mn>2</mn></mscarry>",
+        "</mscarries></mstack></math>",
+    );
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    assert!(output.contains("location=\"nw\""));
+    assert!(output.contains("location=\"n\""));
+}
+
+#[test]
+fn longdiv_roundtrips_with_style_and_working_stack() {
+    let source = concat!(
+        "<math><mlongdiv longdivstyle=\"stackedleftlinetop\">",
+        "<mn>3</mn><mn>435.3</mn><mn>1306</mn>",
+        "<msgroup><mn>12</mn><msline length=\"2\"/></msgroup>",
+        "</mlongdiv></math>",
+    );
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    assert!(output.contains("longdivstyle=\"stackedleftlinetop\""));
+    assert!(output.contains("msline"), "{output}");
+    assert!(output.contains("length=\"2\""));
+    // The default style drops its attribute.
+    let plain = "<math><mlongdiv><mn>3</mn><mn>12</mn><mn>4</mn></mlongdiv></math>";
+    let formula = transform(&parse(plain).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(!output.contains("longdivstyle"), "{output}");
+}
