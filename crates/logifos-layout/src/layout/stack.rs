@@ -19,35 +19,45 @@ pub(super) fn stack<'a>(
     budget: &mut Budget,
     depth: usize,
 ) -> Result<Node<'a>, LayoutError> {
-    // Group positions resolve into effective cell positions up front; each
-    // laid row keeps its built cells so glyphs place with the row.
-    let mut laid = Vec::new();
-    flatten_rows(rows, None, None, &mut laid)?;
-    let mut laid_rows = Vec::with_capacity(laid.len());
-    for (position, cells) in laid {
-        let mut cells_out = Vec::with_capacity(cells.len());
+    // Groups expand up front: the flat list carries only cell rows and
+    // rules, with every group position resolved into an effective cell
+    // position.
+    let mut expanded = Vec::new();
+    expand_rows(rows, None, None, &mut expanded);
+    let mut built = Vec::with_capacity(expanded.len());
+    for row in &expanded {
+        let Flat::Cells { cells, .. } = row else {
+            built.push(None);
+            continue;
+        };
         let mut items = Vec::with_capacity(cells.len());
+        let mut cells_out = Vec::with_capacity(cells.len());
         for cell in cells {
             let node = build(cell, fonts, style, budget, depth + 1)?;
             items.push(StackItem::Box(node.tree.clone()));
             cells_out.push(node);
         }
-        laid_rows.push((position, BoxTree::hbox(items)?, cells_out));
+        built.push(Some((BoxTree::hbox(items)?, cells_out)));
     }
 
     // The column unit and the stack width: the widest cell drives the
     // position padding, and the widest shifted row drives the width.
-    let unit = laid_rows
+    let unit = built
         .iter()
-        .flat_map(|(_, _, cells)| cells.iter())
+        .flatten()
+        .flat_map(|(_, cells)| cells.iter())
         .map(|node| node.tree.metrics().width())
         .fold(0.0f64, f64::max);
     let mut width = 0.0f64;
-    for (position, tree, _) in &laid_rows {
-        let extent = add(
-            tree.metrics().width(),
-            position_shift(*position, unit).abs(),
-        )?;
+    for (row, laid) in expanded.iter().zip(&built) {
+        let position = match row {
+            Flat::Cells { position, .. } => *position,
+            Flat::Line { position, .. } => *position,
+        };
+        let extent = match laid {
+            Some((tree, _)) => add(tree.metrics().width(), position_shift(position, unit).abs())?,
+            None => width,
+        };
         width = width.max(extent);
     }
 
@@ -57,12 +67,11 @@ pub(super) fn stack<'a>(
     let mut items = Vec::new();
     let mut glyphs = Vec::new();
     let mut rows_before = 0.0;
-    let mut laid_index = 0usize;
     let mut last_depth = 0.0f64;
     let mut saw_row = false;
-    for row in rows {
+    for (row, laid) in expanded.iter().zip(&mut built) {
         match row {
-            StackRow::Line { position, length } => {
+            Flat::Line { position, length } => {
                 let shift = position_shift(*position, unit);
                 let rule_width = match length {
                     Some(columns) => f64::from(*columns) * unit,
@@ -73,10 +82,10 @@ pub(super) fn stack<'a>(
                 rows_before = add(add(rows_before, thickness)?, thickness)?;
                 last_depth = 0.0;
             }
-            StackRow::Group { .. } => unreachable!("flattened above"),
-            StackRow::Cells { .. } => {
-                let (position, tree, cells) = &mut laid_rows[laid_index];
-                laid_index += 1;
+            Flat::Cells { position, .. } => {
+                let Some((tree, cells)) = laid.take() else {
+                    continue;
+                };
                 let height = tree.metrics().height();
                 let depth = tree.metrics().depth();
                 let shift = position_shift(*position, unit);
@@ -91,7 +100,7 @@ pub(super) fn stack<'a>(
                 };
                 // The shift rides the row's own leading kern so the logical
                 // boxes carry it, not just the glyphs.
-                let row = BoxTree::hbox(vec![
+                let row_tree = BoxTree::hbox(vec![
                     StackItem::Kern(Kern::new(x)?),
                     StackItem::Box(tree.clone()),
                 ])?;
@@ -99,7 +108,7 @@ pub(super) fn stack<'a>(
                 // cell's glyphs translate by the cell's in-row offset.
                 let y = add(rows_before, height)?;
                 let mut cell_x = x;
-                for mut cell in std::mem::take(cells) {
+                for mut cell in cells {
                     let cell_offset = Point::new(cell_x, y)?;
                     for glyph in &mut cell.glyphs {
                         glyph.origin = glyph.origin.translated(cell_offset)?;
@@ -108,7 +117,7 @@ pub(super) fn stack<'a>(
                     cell_x = add(cell_x, cell.tree.metrics().width())?;
                 }
                 items.push(StackItem::Kern(Kern::new(height)?));
-                items.push(StackItem::Box(row));
+                items.push(StackItem::Box(row_tree));
                 rows_before = add(add(rows_before, height)?, depth)?;
                 last_depth = depth;
                 saw_row = true;
@@ -133,39 +142,55 @@ pub(super) fn stack<'a>(
     })
 }
 
-/// Flattens group nesting into laid rows, resolving each row's effective
-/// position: a row's own position wins, otherwise the group's position
-/// plus the per-row shift accumulates.
-fn flatten_rows<'a>(
+/// One expanded stack row: cells with their effective position, or a rule.
+enum Flat<'a> {
+    Cells {
+        position: Option<i32>,
+        cells: Vec<&'a Formula>,
+    },
+    Line {
+        position: Option<i32>,
+        length: Option<i32>,
+    },
+}
+
+/// Expands group nesting into the flat row list: a row's own position wins,
+/// otherwise the group's position plus the per-row shift accumulates.
+fn expand_rows<'a>(
     rows: &'a [StackRow],
     group_position: Option<i32>,
     shift: Option<i32>,
-    out: &mut Vec<(Option<i32>, Vec<&'a Formula>)>,
-) -> Result<(), LayoutError> {
+    out: &mut Vec<Flat<'a>>,
+) {
     for (index, row) in rows.iter().enumerate() {
         match row {
-            StackRow::Line { .. } => {}
+            StackRow::Line { position, length } => out.push(Flat::Line {
+                position: *position,
+                length: *length,
+            }),
             StackRow::Cells { position, cells } => {
                 let effective = position.or(group_position.map(|base| {
                     base + i32::try_from(index).unwrap_or(i32::MAX) * shift.unwrap_or_default()
                 }));
-                out.push((effective, cells.iter().collect()));
+                out.push(Flat::Cells {
+                    position: effective,
+                    cells: cells.iter().collect(),
+                });
             }
             StackRow::Group {
                 position,
                 shift: inner_shift,
                 rows: group,
             } => {
-                flatten_rows(
+                expand_rows(
                     group,
                     position.or(group_position),
                     inner_shift.or(shift),
                     out,
-                )?;
+                );
             }
         }
     }
-    Ok(())
 }
 
 /// The pixel shift of a position: positive pads columns on the right (the
