@@ -299,33 +299,19 @@ fn named_operators_refuse_missing_or_overridden_values() {
 }
 
 #[test]
-fn unsupported_typed_operators_refuse_without_partial_wire_output() {
-    // The plurimath symbol inventory carries most operator spellings now;
-    // only text no source class claims refuses.
+fn arbitrary_operators_ride_the_generic_symbol_class() {
+    // plurimath's own tree carries any operator spelling no Symbols class
+    // claims as the generic Symbols::Symbol holding the text, so the wire
+    // mirrors that instead of refusing.
     for text in ["", "arbitrary"] {
         let node = Formula::Operator(text.into());
-        assert_eq!(
-            node.to_wire(),
-            Err(WireError {
-                code: WireErrorCode::UnsupportedOperator,
-                path: String::new()
-            })
-        );
-        let tree = Formula::Sequence(vec![
-            Formula::Symbol("before".into()),
-            node,
-            Formula::Symbol("after".into()),
-        ]);
-        assert_eq!(
-            tree.to_wire(),
-            Err(WireError {
-                code: WireErrorCode::UnsupportedOperator,
-                path: "/fields/value/1".into()
-            })
-        );
+        let wire = node.to_wire().unwrap();
+        assert_eq!(wire["class"], "Math::Symbols::Symbol");
+        assert_eq!(wire["fields"]["value"], text);
+        let decoded = Formula::from_wire(wire.as_object().unwrap()).unwrap();
+        assert_eq!(decoded, Formula::Symbol(text.into()));
     }
 }
-
 #[test]
 fn bootstrap_field_alias_is_refused_instead_of_reinterpreted() {
     refused(
