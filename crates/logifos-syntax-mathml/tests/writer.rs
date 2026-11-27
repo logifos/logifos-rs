@@ -162,6 +162,17 @@ fn nested_rows(depth: usize, leaf: Formula) -> Formula {
 
 #[test]
 fn syntax_depth_limit_counts_nonempty_token_text() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(syntax_depth_limit_counts_nonempty_token_text_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn syntax_depth_limit_counts_nonempty_token_text_body() {
     roundtrip(&nested_rows(MAX_DEPTH, Formula::Sequence(vec![])));
     roundtrip(&nested_rows(MAX_DEPTH, symbol("")));
     roundtrip(&nested_rows(MAX_DEPTH - 1, symbol("x")));

@@ -916,6 +916,17 @@ fn missing_math_and_malformed_glyph_metrics_never_become_guesses() {
 
 #[test]
 fn direct_formula_values_are_bounded() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(direct_formula_values_are_bounded_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn direct_formula_values_are_bounded_body() {
     let mut nested = symbol("x");
     for _ in 0..logifos_model::MAX_DEPTH {
         nested = sequence(vec![nested]);
