@@ -626,6 +626,17 @@ fn nested_document(depth: usize) -> MathmlDocument {
 
 #[test]
 fn manually_constructed_trees_enforce_depth_before_recursing() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(manually_constructed_trees_enforce_depth_before_recursing_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn manually_constructed_trees_enforce_depth_before_recursing_body() {
     assert!(transform(&nested_document(MAX_DEPTH)).is_ok());
     let error = transform(&nested_document(MAX_DEPTH + 1)).unwrap_err();
     assert_eq!(error.kind, TransformErrorKind::ResourceLimit);
