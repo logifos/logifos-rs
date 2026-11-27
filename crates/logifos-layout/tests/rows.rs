@@ -1707,3 +1707,24 @@ fn bottom_glyph_origin_width(glyph: &logifos_layout::layout::PlacedGlyph) -> f64
     let _ = glyph;
     9.0
 }
+
+#[test]
+fn a_top_level_group_row_lays_out() {
+    use logifos_model::{StackAlign, StackRow};
+    let mut fonts = provider(&font());
+    // The standalone-msgroup shape: one group row carrying the cells.
+    let stack = Formula::Stack(
+        StackAlign::DecimalPoint,
+        vec![StackRow::Group {
+            position: None,
+            shift: None,
+            rows: vec![StackRow::Cells {
+                position: None,
+                cells: vec![Formula::Sequence(vec![symbol("x")])],
+            }],
+        }],
+    );
+    let result = layout(&stack, &mut fonts, options(0)).unwrap();
+    close(result.tree.metrics().width(), 9.0);
+    assert_eq!(result.glyphs.len(), 1);
+}
