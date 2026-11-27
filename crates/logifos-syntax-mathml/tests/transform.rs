@@ -591,9 +591,9 @@ fn comments_refuse_inside_and_outside_the_document_element() {
 #[test]
 fn nested_refusal_location_counts_indentation_and_preserves_namespace() {
     let error = refused(
-        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:msgroup><mi>y</mi><mo>^</mo></m:msgroup></mrow></mfrac></math>"),
+        &format!("<math xmlns:m='{MATHML_NAMESPACE}'>\n<mfrac><mi>x</mi><mrow> <m:mscarries><mi>y</mi><mo>^</mo></m:mscarries></mrow></mfrac></math>"),
         TransformErrorKind::UnsupportedElement,
-        "msgroup",
+        "mscarries",
         "/root/children/1/children/1/children/1",
     );
     assert_eq!(error.element.namespace.as_deref(), Some(MATHML_NAMESPACE));
@@ -626,6 +626,17 @@ fn nested_document(depth: usize) -> MathmlDocument {
 
 #[test]
 fn manually_constructed_trees_enforce_depth_before_recursing() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(manually_constructed_trees_enforce_depth_before_recursing_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn manually_constructed_trees_enforce_depth_before_recursing_body() {
     assert!(transform(&nested_document(MAX_DEPTH)).is_ok());
     let error = transform(&nested_document(MAX_DEPTH + 1)).unwrap_err();
     assert_eq!(error.kind, TransformErrorKind::ResourceLimit);

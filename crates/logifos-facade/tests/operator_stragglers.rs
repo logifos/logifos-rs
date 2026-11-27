@@ -1,4 +1,4 @@
-use logifos_model::{Formula, ScriptPair};
+use logifos_model::{Formula, ScriptPair, StackRow};
 use std::{collections::BTreeMap, path::Path};
 
 /// Prints the operator texts the wire's inventory does not claim, over a
@@ -110,6 +110,20 @@ fn children(formula: &Formula) -> Vec<&Formula> {
             })
             .collect(),
         Formula::Space(..) | Formula::Menclose { .. } => Vec::new(),
+        Formula::Stack(_, rows) => rows
+            .iter()
+            .flat_map(|row| match row {
+                StackRow::Cells { cells, .. } => cells.iter().collect::<Vec<&Formula>>(),
+                StackRow::Group { rows, .. } => rows
+                    .iter()
+                    .flat_map(|inner| match inner {
+                        StackRow::Cells { cells, .. } => cells.iter().collect::<Vec<&Formula>>(),
+                        StackRow::Group { .. } | StackRow::Line { .. } => Vec::new(),
+                    })
+                    .collect::<Vec<&Formula>>(),
+                StackRow::Line { .. } => Vec::new(),
+            })
+            .collect(),
         Formula::Symbol(_) | Formula::StringLiteral(_) | Formula::Operator(_) => Vec::new(),
     }
 }

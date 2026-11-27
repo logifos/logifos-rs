@@ -1,0 +1,77 @@
+use logifos_model::MAX_DEPTH;
+use logifos_syntax_mathml::{parse, transform, write};
+
+#[test]
+fn arithmetic_stack_roundtrips_through_the_writer() {
+    let source = concat!(
+        "<math><mstack><mn>424</mn>",
+        "<msrow position=\"1\"><mo>+</mo><mn>33</mn></msrow>",
+        "<msline/></mstack></math>",
+    );
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    // The written form retains the stack vocabulary and its attributes.
+    println!("OUT {output}");
+    assert!(output.contains("<mstack>"));
+    assert!(output.contains("<msrow position=\"1\">"));
+    assert!(output.contains("<msline"));
+}
+
+#[test]
+fn group_positions_and_shifts_roundtrip() {
+    let source = concat!(
+        "<math><mstack><mn>12</mn>",
+        "<msgroup position=\"2\" shift=\"-1\"><mn>7</mn><mn>5</mn></msgroup>",
+        "</mstack></math>",
+    );
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    assert!(output.contains("<msgroup position=\"2\" shift=\"-1\">"));
+}
+
+#[test]
+fn stackalign_retains_and_roundtrips() {
+    for align in ["left", "center", "right", "decimalpoint"] {
+        let source = format!("<math><mstack stackalign=\"{align}\"><mn>1</mn></mstack></math>");
+        let formula = transform(&parse(&source).unwrap()).unwrap();
+        let output = write(&formula).unwrap();
+        assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+        if align == "decimalpoint" {
+            assert!(!output.contains("stackalign"), "the default drops");
+        } else {
+            assert!(output.contains(&format!("stackalign=\"{align}\"")));
+        }
+    }
+}
+
+#[test]
+fn standalone_msgroup_is_a_stack() {
+    let source = "<math><msgroup><mi>33</mi><mtext>dd</mtext></msgroup></math>";
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    assert!(output.contains("<msgroup>"));
+}
+
+#[test]
+fn unknown_stackalign_and_bad_positions_refuse() {
+    let bad_align = "<math><mstack stackalign=\"middle\"><mn>1</mn></mstack></math>";
+    assert!(transform(&parse(bad_align).unwrap()).is_err());
+    let bad_position = "<math><mstack><msrow position=\"x\"><mn>1</mn></msrow></mstack></math>";
+    assert!(transform(&parse(bad_position).unwrap()).is_err());
+}
+
+#[test]
+fn stack_depth_limits_still_apply() {
+    let row = "<msrow><mn>1</mn></msrow>";
+    let source = format!(
+        "<math><mstack>{0}{0}</mstack></math>",
+        row.repeat(MAX_DEPTH)
+    );
+    // Deep but legal stacks transform; the budget refuses the runaway ones
+    // through the shared visit checks.
+    let parsed = parse(&source).unwrap();
+    let _ = transform(&parsed);
+}

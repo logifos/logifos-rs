@@ -372,6 +372,31 @@ impl SyntaxBuilder {
                 }
                 "mtable"
             }
+            Formula::Stack(align, rows) => {
+                if *align != logifos_model::StackAlign::DecimalPoint {
+                    attributes_elem.push(crate::Attribute {
+                        name: QualifiedName {
+                            namespace: None,
+                            prefix: None,
+                            local: "stackalign".into(),
+                        },
+                        value: match align {
+                            logifos_model::StackAlign::Left => "left".into(),
+                            logifos_model::StackAlign::Center => "center".into(),
+                            logifos_model::StackAlign::Right => "right".into(),
+                            logifos_model::StackAlign::DecimalPoint => unreachable!(),
+                        },
+                    });
+                }
+                for (index, row) in rows.iter().enumerate() {
+                    children.push(Node::Element(self.stack_row(
+                        row,
+                        &format!("{location}/rows/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                "mstack"
+            }
         };
         let mut element = self.syntax_element(name, children);
         element.attributes = attributes_elem;
@@ -514,6 +539,77 @@ impl SyntaxBuilder {
             attributes: Vec::new(),
             children,
         }
+    }
+
+    /// One elementary-stack row: msrow with its cells, msline, or msgroup
+    /// with position/shift attributes and its rows.
+    fn stack_row(
+        &mut self,
+        row: &logifos_model::StackRow,
+        location: &str,
+        depth: usize,
+    ) -> Result<Element, WriteError> {
+        let integer_attribute = |name: &str, value: Option<i32>| {
+            value.map(|value| crate::Attribute {
+                name: QualifiedName {
+                    prefix: None,
+                    local: name.into(),
+                    namespace: None,
+                },
+                value: value.to_string(),
+            })
+        };
+        let element = match row {
+            logifos_model::StackRow::Cells { position, cells } => {
+                let mut children = Vec::with_capacity(cells.len());
+                for (index, cell) in cells.iter().enumerate() {
+                    children.push(Node::Element(self.element(
+                        cell,
+                        &format!("{location}/cells/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                let mut element = self.node("msrow", children);
+                element
+                    .attributes
+                    .extend(integer_attribute("position", *position));
+                element
+            }
+            logifos_model::StackRow::Line { position, length } => {
+                let mut element = self.node("msline", Vec::new());
+                element
+                    .attributes
+                    .extend(integer_attribute("position", *position));
+                element
+                    .attributes
+                    .extend(integer_attribute("length", *length));
+                element
+            }
+            logifos_model::StackRow::Group {
+                position,
+                shift,
+                rows,
+            } => {
+                let mut children = Vec::with_capacity(rows.len());
+                for (index, row) in rows.iter().enumerate() {
+                    children.push(Node::Element(self.stack_row(
+                        row,
+                        &format!("{location}/rows/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                let mut element = self.node("msgroup", children);
+                element
+                    .attributes
+                    .extend(integer_attribute("position", *position));
+                element
+                    .attributes
+                    .extend(integer_attribute("shift", *shift));
+                element
+            }
+        };
+        self.visit(location, depth)?;
+        Ok(element)
     }
 }
 

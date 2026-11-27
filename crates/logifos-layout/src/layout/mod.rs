@@ -9,6 +9,7 @@ mod operator;
 mod radical;
 mod rows;
 mod scripts;
+mod stack;
 mod style;
 mod table;
 mod token;
@@ -133,6 +134,9 @@ fn build<'a>(
         let inner: &Formula = content;
         return menclose::enclose(notation, inner, fonts, style, budget, depth);
     }
+    if let Formula::Stack(align, rows) = formula {
+        return stack::stack(*align, rows, fonts, style, budget, depth);
+    }
     match formula {
         Formula::Sequence(children)
         | Formula::Style(children)
@@ -230,7 +234,8 @@ fn build_construct<'a>(
         | Formula::ErrorGroup(_)
         | Formula::Padded(_)
         | Formula::Phantom(_)
-        | Formula::Menclose { .. } => unreachable!("handled by build"),
+        | Formula::Menclose { .. }
+        | Formula::Stack(..) => unreachable!("handled by build"),
         Formula::Space(width, height, depth) => {
             let size = style.font_size_px;
             let font = fonts.primary();

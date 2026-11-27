@@ -201,6 +201,17 @@ fn writer_checks_characters_in_nested_limit_operands() {
 
 #[test]
 fn limit_operands_obey_the_shared_depth_budget() {
+    // The recursion at the exact depth limit needs frames the default
+    // platform test stacks cannot spare.
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(limit_operands_obey_the_shared_depth_budget_body)
+        .expect("test thread spawns")
+        .join()
+        .expect("test thread succeeds");
+}
+
+fn limit_operands_obey_the_shared_depth_budget_body() {
     let node = Formula::UnderOver(
         Box::new(symbol("x")),
         Box::new(symbol("")),
