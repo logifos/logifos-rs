@@ -126,8 +126,6 @@ fn unsupported_content_refuses_even_at_row_fallback_arities() {
     for name in ["munder", "mover", "munderover"] {
         for (content, kind) in [
             ("<!--note-->", TransformErrorKind::UnsupportedContent),
-            ("lost", TransformErrorKind::UnsupportedContent),
-            ("&#xA0;", TransformErrorKind::UnsupportedContent),
             (
                 "<f:mi xmlns:f='urn:foreign'>x</f:mi>",
                 TransformErrorKind::UnsupportedElement,

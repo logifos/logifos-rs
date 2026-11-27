@@ -176,7 +176,13 @@ impl Transformer {
                 Node::Text(text) if text.chars().all(xml_whitespace) => {
                     self.visit(element, &path, depth + 1)?;
                 }
-                Node::Text(_) | Node::Comment(_) => {
+                // Core 3.2: character data in a container element is an
+                // implied token; it converts verbatim like an mi.
+                Node::Text(text) => {
+                    self.visit(element, &path, depth + 1)?;
+                    children.push(Formula::Symbol(text.clone()));
+                }
+                Node::Comment(_) => {
                     return Err(refusal(
                         TransformErrorKind::UnsupportedContent,
                         element,
@@ -454,7 +460,16 @@ impl Transformer {
                 Node::Text(text) if text.chars().all(xml_whitespace) => {
                     self.visit(element, &child_path, depth + 1)?;
                 }
-                Node::Text(_) | Node::Comment(_) => {
+                // Core 3.2: character data in a container element is an
+                // implied token cell.
+                Node::Text(text) => {
+                    self.visit(element, &child_path, depth + 1)?;
+                    rows.push(StackRow::Cells {
+                        position: None,
+                        cells: vec![Formula::Symbol(text.clone())],
+                    });
+                }
+                Node::Comment(_) => {
                     return Err(refusal(
                         TransformErrorKind::UnsupportedContent,
                         element,

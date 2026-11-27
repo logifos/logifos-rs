@@ -342,7 +342,7 @@ fn foreign_elements_and_unsupported_operands_still_refuse() {
         }
     }
     // menclose is supported now; it drops out of the foreign list.
-    for content in ["<annotation>x</annotation>", "<!--private-->", "private"] {
+    for content in ["<annotation>x</annotation>", "<!--private-->"] {
         for name in ["msubsup", "mmultiscripts"] {
             let error = transform(
                 &parse(format!("<math><{name}><mi>x</mi>{content}</{name}></math>")).unwrap(),

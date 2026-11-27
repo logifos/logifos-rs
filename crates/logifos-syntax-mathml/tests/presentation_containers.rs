@@ -130,8 +130,6 @@ fn unsupported_attributes_on_presentation_containers_still_refuse() {
 fn row_like_content_keeps_exact_refusal_paths() {
     for name in CONTAINERS {
         for (content, kind) in [
-            ("lost", TransformErrorKind::UnsupportedContent),
-            ("&#xA0;", TransformErrorKind::UnsupportedContent),
             ("<!--note-->", TransformErrorKind::UnsupportedContent),
             (
                 "<annotation>meaning</annotation>",
