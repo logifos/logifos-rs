@@ -281,10 +281,10 @@ fn attributes_and_inherited_style_are_typed_refusals_never_dropped() {
 fn existing_corpora_roundtrip_or_refuse_typed() {
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (manifest_path, expected_counts) in [
-        (crate_root.join("tests/cases.json"), (8, 2, 6)),
+        (crate_root.join("tests/cases.json"), (8, 3, 5)),
         (
             crate_root.join("../../corpus/conformance/manifest.json"),
-            (3, 2, 1),
+            (3, 3, 0),
         ),
     ] {
         let manifest = logifos_json::decode(&std::fs::read(&manifest_path).unwrap()).unwrap();
@@ -326,7 +326,12 @@ fn existing_corpora_roundtrip_or_refuse_typed() {
                 Ok(document) => match transform(&document) {
                     Ok(formula) => {
                         assert!(
-                            matches!(id, "mathml-namespace-token" | "mathml-prefixed-token"),
+                            matches!(
+                                id,
+                                "mathml-namespace-token"
+                                    | "mathml-prefixed-token"
+                                    | "mathml-inherited-style"
+                            ),
                             "unexpectedly supported: {id}"
                         );
                         roundtrip(&formula);
@@ -334,7 +339,6 @@ fn existing_corpora_roundtrip_or_refuse_typed() {
                     }
                     Err(error) => {
                         let expected = match id {
-                            "mathml-inherited-style" => TransformErrorKind::UnsupportedAttribute,
                             "mathml-mixed-content" => TransformErrorKind::InvalidStructure,
                             _ => panic!("unexpected transform refusal: {id}: {error}"),
                         };

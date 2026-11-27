@@ -438,7 +438,7 @@ impl SyntaxBuilder {
     }
 
     fn style_attributes(element: &mut Element, style: logifos_model::PresentationStyle) {
-        use logifos_model::{MathColor, MathDisplay, ScriptLevel};
+        use logifos_model::{MathDisplay, ScriptLevel};
         let mut attribute = |name: &str, value: String| {
             element.attributes.push(crate::Attribute {
                 name: QualifiedName {
@@ -476,14 +476,7 @@ impl SyntaxBuilder {
             attribute("mathvariant", variant.as_str().into());
         }
         if let Some(color) = style.math_color {
-            attribute(
-                "mathcolor",
-                match color {
-                    MathColor::Red => "red",
-                    MathColor::Blue => "blue",
-                }
-                .into(),
-            );
+            attribute("mathcolor", color.spelling());
         }
         if let Some(space) = style.right_space {
             attribute("rspace", space.to_css());

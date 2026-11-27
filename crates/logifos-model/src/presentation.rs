@@ -124,14 +124,17 @@ impl MathVariant {
 pub enum MathColor {
     Red,
     Blue,
+    /// A `#rrggbb` spelling, resolved at paint time.
+    Hex(u32),
 }
 
 impl MathColor {
     /// The MathML spelling plurimath's Color wrapper carries as its Text.
-    pub fn spelling(self) -> &'static str {
+    pub fn spelling(self) -> String {
         match self {
-            Self::Red => "red",
-            Self::Blue => "blue",
+            Self::Red => "red".into(),
+            Self::Blue => "blue".into(),
+            Self::Hex(value) => format!("#{value:06x}"),
         }
     }
 
@@ -139,7 +142,15 @@ impl MathColor {
         match value {
             "red" => Some(Self::Red),
             "blue" => Some(Self::Blue),
-            _ => None,
+            hex => {
+                let digits = hex.strip_prefix('#')?;
+                if digits.len() != 6 || !digits.bytes().all(|b| b.is_ascii_hexdigit()) {
+                    return None;
+                }
+                Some(Self::Hex(
+                    u32::from_str_radix(&digits.to_ascii_lowercase(), 16).ok()?,
+                ))
+            }
         }
     }
 }
