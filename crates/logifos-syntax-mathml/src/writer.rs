@@ -371,6 +371,26 @@ impl SyntaxBuilder {
                 }
                 "mtable"
             }
+            Formula::LongDivision(division) => {
+                if division.style != logifos_model::LongDivStyle::Lefttop {
+                    attributes_elem.push(crate::Attribute {
+                        name: QualifiedName {
+                            prefix: None,
+                            local: "longdivstyle".into(),
+                            namespace: None,
+                        },
+                        value: "stackedleftlinetop".into(),
+                    });
+                }
+                for (index, child) in division.children.iter().enumerate() {
+                    children.push(Node::Element(self.element(
+                        child,
+                        &format!("{location}/children/{index}"),
+                        depth + 1,
+                    )?));
+                }
+                "mlongdiv"
+            }
             Formula::Stack(align, rows) => {
                 if *align != logifos_model::StackAlign::DecimalPoint {
                     attributes_elem.push(crate::Attribute {
@@ -580,6 +600,113 @@ impl SyntaxBuilder {
                     .attributes
                     .extend(integer_attribute("position", *position));
                 element
+            }
+            logifos_model::StackRow::Carries {
+                position,
+                location: group_location,
+                cells,
+            } => {
+                let mut children = Vec::with_capacity(cells.len());
+                for (index, cell) in cells.iter().enumerate() {
+                    let cell_path = format!("{location}/cells/{index}");
+                    let crossout_attr = cell.crossout.map(|crossout| {
+                        (
+                            "crossout",
+                            match crossout {
+                                logifos_model::Crossout::Updiagonal => "updiagonalstrike",
+                                logifos_model::Crossout::Downdiagonal => "downdiagonalstrike",
+                                logifos_model::Crossout::Vertical => "verticalstrike",
+                                logifos_model::Crossout::Horizontal => "horizontalstrike",
+                            },
+                        )
+                    });
+                    let location_attr = cell.location.map(|location| {
+                        (
+                            "location",
+                            match location {
+                                logifos_model::CarryLocation::N => "n",
+                                logifos_model::CarryLocation::Nw => "nw",
+                                logifos_model::CarryLocation::Ne => "ne",
+                                logifos_model::CarryLocation::W => "w",
+                                logifos_model::CarryLocation::E => "e",
+                                logifos_model::CarryLocation::S => "s",
+                                logifos_model::CarryLocation::Sw => "sw",
+                                logifos_model::CarryLocation::Se => "se",
+                            },
+                        )
+                    });
+                    let element = match &cell.content {
+                        Some(content) => {
+                            let child =
+                                self.element(content, &format!("{cell_path}/content"), depth + 1)?;
+                            let mut element = self.node("mscarry", vec![Node::Element(child)]);
+                            for (name, value) in
+                                [crossout_attr, location_attr].into_iter().flatten()
+                            {
+                                element.attributes.push(crate::Attribute {
+                                    name: QualifiedName {
+                                        prefix: None,
+                                        local: name.into(),
+                                        namespace: None,
+                                    },
+                                    value: value.into(),
+                                });
+                            }
+                            element
+                        }
+                        None => {
+                            // A crossed placeholder keeps its mscarry
+                            // wrapper so the crossout stays legal; a plain
+                            // one writes the bare none.
+                            if crossout_attr.is_some() || location_attr.is_some() {
+                                let none = self.node("none", Vec::new());
+                                let mut element = self.node("mscarry", vec![Node::Element(none)]);
+                                for (name, value) in
+                                    [crossout_attr, location_attr].into_iter().flatten()
+                                {
+                                    element.attributes.push(crate::Attribute {
+                                        name: QualifiedName {
+                                            prefix: None,
+                                            local: name.into(),
+                                            namespace: None,
+                                        },
+                                        value: value.into(),
+                                    });
+                                }
+                                element
+                            } else {
+                                self.node("none", Vec::new())
+                            }
+                        }
+                    };
+                    children.push(Node::Element(element));
+                }
+                let mut element = self.node("mscarries", children);
+                element
+                    .attributes
+                    .extend(integer_attribute("position", *position));
+                if let Some(loc) = group_location {
+                    let value = match loc {
+                        logifos_model::CarryLocation::N => "n",
+                        logifos_model::CarryLocation::Nw => "nw",
+                        logifos_model::CarryLocation::Ne => "ne",
+                        logifos_model::CarryLocation::W => "w",
+                        logifos_model::CarryLocation::E => "e",
+                        logifos_model::CarryLocation::S => "s",
+                        logifos_model::CarryLocation::Sw => "sw",
+                        logifos_model::CarryLocation::Se => "se",
+                    };
+                    element.attributes.push(crate::Attribute {
+                        name: QualifiedName {
+                            prefix: None,
+                            local: "location".into(),
+                            namespace: None,
+                        },
+                        value: value.into(),
+                    });
+                }
+                self.visit(location, depth)?;
+                return Ok(element);
             }
             logifos_model::StackRow::Line { position, length } => {
                 let mut element = self.node("msline", Vec::new());

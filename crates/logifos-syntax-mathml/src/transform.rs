@@ -5,7 +5,10 @@ mod scripts;
 
 use std::fmt;
 
-use logifos_model::{Formula, Length, LengthUnit, StackAlign, StackRow, MAX_DEPTH, MAX_NODES};
+use logifos_model::{
+    CarryCell, CarryLocation, Crossout, Formula, Length, LengthUnit, LongDivStyle, LongDivision,
+    StackAlign, StackRow, MAX_DEPTH, MAX_NODES,
+};
 
 use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
 
@@ -387,6 +390,73 @@ impl Transformer {
                 let rows = self.stack_children(element, location, depth)?;
                 Ok(Formula::Stack(align, rows))
             }
+            // MathML-3 long division: the head children compose per style
+            // above the working stack.
+            "mlongdiv" => {
+                let style = match attribute_value(element, "longdivstyle").as_deref() {
+                    None | Some("lefttop") => LongDivStyle::Lefttop,
+                    Some("stackedleftlinetop") => LongDivStyle::Stackedleftlinetop,
+                    Some(_) => {
+                        return Err(refusal(
+                            TransformErrorKind::UnsupportedAttribute,
+                            element,
+                            location,
+                        ))
+                    }
+                };
+                let mut children = Vec::new();
+                let mut stack_rows = Vec::new();
+                for (index, node) in element.children.iter().enumerate() {
+                    let child_path = format!("{location}/children/{index}");
+                    match node {
+                        Node::Element(child)
+                            if matches!(
+                                child.name.local.as_str(),
+                                "msrow" | "msline" | "msgroup" | "mscarries"
+                            ) =>
+                        {
+                            self.check_element(child, &child_path, depth + 1)?;
+                            let child_rows = self.stack_children(child, &child_path, depth + 1)?;
+                            stack_rows.push(Formula::Stack(StackAlign::DecimalPoint, child_rows));
+                        }
+                        Node::Element(child) => {
+                            children.push(self.element(child, &child_path, depth + 1)?);
+                        }
+                        Node::Text(text) if text.chars().all(xml_whitespace) => {
+                            self.visit(element, &child_path, depth + 1)?;
+                        }
+                        Node::Text(_) | Node::Comment(_) => {
+                            return Err(refusal(
+                                TransformErrorKind::UnsupportedContent,
+                                element,
+                                &child_path,
+                            ));
+                        }
+                    }
+                }
+                if !stack_rows.is_empty() {
+                    children.push(Formula::Stack(
+                        StackAlign::DecimalPoint,
+                        stack_rows
+                            .into_iter()
+                            .map(|stack| match stack {
+                                Formula::Stack(_, rows) => rows,
+                                other => vec![logifos_model::StackRow::Cells {
+                                    position: None,
+                                    cells: vec![other],
+                                }],
+                            })
+                            .collect::<Vec<Vec<_>>>()
+                            .into_iter()
+                            .flatten()
+                            .collect(),
+                    ));
+                }
+                Ok(Formula::LongDivision(Box::new(LongDivision {
+                    style,
+                    children,
+                })))
+            }
             // The corpus carries msgroup outside any mstack; a standalone
             // group keeps its rows as the default-aligned stack.
             "msgroup" => {
@@ -424,7 +494,10 @@ impl Transformer {
             let child_path = format!("{location}/children/{index}");
             match node {
                 Node::Element(child)
-                    if matches!(child.name.local.as_str(), "msrow" | "msline" | "msgroup") =>
+                    if matches!(
+                        child.name.local.as_str(),
+                        "msrow" | "msline" | "msgroup" | "mscarries"
+                    ) =>
                 {
                     self.check_element(child, &child_path, depth + 1)?;
                     match child.name.local.as_str() {
@@ -437,6 +510,77 @@ impl Transformer {
                             let position = self.stack_position(child, &child_path)?;
                             let length = self.stack_length(child, &child_path)?;
                             rows.push(StackRow::Line { position, length });
+                        }
+                        "mscarries" => {
+                            let position = self.stack_position(child, &child_path)?;
+                            let group_crossout = self.stack_crossout(child, &child_path)?;
+                            let group_location = self.stack_location(child, &child_path)?;
+                            let mut cells = Vec::new();
+                            for (carry_index, carry_node) in child.children.iter().enumerate() {
+                                let carry_path = format!("{child_path}/children/{carry_index}");
+                                match carry_node {
+                                    Node::Element(carry)
+                                        if carry.name.local.as_str() == "mscarry" =>
+                                    {
+                                        self.check_element(carry, &carry_path, depth + 2)?;
+                                        let crossout = self
+                                            .stack_crossout(carry, &carry_path)?
+                                            .or(group_crossout);
+                                        let content = match carry.children.first() {
+                                            Some(Node::Element(inner))
+                                                if inner.name.local.as_str() == "none" =>
+                                            {
+                                                let none_path = format!("{carry_path}/children/0");
+                                                self.check_element(inner, &none_path, depth + 2)?;
+                                                None
+                                            }
+                                            Some(Node::Element(inner)) => {
+                                                Some(self.element(inner, &carry_path, depth + 2)?)
+                                            }
+                                            _ => None,
+                                        };
+                                        let location = self
+                                            .stack_location(carry, &carry_path)?
+                                            .or(group_location);
+                                        cells.push(CarryCell {
+                                            content,
+                                            crossout,
+                                            location,
+                                        });
+                                    }
+                                    Node::Element(inner) if inner.name.local.as_str() == "none" => {
+                                        self.check_element(inner, &carry_path, depth + 2)?;
+                                        cells.push(CarryCell {
+                                            content: None,
+                                            crossout: group_crossout,
+                                            location: group_location,
+                                        });
+                                    }
+                                    Node::Element(inner) => {
+                                        let cell = self.element(inner, &carry_path, depth + 2)?;
+                                        cells.push(CarryCell {
+                                            content: Some(cell),
+                                            crossout: group_crossout,
+                                            location: group_location,
+                                        });
+                                    }
+                                    Node::Text(text) if text.chars().all(xml_whitespace) => {
+                                        self.visit(child, &carry_path, depth + 2)?;
+                                    }
+                                    _ => {
+                                        return Err(refusal(
+                                            TransformErrorKind::UnsupportedContent,
+                                            child,
+                                            &carry_path,
+                                        ));
+                                    }
+                                }
+                            }
+                            rows.push(StackRow::Carries {
+                                position,
+                                location: group_location,
+                                cells,
+                            });
                         }
                         _ => {
                             let position = self.stack_position(child, &child_path)?;
@@ -492,6 +636,49 @@ impl Transformer {
                 .parse::<i32>()
                 .map(Some)
                 .map_err(|_| refusal(TransformErrorKind::UnsupportedAttribute, element, location)),
+        }
+    }
+
+    fn stack_crossout(
+        &self,
+        element: &Element,
+        location: &str,
+    ) -> Result<Option<Crossout>, TransformError> {
+        match attribute_value(element, "crossout").as_deref() {
+            None => Ok(None),
+            Some("none") => Ok(None),
+            Some("updiagonalstrike") => Ok(Some(Crossout::Updiagonal)),
+            Some("downdiagonalstrike") => Ok(Some(Crossout::Downdiagonal)),
+            Some("verticalstrike") => Ok(Some(Crossout::Vertical)),
+            Some("horizontalstrike") => Ok(Some(Crossout::Horizontal)),
+            Some(_) => Err(refusal(
+                TransformErrorKind::UnsupportedAttribute,
+                element,
+                location,
+            )),
+        }
+    }
+
+    fn stack_location(
+        &self,
+        element: &Element,
+        location: &str,
+    ) -> Result<Option<CarryLocation>, TransformError> {
+        match attribute_value(element, "location").as_deref() {
+            None => Ok(None),
+            Some("n") => Ok(Some(CarryLocation::N)),
+            Some("nw") => Ok(Some(CarryLocation::Nw)),
+            Some("ne") => Ok(Some(CarryLocation::Ne)),
+            Some("w") => Ok(Some(CarryLocation::W)),
+            Some("e") => Ok(Some(CarryLocation::E)),
+            Some("s") => Ok(Some(CarryLocation::S)),
+            Some("sw") => Ok(Some(CarryLocation::Sw)),
+            Some("se") => Ok(Some(CarryLocation::Se)),
+            Some(_) => Err(refusal(
+                TransformErrorKind::UnsupportedAttribute,
+                element,
+                location,
+            )),
         }
     }
 

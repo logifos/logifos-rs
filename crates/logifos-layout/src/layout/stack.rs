@@ -8,7 +8,7 @@ use super::{build, Budget, LayoutError, Node, ResolvedStyle};
 use crate::font::math::MathConstant;
 use crate::font::FontProvider;
 use crate::geometry::{add, subtract};
-use crate::{BoxTree, Kern, Point, StackItem};
+use crate::{BoxKind, BoxTree, Kern, Metrics, Point, PositionedBox, StackItem};
 use logifos_model::{Formula, StackAlign, StackRow};
 
 pub(super) fn stack<'a>(
@@ -26,14 +26,25 @@ pub(super) fn stack<'a>(
     expand_rows(rows, None, None, &mut expanded);
     let mut built = Vec::with_capacity(expanded.len());
     for row in &expanded {
-        let Flat::Cells { cells, .. } = row else {
-            built.push(None);
-            continue;
+        let cells: Vec<&Formula> = match row {
+            Flat::Cells { cells, .. } => cells.to_vec(),
+            Flat::Carries { cells, .. } => {
+                cells.iter().filter_map(|(_, content)| *content).collect()
+            }
+            Flat::Line { .. } => {
+                built.push(None);
+                continue;
+            }
+        };
+        // Carries draw small: one script level above the stack's own size.
+        let carry_style = match row {
+            Flat::Carries { .. } => style.raise(fonts, 1, true)?,
+            _ => style,
         };
         let mut items = Vec::with_capacity(cells.len());
         let mut cells_out = Vec::with_capacity(cells.len());
-        for cell in cells {
-            let node = build(cell, fonts, style, budget, depth + 1)?;
+        for cell in &cells {
+            let node = build(cell, fonts, carry_style, budget, depth + 1)?;
             items.push(StackItem::Box(node.tree.clone()));
             cells_out.push(node);
         }
@@ -52,6 +63,7 @@ pub(super) fn stack<'a>(
     for (row, laid) in expanded.iter().zip(&built) {
         let position = match row {
             Flat::Cells { position, .. } => *position,
+            Flat::Carries { position, .. } => *position,
             Flat::Line { position, .. } => *position,
         };
         let extent = match laid {
@@ -81,6 +93,71 @@ pub(super) fn stack<'a>(
                 items.push(StackItem::Box(BoxTree::rule(rule_width, thickness, 0.0)?));
                 rows_before = add(add(rows_before, thickness)?, thickness)?;
                 last_depth = 0.0;
+            }
+            Flat::Carries { position, cells } => {
+                // The carry row's own align pass mirrors the cells row; the
+                // strikes draw over the carry cells themselves (the digits
+                // they cross sit one row below).
+                let Some((tree, built_cells)) = laid.take() else {
+                    continue;
+                };
+                let height = tree.metrics().height();
+                let depth = tree.metrics().depth();
+                let shift = position_shift(*position, unit);
+                let x = match align {
+                    StackAlign::Left => (-shift).max(0.0),
+                    StackAlign::Center => {
+                        add(subtract(width, tree.metrics().width())? / 2.0, shift)?
+                    }
+                    StackAlign::Right | StackAlign::DecimalPoint => {
+                        subtract(subtract(width, tree.metrics().width())?, shift)?
+                    }
+                };
+                let row_tree = BoxTree::hbox(vec![
+                    StackItem::Kern(Kern::new(x)?),
+                    StackItem::Box(tree.clone()),
+                ])?;
+                let y = add(rows_before, height)?;
+                let mut cell_x = x;
+                let mut overlays: Vec<(f64, f64, f64)> = Vec::new();
+                for ((cell, _), mut built_cell) in cells.iter().zip(built_cells) {
+                    let cell_offset = Point::new(cell_x, y)?;
+                    for glyph in &mut built_cell.glyphs {
+                        glyph.origin = glyph.origin.translated(cell_offset)?;
+                    }
+                    glyphs.append(&mut built_cell.glyphs);
+                    let cell_width = built_cell.tree.metrics().width();
+                    if cell.crossout.is_some() && cell_width > 0.0 {
+                        overlays.push((cell_x, y, cell_width));
+                    }
+                    cell_x = add(cell_x, cell_width)?;
+                }
+                let row_height = add(height, depth)?;
+                let mut row_node = if overlays.is_empty() {
+                    BoxTree::hbox(vec![
+                        StackItem::Kern(Kern::new(height)?),
+                        StackItem::Box(row_tree),
+                    ])?
+                } else {
+                    let mut placed = vec![PositionedBox::place(Point::new(0.0, 0.0)?, row_tree)];
+                    for (strike_x, strike_y, strike_width) in overlays {
+                        let metrics = Metrics::new(strike_width, row_height, 0.0)?;
+                        placed.push(PositionedBox::place(
+                            Point::new(strike_x, strike_y - height)?,
+                            BoxTree::diagonal(metrics, thickness)?,
+                        ));
+                    }
+                    BoxTree::composed(BoxKind::HBox, Metrics::new(width, height, depth)?, placed)?
+                };
+                let _ = &mut row_node;
+                items.push(StackItem::Kern(Kern::new(height)?));
+                items.push(StackItem::Box(BoxTree::hbox(vec![
+                    StackItem::Kern(Kern::new(0.0)?),
+                    StackItem::Box(row_node),
+                ])?));
+                rows_before = add(add(rows_before, height)?, depth)?;
+                last_depth = depth;
+                saw_row = true;
             }
             Flat::Cells { position, .. } => {
                 let Some((tree, cells)) = laid.take() else {
@@ -143,11 +220,16 @@ pub(super) fn stack<'a>(
     })
 }
 
-/// One expanded stack row: cells with their effective position, or a rule.
+/// One expanded stack row: cells with their effective position, a rule, or
+/// a carries row whose strikes annotate the row below.
 enum Flat<'a> {
     Cells {
         position: Option<i32>,
         cells: Vec<&'a Formula>,
+    },
+    Carries {
+        position: Option<i32>,
+        cells: Vec<(&'a logifos_model::CarryCell, Option<&'a Formula>)>,
     },
     Line {
         position: Option<i32>,
@@ -176,6 +258,20 @@ fn expand_rows<'a>(
                 out.push(Flat::Cells {
                     position: effective,
                     cells: cells.iter().collect(),
+                });
+            }
+            StackRow::Carries {
+                position, cells, ..
+            } => {
+                out.push(Flat::Carries {
+                    position: *position,
+                    cells: cells
+                        .iter()
+                        .map(|cell| match &cell.content {
+                            Some(formula) => (cell, Some(formula)),
+                            None => (cell, None),
+                        })
+                        .collect(),
                 });
             }
             StackRow::Group {

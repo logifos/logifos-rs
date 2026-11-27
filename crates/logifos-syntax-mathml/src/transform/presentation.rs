@@ -113,9 +113,23 @@ pub(super) fn attributes(
                 // The elementary-stack geometry hints are consumed by the
                 // mstack/msrow/msgroup arms (the model carries them).
                 "stackalign" if element.name.local == "mstack" => true,
-                "position" if matches!(element.name.local.as_str(), "msrow" | "msgroup") => true,
+                "position"
+                    if matches!(
+                        element.name.local.as_str(),
+                        "msrow" | "msgroup" | "mscarries"
+                    ) =>
+                {
+                    true
+                }
                 "shift" if element.name.local == "msgroup" => true,
                 "length" if element.name.local == "msline" => true,
+                "crossout" if matches!(element.name.local.as_str(), "mscarries" | "mscarry") => {
+                    true
+                }
+                "location" if matches!(element.name.local.as_str(), "mscarries" | "mscarry") => {
+                    true
+                }
+                "longdivstyle" if element.name.local == "mlongdiv" => true,
                 _ => false,
             };
         if !valid {

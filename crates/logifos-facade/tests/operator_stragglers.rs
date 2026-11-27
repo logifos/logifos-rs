@@ -119,9 +119,32 @@ fn children(formula: &Formula) -> Vec<&Formula> {
                     .flat_map(|inner| match inner {
                         StackRow::Cells { cells, .. } => cells.iter().collect::<Vec<&Formula>>(),
                         StackRow::Group { .. } | StackRow::Line { .. } => Vec::new(),
+                        StackRow::Carries { .. } => Vec::new(),
                     })
                     .collect::<Vec<&Formula>>(),
+                StackRow::Carries { cells, .. } => cells
+                    .iter()
+                    .filter_map(|cell| cell.content.as_ref())
+                    .collect::<Vec<&Formula>>(),
                 StackRow::Line { .. } => Vec::new(),
+            })
+            .collect(),
+        Formula::LongDivision(division) => division
+            .children
+            .iter()
+            .flat_map(|child| match child {
+                Formula::Stack(_, rows) => rows
+                    .iter()
+                    .flat_map(|row| match row {
+                        StackRow::Cells { cells, .. } => cells.iter().collect::<Vec<&Formula>>(),
+                        StackRow::Carries { cells, .. } => cells
+                            .iter()
+                            .filter_map(|cell| cell.content.as_ref())
+                            .collect::<Vec<&Formula>>(),
+                        _ => Vec::new(),
+                    })
+                    .collect::<Vec<&Formula>>(),
+                other => vec![other],
             })
             .collect(),
         Formula::Symbol(_) | Formula::StringLiteral(_) | Formula::Operator(_) => Vec::new(),

@@ -117,6 +117,8 @@ pub enum Formula {
     /// An elementary stack: rows stacked vertically, each a horizontal run
     /// of cells or a horizontal rule, aligned per `stackalign`.
     Stack(StackAlign, Vec<StackRow>),
+    /// A long division around its working stack.
+    LongDivision(Box<LongDivision>),
 }
 
 /// The elementary stack's horizontal alignment (`stackalign`).
@@ -144,12 +146,70 @@ pub enum StackRow {
         shift: Option<i32>,
         rows: Vec<StackRow>,
     },
+    /// A carries row: cells drawn small above the row they annotate;
+    /// `None` content is an explicit `none` placeholder.
+    Carries {
+        position: Option<i32>,
+        /// The group's own `location` default; cells may override it.
+        location: Option<CarryLocation>,
+        cells: Vec<CarryCell>,
+    },
     /// A horizontal rule under the rows above it, starting at `position`
     /// and spanning `length` columns.
     Line {
         position: Option<i32>,
         length: Option<i32>,
     },
+}
+
+/// One carries cell: the carry itself plus the strike drawn on the digit
+/// below it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CarryCell {
+    /// `None` preserves an explicit `none` placeholder.
+    pub content: Option<Formula>,
+    pub crossout: Option<Crossout>,
+    /// The carry's placement relative to the digit below (`location`).
+    pub location: Option<CarryLocation>,
+}
+
+/// The MathML-3 `location` spellings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CarryLocation {
+    N,
+    Nw,
+    Ne,
+    W,
+    E,
+    S,
+    Sw,
+    Se,
+}
+
+/// The MathML-3 crossout spellings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Crossout {
+    Updiagonal,
+    Downdiagonal,
+    Vertical,
+    Horizontal,
+}
+
+/// A long division (MathML-3 `mlongdiv`): the head children compose per
+/// `style` above the working stack.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LongDivision {
+    pub style: LongDivStyle,
+    /// Divisor, dividend, result, then the intermediate rows in source
+    /// order.
+    pub children: Vec<Formula>,
+}
+
+/// The `longdivstyle` spellings the corpus carries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LongDivStyle {
+    Lefttop,
+    Stackedleftlinetop,
 }
 
 /// One ordered subscript/superscript pair in a multiscript construct.

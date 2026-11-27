@@ -4,6 +4,7 @@ mod baseline;
 mod error;
 mod fraction;
 mod limits;
+mod longdiv;
 mod menclose;
 mod operator;
 mod radical;
@@ -144,6 +145,9 @@ fn build<'a>(
     if let Formula::Stack(align, rows) = formula {
         return stack::stack(*align, rows, fonts, style, budget, depth);
     }
+    if let Formula::LongDivision(division) = formula {
+        return longdiv::long_division(division, fonts, style, budget, depth);
+    }
     match formula {
         Formula::Sequence(children)
         | Formula::Style(children)
@@ -247,6 +251,7 @@ fn build_construct<'a>(
         | Formula::Phantom(_)
         | Formula::Menclose { .. }
         | Formula::Stack(..) => unreachable!("handled by build"),
+        Formula::LongDivision(_) => unreachable!("handled by build"),
         Formula::Space(width, height, depth) => {
             let size = style.font_size_px;
             let font = fonts.primary();

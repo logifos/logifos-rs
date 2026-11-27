@@ -56,6 +56,9 @@ pub enum BoxKind {
     /// A stroked quarter ellipse centered at the corner, spanning between
     /// the two edges adjacent to that corner.
     Arc(ArcCorner),
+    /// A stroked diagonal strike across the logical box, from the top-left
+    /// corner to the bottom-right corner.
+    Diagonal,
 }
 
 /// The corner an [`BoxKind::Arc`] is centered on.
@@ -127,6 +130,26 @@ impl BoxTree {
         }
         Ok(Self {
             kind: BoxKind::Ellipse,
+            ink_bounds: Some(Bounds::new(
+                0.0,
+                0.0,
+                metrics.width(),
+                metrics.total_height(),
+            )?),
+            stroke_width,
+            ..Self::leaf(metrics, None)
+        })
+    }
+
+    /// Constructs a stroked diagonal strike across the logical box; the
+    /// stroke band is the node's ink.
+    pub fn diagonal(metrics: Metrics, stroke_width: f64) -> Result<Self, GeometryError> {
+        let stroke_width = finite(stroke_width)?;
+        if stroke_width <= 0.0 {
+            return Err(GeometryError::ZeroStroke);
+        }
+        Ok(Self {
+            kind: BoxKind::Diagonal,
             ink_bounds: Some(Bounds::new(
                 0.0,
                 0.0,
