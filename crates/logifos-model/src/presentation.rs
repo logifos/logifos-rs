@@ -1,5 +1,7 @@
 //! Typed presentation hints, independent of XML spellings.
 
+use crate::Length;
+
 /// The root's display mode; standalone output has no surrounding line box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathDisplay {
@@ -19,7 +21,7 @@ pub enum ScriptLevel {
 /// Typed hints whose owning element is validated at each stage boundary.
 /// Group hints inherit; spacing, accent and alignment belong to their operator,
 /// over-script construct or table cell. `display` is valid only on math.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct PresentationStyle {
     pub display: Option<MathDisplay>,
     pub displaystyle: Option<bool>,
@@ -29,6 +31,11 @@ pub struct PresentationStyle {
     pub right_space: Option<MathSpace>,
     pub accent: Option<bool>,
     pub column_align: Option<ColumnAlign>,
+    /// The mstyle floor the script-size scaling never drops below.
+    pub script_min_size: Option<Length>,
+    /// The mo stretch ceiling (Core 3.2.4): a percentage of the natural
+    /// extent or an absolute length.
+    pub max_size: Option<Length>,
 }
 
 /// A supported MathML mathvariant spelling, retained for font selection.

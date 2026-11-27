@@ -61,6 +61,7 @@ pub(super) fn enclose<'a>(
         italic: 0.0,
         empty: false,
         right_space: None,
+        max_size_percent: None,
     })
 }
 

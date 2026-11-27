@@ -1728,3 +1728,79 @@ fn a_top_level_group_row_lays_out() {
     close(result.tree.metrics().width(), 9.0);
     assert_eq!(result.glyphs.len(), 1);
 }
+
+#[test]
+fn scriptminsize_floors_the_script_scaling() {
+    use logifos_model::{Length, LengthUnit, PresentationStyle};
+    let mut fonts = provider(&font());
+    // The sub script normally scales down; the floor holds it at the base
+    // size.
+    let hints = PresentationStyle {
+        script_min_size: Some(Length {
+            value: 18.0,
+            unit: LengthUnit::Px,
+        }),
+        ..PresentationStyle::default()
+    };
+    let formula = Formula::Styled {
+        style: hints,
+        content: Box::new(Formula::Style(vec![Formula::Subscript(
+            Box::new(symbol("x")),
+            Box::new(symbol("x")),
+        )])),
+    };
+    let floored = layout(&formula, &mut fonts, options(0)).unwrap();
+    let plain = layout(
+        &Formula::Style(vec![Formula::Subscript(
+            Box::new(symbol("x")),
+            Box::new(symbol("x")),
+        )]),
+        &mut provider(&font()),
+        options(0),
+    )
+    .unwrap();
+    assert!(
+        floored.tree.metrics().width() > plain.tree.metrics().width(),
+        "the floor keeps the script at full size"
+    );
+}
+
+#[test]
+fn maxsize_caps_the_fence_stretch_at_the_natural_extent() {
+    use logifos_model::{Length, LengthUnit, PresentationStyle};
+    let mut fonts = provider(&stretch_font(600));
+    let hints = PresentationStyle {
+        max_size: Some(Length {
+            value: 100.0,
+            unit: LengthUnit::Percent,
+        }),
+        ..PresentationStyle::default()
+    };
+    let capped_paren = Formula::Styled {
+        style: hints,
+        content: Box::new(Formula::Operator("(".into())),
+    };
+    let formula = Formula::Sequence(vec![
+        capped_paren,
+        Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("z"))),
+        Formula::Operator(")".into()),
+    ]);
+    let capped = layout(&formula, &mut fonts, options(0)).unwrap();
+    assert!(
+        capped.glyphs.len() < 9,
+        "the capped fence paints one piece, not the assembly: {}",
+        capped.glyphs.len()
+    );
+    // Without the cap the same row stretches the fence into the assembly.
+    let stretched = layout(
+        &Formula::Sequence(vec![
+            Formula::Operator("(".into()),
+            Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("z"))),
+            Formula::Operator(")".into()),
+        ]),
+        &mut provider(&stretch_font(600)),
+        options(0),
+    )
+    .unwrap();
+    assert!(stretched.glyphs.len() >= 9);
+}

@@ -31,6 +31,7 @@ pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, Layout
         italic: 0.0,
         empty,
         right_space: None,
+        max_size_percent: None,
     })
 }
 
@@ -57,14 +58,21 @@ pub(super) fn row<'a>(
             |node| match node.operator.filter(|t| operator::is_fence(t)) {
                 Some(text) => {
                     let color = node.glyphs.first().and_then(|glyph| glyph.color);
-                    let mut stretched = stretched_fence(
-                        text,
-                        ink_ascent,
-                        ink_descent,
-                        fonts,
-                        node.operator_font_size_px.unwrap_or(style.font_size_px),
-                        color,
-                    )?;
+                    let size = node.operator_font_size_px.unwrap_or(style.font_size_px);
+                    // Core 3.2.4: maxsize caps the stretch as a fraction of
+                    // the operator's natural extent.
+                    let cap = node.max_size_percent.map(|fraction| {
+                        let ch = text.chars().next().unwrap_or('(');
+                        fonts
+                            .measure(ch, size)
+                            .map(|natural| {
+                                let ink = natural.ink_bounds.map_or(0.0, |bounds| bounds.height());
+                                ink * fraction
+                            })
+                            .unwrap_or(0.0)
+                    });
+                    let mut stretched =
+                        stretched_fence(text, ink_ascent, ink_descent, fonts, size, color, cap)?;
                     // Invisible embellished operators still stretch and space,
                     // but re-layout must not restore their painted output.
                     if node.tree.ink_bounds().is_none() && node.glyphs.is_empty() {
@@ -146,10 +154,14 @@ fn stretched_fence<'a>(
     fonts: &mut FontProvider,
     font_size_px: f64,
     color: Option<crate::layout::MathColor>,
+    cap: Option<f64>,
 ) -> Result<Node<'a>, LayoutError> {
     let ch = text.chars().next().unwrap_or('(');
-    let stretched =
-        fonts.expand_stretch(ch, Direction::Vertical, add(ascent, descent)?, font_size_px)?;
+    let target = match cap {
+        Some(cap) => add(ascent, descent)?.min(cap),
+        None => add(ascent, descent)?,
+    };
+    let stretched = fonts.expand_stretch(ch, Direction::Vertical, target, font_size_px)?;
     let tree = BoxTree::leaf(
         Metrics::new(stretched.advance_px, ascent.max(0.0), descent.max(0.0))?,
         None,
@@ -163,6 +175,7 @@ fn stretched_fence<'a>(
         italic: 0.0,
         empty: false,
         right_space: None,
+        max_size_percent: None,
     })
 }
 

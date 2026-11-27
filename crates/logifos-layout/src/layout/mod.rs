@@ -21,7 +21,7 @@ pub use style::{LayoutOptions, ResolvedStyle};
 
 use crate::font::{FontProvider, ResolvedGlyph};
 use crate::{BoxTree, Point};
-use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, LengthUnit, MAX_DEPTH, MAX_NODES};
 
 /// One selected glyph, in input order, with its pen on the result's baseline.
 #[derive(Debug, Clone, PartialEq)]
@@ -79,6 +79,8 @@ struct Node<'a> {
     empty: bool,
     /// Explicit rspace of the operator this node embellishes, in pixels.
     right_space: Option<f64>,
+    /// The operator's stretch ceiling as a fraction of its natural extent.
+    max_size_percent: Option<f64>,
 }
 
 struct Budget {
@@ -108,6 +110,7 @@ fn build<'a>(
         return Err(LayoutError::ResourceLimit);
     }
     let mut accent = false;
+    let mut max_size_percent = None;
     let (formula, style) = if let Formula::Styled {
         style: hints,
         content,
@@ -126,6 +129,10 @@ fn build<'a>(
             return Ok(node);
         }
         accent = hints.accent == Some(true);
+        max_size_percent = hints.max_size.and_then(|length| match length.unit {
+            LengthUnit::Percent => Some(f64::from(length.value as i32) / 100.0),
+            _ => None,
+        });
         (content.as_ref(), style)
     } else {
         (formula, style)
@@ -155,7 +162,11 @@ fn build<'a>(
             }
             Ok(node)
         }
-        _ => build_construct(formula, fonts, style, budget, depth, accent),
+        _ => {
+            let mut node = build_construct(formula, fonts, style, budget, depth, accent)?;
+            node.max_size_percent = max_size_percent;
+            Ok(node)
+        }
     }
 }
 
@@ -248,6 +259,7 @@ fn build_construct<'a>(
             Ok(Node {
                 operator_font_size_px: None,
                 right_space: None,
+                max_size_percent: None,
                 tree: BoxTree::space(crate::Metrics::new(px(width), px(height), px(depth))?),
                 glyphs: Vec::new(),
                 operator: None,
