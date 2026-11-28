@@ -1,6 +1,7 @@
-use logifos_model::{Formula, TableLines, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, LineBreakStyle, TableLines, MAX_DEPTH, MAX_NODES};
 use logifos_syntax_mathml::{
-    parse, transform, MathmlDocument, Node, TransformError, TransformErrorKind, MATHML_NAMESPACE,
+    parse, transform, write, MathmlDocument, Node, TransformError, TransformErrorKind,
+    MATHML_NAMESPACE,
 };
 
 fn converted(source: &str) -> Formula {
@@ -684,4 +685,68 @@ fn menclose_carries_its_notation_verbatim_and_defaults_to_box() {
             content: Box::new(Formula::Sequence(vec![Formula::Symbol("x".into())]))
         }])
     );
+}
+
+#[test]
+fn explicit_linebreaks_carry_content_and_style() {
+    let bare =
+        transform(&parse("<math><mi>a</mi><mo linebreak=\"newline\"/><mi>b</mi></math>").unwrap())
+            .unwrap();
+    let Formula::Sequence(items) = &bare else {
+        panic!("{bare:?}");
+    };
+    assert!(items.iter().any(|item| matches!(
+        item,
+        Formula::LineBreak {
+            content: None,
+            style: LineBreakStyle::Before
+        }
+    )));
+    // Content rides the break; before is the default style.
+    let carried = transform(
+        &parse("<math><mo linebreak=\"newline\" linebreakstyle=\"before\">=</mo></math>").unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(
+        carried,
+        Formula::Sequence(ref items) if matches!(items[0], Formula::LineBreak { content: Some(_), style: LineBreakStyle::Before })
+    ));
+    let after = transform(
+        &parse("<math><mo linebreak=\"newline\" linebreakstyle=\"after\">=</mo></math>").unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(
+        after,
+        Formula::Sequence(ref items) if matches!(items[0], Formula::LineBreak { content: Some(_), style: LineBreakStyle::After })
+    ));
+}
+
+#[test]
+fn linebreak_hints_drop_and_unknown_styles_refuse() {
+    // A linebreakstyle without the newline drops with the mo.
+    let hinted = "<math><mo linebreakstyle=\"before\">=</mo></math>";
+    let formula = transform(&parse(hinted).unwrap()).unwrap();
+    assert_eq!(
+        formula,
+        Formula::Sequence(vec![Formula::Operator("=".into())])
+    );
+    // An explicit break with an unmodeled style refuses.
+    let infix = "<math><mo linebreak=\"newline\" linebreakstyle=\"infix\">=</mo></math>";
+    assert!(transform(&parse(infix).unwrap()).is_err());
+    // Hint-only spellings of the linebreak attribute accept-drop.
+    let nobreak = "<math><mo linebreak=\"nobreak\">=</mo></math>";
+    assert_eq!(
+        transform(&parse(nobreak).unwrap()).unwrap(),
+        Formula::Sequence(vec![Formula::Operator("=".into())])
+    );
+}
+
+#[test]
+fn linebreaks_roundtrip_through_the_writer() {
+    let source = "<math><mi>a</mi><mo linebreak=\"newline\"/><mo linebreak=\"newline\" linebreakstyle=\"after\">=</mo><mi>b</mi></math>";
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(output.contains("linebreak=\"newline\""), "{output}");
+    assert!(output.contains("linebreakstyle=\"after\""), "{output}");
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
 }

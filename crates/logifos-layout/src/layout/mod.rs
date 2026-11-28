@@ -71,6 +71,7 @@ pub fn layout(
     })
 }
 
+#[derive(Clone)]
 struct Node<'a> {
     tree: BoxTree,
     glyphs: Vec<PlacedGlyph>,
@@ -154,6 +155,10 @@ fn build<'a>(
         | Formula::ErrorGroup(children)
         | Formula::Padded(children)
         | Formula::Phantom(children) => {
+            // An explicit line break splits the row into stacked lines.
+            if let Some(node) = rows::lined(children, fonts, style, budget, depth)? {
+                return Ok(node);
+            }
             let children = children
                 .iter()
                 .map(|child| build(child, fonts, style, budget, depth + 1))
@@ -284,6 +289,9 @@ fn build_construct<'a>(
             // Rules carry no color, so a colored rule would paint wrongly.
             Err(LayoutError::NotLaidOutYet)
         }
+        // A break outside a row carries no ink; only a row's children
+        // split lines (the sequence arm routes them to rows::lined).
+        Formula::LineBreak { .. } => rows::stack(Vec::new()),
         Formula::Fraction(numerator, denominator) => {
             // Core 3.3.2: compact children, auto-add depth only when the
             // fraction is already compact, and a cramped denominator.
