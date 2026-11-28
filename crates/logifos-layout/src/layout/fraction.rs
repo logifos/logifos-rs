@@ -1,9 +1,13 @@
 //! Fractions: a centered numerator and denominator around an axis-aligned
 //! rule, per MathML Core section 4.2 with the OpenType MATH constants.
+//! The bevelled spelling (MathML 3) lays the children on a diagonal with
+//! the font's solidus as the divider.
 
-use super::{LayoutError, Node, ResolvedStyle};
+use super::baseline::{lowered, raised};
+use super::{LayoutError, Node, PlacedGlyph, ResolvedStyle};
 use crate::font::math::MathConstant;
 use crate::font::FontProvider;
+use crate::geometry::add;
 use crate::{BoxTree, Kern, Point, StackItem};
 
 /// The rule thickness, shifts and minimum gaps for this call, in CSS pixels.
@@ -74,6 +78,87 @@ pub(super) fn fraction<'a>(
     }
     for mut glyph in denominator.glyphs {
         glyph.origin = glyph.origin.translated(denominator_offset)?;
+        glyphs.push(glyph);
+    }
+    Ok(Node {
+        tree,
+        glyphs,
+        operator: None,
+        operator_font_size_px: None,
+        italic: 0.0,
+        empty: false,
+        right_space: None,
+        max_size_percent: None,
+    })
+}
+
+/// The bevelled fraction: the numerator sits raised and the denominator
+/// lowered on the row baseline, with the font's solidus between them and
+/// no operator spacing (the construct owns the arrangement). MathML Core
+/// dropped the attribute, so the shifts are the inline fraction constants.
+pub(super) fn bevelled<'a>(
+    numerator: Node<'a>,
+    denominator: Node<'a>,
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+) -> Result<Node<'a>, LayoutError> {
+    // The divider matches the compact children's size, not the row's.
+    let child_size = style
+        .raise(fonts, u8::from(!style.display), style.cramped)?
+        .font_size_px;
+    let up = fonts.math_constant_px(MathConstant::FractionNumeratorShiftUp, child_size)?;
+    let down = fonts.math_constant_px(MathConstant::FractionDenominatorShiftDown, child_size)?;
+    let measured = fonts.measure('/', child_size)?;
+    eprintln!("DBG2 child_size={child_size} up={up} down={down}");
+    let divider_metrics = measured.metrics;
+    let divider = Node {
+        tree: BoxTree::leaf(divider_metrics, measured.ink_bounds),
+        glyphs: vec![PlacedGlyph {
+            character: '/',
+            glyph: measured.glyph,
+            origin: Point::new(0.0, divider_metrics.baseline())?,
+            font_size_px: child_size,
+            color: style.color,
+        }],
+        operator: None,
+        operator_font_size_px: None,
+        italic: 0.0,
+        empty: false,
+        right_space: None,
+        max_size_percent: None,
+    };
+    let (numerator_tree, numerator_y) = raised(numerator.tree, up)?;
+    let (denominator_tree, denominator_y) = lowered(denominator.tree, down)?;
+    let tree = BoxTree::hbox(vec![
+        StackItem::Box(numerator_tree),
+        StackItem::Box(divider.tree),
+        StackItem::Box(denominator_tree),
+    ])?;
+    let numerator_offset = tree.children()[0].offset();
+    let divider_offset = tree.children()[1].offset();
+    let denominator_offset = tree.children()[2].offset();
+    let mut glyphs = numerator.glyphs;
+    let shift = Point::new(
+        numerator_offset.x(),
+        add(numerator_offset.y(), numerator_y)?,
+    )?;
+    for glyph in &mut glyphs {
+        glyph.origin = glyph.origin.translated(shift)?;
+    }
+    let mut glyphs = {
+        let mut divider_glyphs = divider.glyphs;
+        for glyph in &mut divider_glyphs {
+            glyph.origin = glyph.origin.translated(divider_offset)?;
+        }
+        glyphs.extend(divider_glyphs);
+        glyphs
+    };
+    let shift = Point::new(
+        denominator_offset.x(),
+        add(denominator_offset.y(), denominator_y)?,
+    )?;
+    for mut glyph in denominator.glyphs {
+        glyph.origin = glyph.origin.translated(shift)?;
         glyphs.push(glyph);
     }
     Ok(Node {

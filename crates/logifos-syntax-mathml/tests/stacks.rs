@@ -168,3 +168,20 @@ fn longdiv_roundtrips_with_style_and_working_stack() {
     let output = write(&formula).unwrap();
     assert!(!output.contains("longdivstyle"), "{output}");
 }
+
+#[test]
+fn bevelled_fractions_roundtrip_through_transform_and_writer() {
+    let source = "<math><mfrac bevelled=\"true\"><mi>x</mi><mn>2</mn></mfrac></math>";
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(output.contains("bevelled=\"true\""), "{output}");
+    assert_eq!(transform(&parse(&output).unwrap()).unwrap(), formula);
+    // bevelled="false" is the ordinary fraction; the attribute drops.
+    let off = "<math><mfrac bevelled=\"false\"><mi>x</mi><mn>2</mn></mfrac></math>";
+    let formula = transform(&parse(off).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(!output.contains("bevelled"), "{output}");
+    // A non-boolean spelling stays a refusal.
+    let bad = "<math><mfrac bevelled=\"yes\"><mi>x</mi><mn>2</mn></mfrac></math>";
+    assert!(transform(&parse(bad).unwrap()).is_err());
+}

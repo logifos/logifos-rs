@@ -510,7 +510,60 @@ fn decode_node(
             Ok(Formula::Symbol(text.to_owned()))
         }
         "Math::Function::Frac" | "Math::Function::Power" | "Math::Function::Base" => {
-            closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            // Frac's options map carries `bevelled` only, and only the two
+            // MathML boolean spellings.
+            let mut bevelled = false;
+            if class == "Math::Function::Frac" {
+                if let Some(options) = fields.get("options") {
+                    // A non-map options field names information the tree
+                    // cannot carry, exactly like the unknown keys do.
+                    let map = match options.as_object() {
+                        Some(map) => map,
+                        None => {
+                            return Err(refusal(
+                                WireErrorCode::UnsupportedField,
+                                &pointer(&fields_path, "options"),
+                            ))
+                        }
+                    };
+                    // plurimath emits the map only when it carries the
+                    // attribute; an empty map is refused noise.
+                    if map.is_empty() {
+                        return Err(refusal(
+                            WireErrorCode::UnsupportedField,
+                            &pointer(&fields_path, "options"),
+                        ));
+                    }
+                    let allowed: &[&str] = &["bevelled"];
+                    closed(map, allowed, &pointer(&fields_path, "options"))?;
+                    bevelled = match map.get("bevelled") {
+                        None => false,
+                        Some(Value::String(text)) => match text.as_str() {
+                            "true" => true,
+                            "false" => false,
+                            _ => {
+                                return Err(refusal(
+                                    WireErrorCode::InvalidValue,
+                                    &pointer(&pointer(&fields_path, "options"), "bevelled"),
+                                ))
+                            }
+                        },
+                        Some(_) => {
+                            return Err(refusal(
+                                WireErrorCode::InvalidValue,
+                                &pointer(&pointer(&fields_path, "options"), "bevelled"),
+                            ))
+                        }
+                    };
+                }
+                closed(
+                    fields,
+                    &["parameter_one", "parameter_two", "options"],
+                    &fields_path,
+                )?;
+            } else {
+                closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
+            }
             let first = decode_value(
                 required(fields, "parameter_one", &fields_path)?,
                 &pointer(&fields_path, "parameter_one"),
@@ -525,6 +578,7 @@ fn decode_node(
             )?;
             let pair = (Box::new(first), Box::new(second));
             Ok(match class {
+                "Math::Function::Frac" if bevelled => Formula::Bevelled(pair.0, pair.1),
                 "Math::Function::Frac" => Formula::Fraction(pair.0, pair.1),
                 "Math::Function::Power" => Formula::Superscript(pair.0, pair.1),
                 _ => Formula::Subscript(pair.0, pair.1),
@@ -787,12 +841,15 @@ fn decode_node(
             }
             let mut columnlines = TableLines::None;
             if let Some(options) = fields.get("options") {
-                let map = options.as_object().ok_or_else(|| {
-                    refusal(
-                        WireErrorCode::InvalidValue,
-                        &pointer(&fields_path, "options"),
-                    )
-                })?;
+                let map = match options.as_object() {
+                    Some(map) => map,
+                    None => {
+                        return Err(refusal(
+                            WireErrorCode::UnsupportedField,
+                            &pointer(&fields_path, "options"),
+                        ))
+                    }
+                };
                 for (key, value) in map {
                     let key_path = pointer(&pointer(&fields_path, "options"), key);
                     if key != "columnlines" {
@@ -1224,9 +1281,10 @@ fn encode_node(
         Formula::Fraction(first, second)
         | Formula::Superscript(first, second)
         | Formula::Subscript(first, second)
-        | Formula::Root(first, second) => {
+        | Formula::Root(first, second)
+        | Formula::Bevelled(first, second) => {
             let class = match node {
-                Formula::Fraction(..) => "Math::Function::Frac",
+                Formula::Fraction(..) | Formula::Bevelled(..) => "Math::Function::Frac",
                 Formula::Superscript(..) => "Math::Function::Power",
                 Formula::Subscript(..) => "Math::Function::Base",
                 _ => "Math::Function::Root",
@@ -1243,10 +1301,11 @@ fn encode_node(
                 depth + 1,
                 budget,
             )?;
-            (
-                class,
-                json!({"parameter_one": first, "parameter_two": second}),
-            )
+            let mut fields = json!({"parameter_one": first, "parameter_two": second});
+            if matches!(node, Formula::Bevelled(..)) {
+                fields["options"] = json!({"bevelled": "true"});
+            }
+            (class, fields)
         }
         Formula::Sqrt(radicand) => {
             let first = encode_node(

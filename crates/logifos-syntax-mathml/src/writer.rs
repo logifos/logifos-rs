@@ -186,13 +186,26 @@ impl SyntaxBuilder {
                 }
             }
             Formula::Fraction(first, second)
+            | Formula::Bevelled(first, second)
             | Formula::Subscript(first, second)
             | Formula::Superscript(first, second) => {
                 let (name, first_field, second_field) = match formula {
-                    Formula::Fraction(..) => ("mfrac", "numerator", "denominator"),
+                    Formula::Fraction(..) | Formula::Bevelled(..) => {
+                        ("mfrac", "numerator", "denominator")
+                    }
                     Formula::Subscript(..) => ("msub", "base", "script"),
                     _ => ("msup", "base", "script"),
                 };
+                if matches!(formula, Formula::Bevelled(..)) {
+                    attributes_elem.push(crate::Attribute {
+                        name: QualifiedName {
+                            prefix: None,
+                            local: "bevelled".into(),
+                            namespace: None,
+                        },
+                        value: "true".into(),
+                    });
+                }
                 for (child, field) in [(first, first_field), (second, second_field)] {
                     children.push(Node::Element(self.element(
                         child,

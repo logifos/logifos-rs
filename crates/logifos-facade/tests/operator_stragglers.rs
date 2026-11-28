@@ -55,6 +55,7 @@ fn children(formula: &Formula) -> Vec<&Formula> {
         | Formula::Phantom(items) => items.iter().collect(),
         Formula::Styled { content, .. }
         | Formula::Fraction(content, _)
+        | Formula::Bevelled(content, _)
         | Formula::Superscript(content, _)
         | Formula::Subscript(content, _)
         | Formula::Under(content, _)
@@ -66,6 +67,7 @@ fn children(formula: &Formula) -> Vec<&Formula> {
             }
             match formula {
                 Formula::Fraction(_, second)
+                | Formula::Bevelled(_, second)
                 | Formula::Superscript(_, second)
                 | Formula::Subscript(_, second)
                 | Formula::Under(_, second)
