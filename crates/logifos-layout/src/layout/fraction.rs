@@ -109,7 +109,6 @@ pub(super) fn bevelled<'a>(
     let up = fonts.math_constant_px(MathConstant::FractionNumeratorShiftUp, child_size)?;
     let down = fonts.math_constant_px(MathConstant::FractionDenominatorShiftDown, child_size)?;
     let measured = fonts.measure('/', child_size)?;
-    eprintln!("DBG2 child_size={child_size} up={up} down={down}");
     let divider_metrics = measured.metrics;
     let divider = Node {
         tree: BoxTree::leaf(divider_metrics, measured.ink_bounds),
