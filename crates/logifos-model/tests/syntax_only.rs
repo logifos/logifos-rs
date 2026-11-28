@@ -1,4 +1,4 @@
-use logifos_model::{Formula, PresentationStyle, WireErrorCode};
+use logifos_model::{Formula, PresentationStyle, TableLines, WireErrorCode};
 
 #[test]
 fn unmapped_syntax_nodes_refuse_wire_output_without_losing_content() {
@@ -21,9 +21,12 @@ fn unmapped_syntax_nodes_refuse_wire_output_without_losing_content() {
     let error = node.to_wire().unwrap_err();
     assert_eq!(error.code, WireErrorCode::UnsupportedClass);
     assert_eq!(error.path, "");
-    let error = Formula::Table(vec![vec![Formula::Sequence(vec![node.clone()])]])
-        .to_wire()
-        .unwrap_err();
+    let error = Formula::Table(
+        vec![vec![Formula::Sequence(vec![node.clone()])]],
+        TableLines::None,
+    )
+    .to_wire()
+    .unwrap_err();
     assert_eq!(error.code, WireErrorCode::UnsupportedClass);
     assert_eq!(
         error.path,

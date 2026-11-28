@@ -1,4 +1,4 @@
-use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, TableLines, MAX_DEPTH, MAX_NODES};
 use logifos_syntax_mathml::{
     parse, transform, write, MathmlDocument, Node, TransformErrorKind, WriteErrorKind,
     MATHML_NAMESPACE,
@@ -68,11 +68,14 @@ fn nested_containers_roundtrip_in_tables_and_scripts() {
     ])])]);
     roundtrip(
         body,
-        Formula::Table(vec![vec![Formula::Sequence(vec![Formula::SubSup(
-            Box::new(nested),
-            Box::new(Formula::Phantom(vec![])),
-            Box::new(Formula::Padded(vec![symbol("y")])),
-        )])]]),
+        Formula::Table(
+            vec![vec![Formula::Sequence(vec![Formula::SubSup(
+                Box::new(nested),
+                Box::new(Formula::Phantom(vec![])),
+                Box::new(Formula::Padded(vec![symbol("y")])),
+            )])]],
+            TableLines::None,
+        ),
         body,
     );
 }

@@ -6,6 +6,7 @@ use serde_json::{json, Map, Value};
 
 use crate::{
     Formula, MathColor, MathDisplay, MathVariant, PresentationStyle, StackAlign, StackRow,
+    TableLines,
 };
 
 /// Immutable upstream definition identity; this is Rust source, not a JSON schema.
@@ -772,8 +773,10 @@ fn decode_node(
                 &["value", "open_paren", "close_paren", "options"],
                 &fields_path,
             )?;
-            // Fence and styling fields carry no information when absent;
-            // present ones name information the tree cannot carry yet.
+            // Fence fields carry no information when absent; present ones
+            // name information the tree cannot carry yet. The options map
+            // carries `columnlines` only, and only the two MathML
+            // spellings the tree models.
             for name in ["open_paren", "close_paren"] {
                 if fields.get(name).is_some_and(|value| !value.is_null()) {
                     return Err(refusal(
@@ -782,12 +785,26 @@ fn decode_node(
                     ));
                 }
             }
-            if let Some(value) = fields.get("options") {
-                if value.as_object().is_none_or(|options| !options.is_empty()) {
-                    return Err(refusal(
-                        WireErrorCode::UnsupportedField,
+            let mut columnlines = TableLines::None;
+            if let Some(options) = fields.get("options") {
+                let map = options.as_object().ok_or_else(|| {
+                    refusal(
+                        WireErrorCode::InvalidValue,
                         &pointer(&fields_path, "options"),
-                    ));
+                    )
+                })?;
+                for (key, value) in map {
+                    let key_path = pointer(&pointer(&fields_path, "options"), key);
+                    if key != "columnlines" {
+                        return Err(refusal(WireErrorCode::UnsupportedField, &key_path));
+                    }
+                    columnlines = match value.as_str() {
+                        Some("none") => TableLines::None,
+                        Some("solid") => TableLines::Solid,
+                        _ => {
+                            return Err(refusal(WireErrorCode::InvalidValue, &key_path));
+                        }
+                    };
                 }
             }
             let value_path = pointer(&fields_path, "value");
@@ -800,7 +817,7 @@ fn decode_node(
                 let row = decode_tr(row, &row_path, depth + 1, budget)?;
                 table.push(row);
             }
-            Ok(Formula::Table(table))
+            Ok(Formula::Table(table, columnlines))
         }
         "Math::Function::Stackrel" => {
             closed(fields, &["parameter_one", "parameter_two"], &fields_path)?;
@@ -1240,7 +1257,7 @@ fn encode_node(
             )?;
             ("Math::Function::Sqrt", json!({"parameter_one": first}))
         }
-        Formula::Table(rows) => {
+        Formula::Table(rows, columnlines) => {
             let value_path = pointer(&fields_path, "value");
             let mut encoded = Vec::with_capacity(rows.len());
             for (index, row) in rows.iter().enumerate() {
@@ -1272,7 +1289,13 @@ fn encode_node(
                     "fields": {"parameter_one": cells},
                 }));
             }
-            ("Math::Function::Table", json!({"value": encoded}))
+            // Minimal emission: the options map appears only when the tree
+            // carries rules; the default decodes from its absence.
+            let mut fields = json!({"value": encoded});
+            if *columnlines == TableLines::Solid {
+                fields["options"] = json!({"columnlines": "solid"});
+            }
+            ("Math::Function::Table", fields)
         }
         Formula::Stack(align, rows) => {
             // plurimath's mstack is a Stackrel whose `parameter_two` rides

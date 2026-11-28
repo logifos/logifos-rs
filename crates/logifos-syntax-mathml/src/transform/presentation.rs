@@ -98,8 +98,11 @@ pub(super) fn attributes(
                     style.max_size.is_some()
                 }
                 // columnlines="none" is the table default and carries
-                // nothing; other spellings stay authored refusals.
-                "columnlines" if element.name.local == "mtable" => value == "none",
+                // nothing; "solid" rides the tree's TableLines. Any other
+                // spelling (dashed, per-column lists) stays a refusal.
+                "columnlines" if element.name.local == "mtable" => {
+                    matches!(value.as_str(), "none" | "solid")
+                }
                 // mspace's extents are content, consumed by the mspace arm
                 // (Core 3.2.5); presentation just admits them here.
                 "width" | "height" | "depth" if element.name.local == "mspace" => true,

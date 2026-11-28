@@ -5,7 +5,8 @@ use super::{LayoutError, Node, ResolvedStyle};
 use crate::font::math::MathConstant;
 use crate::font::FontProvider;
 use crate::geometry::{add, subtract};
-use crate::{BoxTree, Kern, Metrics, Point, StackItem};
+use crate::{BoxKind, BoxTree, Kern, Metrics, Point, PositionedBox, StackItem};
+use logifos_model::TableLines;
 
 /// The em and ex shares Core's mtd stylesheet applies as cell padding.
 const HORIZONTAL_PAD_EM: f64 = 0.4;
@@ -15,6 +16,7 @@ const EX_EM_FALLBACK: f64 = 0.5;
 
 pub(super) fn table<'a>(
     rows: Vec<Vec<Node<'a>>>,
+    columnlines: TableLines,
     fonts: &mut FontProvider,
     style: ResolvedStyle,
 ) -> Result<Node<'a>, LayoutError> {
@@ -130,6 +132,30 @@ pub(super) fn table<'a>(
             ],
             baseline,
         )?
+    };
+
+    // Solid column rules: one thin filled rule per column boundary,
+    // centered on the boundary, spanning the table's full height (Core
+    // 3.5.1; the line thickness is the fraction rule thickness). The rows
+    // tree and the rules compose under a non-painting parent.
+    let tree = match columnlines {
+        TableLines::None => tree,
+        TableLines::Solid => {
+            let metrics = tree.metrics();
+            let thickness = fonts.math_constant_px(MathConstant::FractionRuleThickness, size)?;
+            let mut children = Vec::with_capacity(columns);
+            children.push(PositionedBox::place(Point::default(), tree));
+            let mut boundary = 0.0;
+            for width in column_widths.iter().take(columns.saturating_sub(1)) {
+                boundary = add(boundary, *width)?;
+                let x = subtract(boundary, thickness / 2.0)?;
+                children.push(PositionedBox::place(
+                    Point::new(x, 0.0)?,
+                    BoxTree::rule(thickness, metrics.height(), metrics.depth())?,
+                ));
+            }
+            BoxTree::composed(BoxKind::HBox, metrics, children)?
+        }
     };
 
     Ok(Node {

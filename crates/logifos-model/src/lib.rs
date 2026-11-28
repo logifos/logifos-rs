@@ -108,8 +108,9 @@ pub enum Formula {
     Sqrt(Box<Formula>),
     /// A radicand with an explicit index child.
     Root(Box<Formula>, Box<Formula>),
-    /// Rows of cells (each an anonymous row) in a table or matrix.
-    Table(Vec<Vec<Formula>>),
+    /// Rows of cells (each an anonymous row) in a table or matrix, with the
+    /// table's vertical rules between columns (`columnlines`).
+    Table(Vec<Vec<Formula>>, TableLines),
     /// An operator symbol with an implied spacing class.
     Operator(String),
     /// A text or identifier symbol.
@@ -129,6 +130,15 @@ pub enum StackAlign {
     Right,
     /// The MathML default: align on the cells' decimal points.
     DecimalPoint,
+}
+
+/// The table's vertical rules between its columns (`columnlines`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TableLines {
+    /// The MathML default: no rules.
+    None,
+    /// A solid rule at every column boundary.
+    Solid,
 }
 
 /// One elementary-stack row.
@@ -377,10 +387,13 @@ mod tests {
         let expected_cell = |text: &str| Formula::Sequence(vec![Formula::Symbol(text.into())]);
         assert_eq!(
             formula,
-            Formula::Table(vec![
-                vec![expected_cell("1"), expected_cell("2")],
-                vec![expected_cell("3"), expected_cell("4")],
-            ])
+            Formula::Table(
+                vec![
+                    vec![expected_cell("1"), expected_cell("2")],
+                    vec![expected_cell("3"), expected_cell("4")],
+                ],
+                TableLines::None
+            )
         );
         // The minimal emitted shape reparses to the same tree.
         let minimal = formula.to_wire().unwrap();
@@ -420,15 +433,70 @@ mod tests {
             "fields": {"value": [rows], "open_paren": {"class": "Math::Symbols::Paren::Lsquare", "fields": {"value": null}}},
         });
         assert!(Formula::from_wire(fence.as_object().unwrap()).is_err());
-        let styled = json!({
+        let unknown = json!({
             "class": "Math::Function::Table",
-            "fields": {"value": [rows], "options": {"columnlines": "solid"}},
+            "fields": {"value": [rows], "options": {"columnlines": "dashed"}},
         });
-        assert!(Formula::from_wire(styled.as_object().unwrap()).is_err());
+        assert!(Formula::from_wire(unknown.as_object().unwrap()).is_err());
+        let foreign = json!({
+            "class": "Math::Function::Table",
+            "fields": {"value": [rows], "options": {"rowlines": "solid"}},
+        });
+        assert!(Formula::from_wire(foreign.as_object().unwrap()).is_err());
         let bare_cell = json!({
             "class": "Math::Function::Table",
             "fields": {"value": [{"class": "Math::Symbols::Symbol", "fields": {"value": "x"}}]},
         });
         assert!(Formula::from_wire(bare_cell.as_object().unwrap()).is_err());
+    }
+
+    #[test]
+    fn table_columnlines_ride_the_options_map() {
+        let cell = json!({
+            "class": "Math::Function::Td",
+            "fields": {"parameter_one": [{"class": "Math::Symbols::Symbol", "fields": {"value": "x"}}]},
+        });
+        let row = json!({
+            "class": "Math::Function::Tr",
+            "fields": {"parameter_one": [cell]},
+        });
+        let solid = json!({
+            "class": "Math::Function::Table",
+            "fields": {"value": [row], "options": {"columnlines": "solid"}},
+        });
+        let expected = Formula::Table(
+            vec![vec![Formula::Sequence(vec![Formula::Symbol("x".into())])]],
+            TableLines::Solid,
+        );
+        assert_eq!(
+            Formula::from_wire(solid.as_object().unwrap()).unwrap(),
+            expected
+        );
+        // The minimal emission keeps the rules; the default omits the map.
+        assert_eq!(
+            expected.to_wire().unwrap(),
+            json!({
+                "class": "Math::Function::Table",
+                "fields": {
+                    "value": [{
+                        "class": "Math::Function::Tr",
+                        "fields": {"parameter_one": [{
+                            "class": "Math::Function::Td",
+                            "fields": {"parameter_one": [{"class": "Math::Symbols::Symbol", "fields": {"value": "x"}}]},
+                        }]},
+                    }],
+                    "options": {"columnlines": "solid"},
+                },
+            })
+        );
+        let plain = Formula::Table(
+            vec![vec![Formula::Sequence(vec![Formula::Symbol("x".into())])]],
+            TableLines::None,
+        );
+        assert_eq!(
+            Formula::from_wire(plain.to_wire().unwrap().as_object().unwrap()).unwrap(),
+            plain
+        );
+        assert!(plain.to_wire().unwrap()["fields"].get("options").is_none());
     }
 }
