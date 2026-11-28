@@ -109,6 +109,21 @@ pub(super) fn attributes(
                 // A layout-owned hint: the model keeps the fraction's
                 // structure, the thickness stays with the layout batch.
                 "linethickness" if element.name.local == "mfrac" => true,
+                // The explicit newline rides the mo's own token arm (the
+                // tree's LineBreak); the hint-only linebreaking spellings
+                // carry nothing — the engine breaks nowhere on its own.
+                "linebreak" if element.name.local == "mo" => {
+                    matches!(
+                        value.as_str(),
+                        "newline" | "nobreak" | "good" | "bad" | "auto"
+                    )
+                }
+                // linebreakstyle without a newline is dropped with the mo
+                // (plurimath's parse drops it too); the mo token arm reads
+                // it back when the break is explicit.
+                "linebreakstyle" if element.name.local == "mo" => {
+                    matches!(value.as_str(), "before" | "after" | "infix" | "midpoint")
+                }
                 // bevelled flips the fraction's layout; both boolean
                 // spellings are accepted and the mfrac arm consumes it.
                 "bevelled" if element.name.local == "mfrac" => {

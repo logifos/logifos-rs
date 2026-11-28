@@ -114,6 +114,13 @@ pub enum Formula {
     /// A bevelled fraction (MathML 3 `mfrac@bevelled`): the children sit on
     /// a diagonal with a slanted divider instead of the axis-aligned rule.
     Bevelled(Box<Formula>, Box<Formula>),
+    /// An explicit line break (MathML 3 linebreaking): the row splits and
+    /// the optional operator content starts the next line (`before`) or
+    /// ends the current one (`after`). `None` content is the bare newline.
+    LineBreak {
+        content: Option<Box<Formula>>,
+        style: LineBreakStyle,
+    },
     /// An operator symbol with an implied spacing class.
     Operator(String),
     /// A text or identifier symbol.
@@ -142,6 +149,16 @@ pub enum TableLines {
     None,
     /// A solid rule at every column boundary.
     Solid,
+}
+
+/// The side of an explicit line break its operator content sits on
+/// (MathML 3 `linebreakstyle`; the default is `before`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineBreakStyle {
+    /// The content starts the next line.
+    Before,
+    /// The content ends the current line.
+    After,
 }
 
 /// One elementary-stack row.
@@ -237,6 +254,7 @@ pub struct ScriptPair {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::LineBreakStyle;
     use serde_json::{json, Map, Value};
 
     #[test]
@@ -501,6 +519,69 @@ mod tests {
             plain
         );
         assert!(plain.to_wire().unwrap()["fields"].get("options").is_none());
+    }
+
+    #[test]
+    fn linebreak_rides_the_upstream_linebreak_class() {
+        let bare = json!({
+            "class": "Math::Function::Linebreak",
+            "fields": {"parameter_one": null},
+        });
+        assert_eq!(
+            Formula::from_wire(bare.as_object().unwrap()).unwrap(),
+            Formula::LineBreak {
+                content: None,
+                style: LineBreakStyle::Before
+            }
+        );
+        let carried = json!({
+            "class": "Math::Function::Linebreak",
+            "fields": {
+                "parameter_one": {"class": "Math::Symbols::Symbol", "fields": {"value": "="}},
+                "attributes": {"linebreakstyle": "after"},
+            },
+        });
+        let expected = Formula::LineBreak {
+            content: Some(Box::new(Formula::Symbol("=".into()))),
+            style: LineBreakStyle::After,
+        };
+        assert_eq!(
+            Formula::from_wire(carried.as_object().unwrap()).unwrap(),
+            expected
+        );
+        let wire = expected.to_wire().unwrap();
+        assert_eq!(
+            wire["fields"]["attributes"],
+            json!({"linebreakstyle": "after"})
+        );
+        assert_eq!(
+            Formula::from_wire(wire.as_object().unwrap()).unwrap(),
+            expected
+        );
+        // The default style emits no attributes map.
+        let plain = Formula::LineBreak {
+            content: None,
+            style: LineBreakStyle::Before,
+        };
+        assert!(plain.to_wire().unwrap()["fields"]
+            .get("attributes")
+            .is_none());
+        // Foreign attribute keys, empty maps and non-string spellings refuse.
+        let foreign = json!({
+            "class": "Math::Function::Linebreak",
+            "fields": {"parameter_one": null, "attributes": {"align": "center"}},
+        });
+        assert!(Formula::from_wire(foreign.as_object().unwrap()).is_err());
+        let empty = json!({
+            "class": "Math::Function::Linebreak",
+            "fields": {"parameter_one": null, "attributes": {}},
+        });
+        assert!(Formula::from_wire(empty.as_object().unwrap()).is_err());
+        let spelled = json!({
+            "class": "Math::Function::Linebreak",
+            "fields": {"parameter_one": null, "attributes": {"linebreakstyle": 3}},
+        });
+        assert!(Formula::from_wire(spelled.as_object().unwrap()).is_err());
     }
 
     #[test]

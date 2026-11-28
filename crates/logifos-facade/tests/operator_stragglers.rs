@@ -112,6 +112,7 @@ fn children(formula: &Formula) -> Vec<&Formula> {
             })
             .collect(),
         Formula::Space(..) | Formula::Menclose { .. } => Vec::new(),
+        Formula::LineBreak { .. } => Vec::new(),
         Formula::Stack(_, rows) => rows
             .iter()
             .flat_map(|row| match row {
@@ -135,6 +136,7 @@ fn children(formula: &Formula) -> Vec<&Formula> {
             .children
             .iter()
             .flat_map(|child| match child {
+                Formula::LineBreak { .. } => Vec::new(),
                 Formula::Stack(_, rows) => rows
                     .iter()
                     .flat_map(|row| match row {

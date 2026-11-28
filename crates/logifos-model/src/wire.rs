@@ -5,8 +5,8 @@ use std::fmt;
 use serde_json::{json, Map, Value};
 
 use crate::{
-    Formula, MathColor, MathDisplay, MathVariant, PresentationStyle, StackAlign, StackRow,
-    TableLines,
+    Formula, LineBreakStyle, MathColor, MathDisplay, MathVariant, PresentationStyle, StackAlign,
+    StackRow, TableLines,
 };
 
 /// Immutable upstream definition identity; this is Rust source, not a JSON schema.
@@ -508,6 +508,50 @@ fn decode_node(
                     refusal(WireErrorCode::InvalidValue, &pointer(&fields_path, "value"))
                 })?;
             Ok(Formula::Symbol(text.to_owned()))
+        }
+        "Math::Function::Linebreak" => {
+            closed(fields, &["parameter_one", "attributes"], &fields_path)?;
+            let content = match fields.get("parameter_one") {
+                None | Some(Value::Null) => None,
+                Some(value) => Some(Box::new(decode_value(
+                    value,
+                    &pointer(&fields_path, "parameter_one"),
+                    depth + 1,
+                    budget,
+                )?)),
+            };
+            let mut style = LineBreakStyle::Before;
+            if let Some(attributes) = fields.get("attributes") {
+                let map = match attributes.as_object() {
+                    Some(map) => map,
+                    None => {
+                        return Err(refusal(
+                            WireErrorCode::UnsupportedField,
+                            &pointer(&fields_path, "attributes"),
+                        ))
+                    }
+                };
+                if map.is_empty() {
+                    return Err(refusal(
+                        WireErrorCode::UnsupportedField,
+                        &pointer(&fields_path, "attributes"),
+                    ));
+                }
+                for (key, value) in map {
+                    let key_path = pointer(&pointer(&fields_path, "attributes"), key);
+                    if key != "linebreakstyle" {
+                        return Err(refusal(WireErrorCode::UnsupportedField, &key_path));
+                    }
+                    style = match value.as_str() {
+                        Some("before") => LineBreakStyle::Before,
+                        Some("after") => LineBreakStyle::After,
+                        _ => {
+                            return Err(refusal(WireErrorCode::InvalidValue, &key_path));
+                        }
+                    };
+                }
+            }
+            Ok(Formula::LineBreak { content, style })
         }
         "Math::Function::Frac" | "Math::Function::Power" | "Math::Function::Base" => {
             // Frac's options map carries `bevelled` only, and only the two
@@ -1306,6 +1350,24 @@ fn encode_node(
                 fields["options"] = json!({"bevelled": "true"});
             }
             (class, fields)
+        }
+        Formula::LineBreak { content, style } => {
+            let content = match content {
+                None => Value::Null,
+                Some(content) => encode_node(
+                    content,
+                    &pointer(&fields_path, "parameter_one"),
+                    depth + 1,
+                    budget,
+                )?,
+            };
+            // Minimal emission: plurimath writes the attributes map only
+            // when it carries the style.
+            let mut fields = json!({"parameter_one": content});
+            if *style == LineBreakStyle::After {
+                fields["attributes"] = json!({"linebreakstyle": "after"});
+            }
+            ("Math::Function::Linebreak", fields)
         }
         Formula::Sqrt(radicand) => {
             let first = encode_node(

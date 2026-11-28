@@ -185,6 +185,44 @@ impl SyntaxBuilder {
                     "mi"
                 }
             }
+            Formula::LineBreak { content, style } => {
+                // The bare newline rides an empty mo; content rides an mo
+                // whose linebreakstyle places the break around it — the
+                // operator's own text inlines (tokens are text-only). The
+                // default style drops its attribute.
+                if let Some(Formula::Operator(text)) = content.as_deref() {
+                    if text.len() > ParseLimits::default().source_bytes - self.text_bytes {
+                        return Err(refusal(WriteErrorKind::ResourceLimit, location));
+                    }
+                    self.text_bytes += text.len();
+                    if !text.chars().all(xml_char) {
+                        return Err(refusal(WriteErrorKind::InvalidCharacter, location));
+                    }
+                    self.visit(location, depth + 1)?;
+                    children.push(Node::Text(text.clone()));
+                } else if content.is_some() {
+                    return Err(refusal(WriteErrorKind::InvalidStructure, location));
+                }
+                if *style == logifos_model::LineBreakStyle::After {
+                    attributes_elem.push(crate::Attribute {
+                        name: QualifiedName {
+                            prefix: None,
+                            local: "linebreakstyle".into(),
+                            namespace: None,
+                        },
+                        value: "after".into(),
+                    });
+                }
+                attributes_elem.push(crate::Attribute {
+                    name: QualifiedName {
+                        prefix: None,
+                        local: "linebreak".into(),
+                        namespace: None,
+                    },
+                    value: "newline".into(),
+                });
+                "mo"
+            }
             Formula::Fraction(first, second)
             | Formula::Bevelled(first, second)
             | Formula::Subscript(first, second)

@@ -780,6 +780,46 @@ fn fraction_lays_out_its_children_around_the_axis_rule() {
 }
 
 #[test]
+fn explicit_linebreaks_split_the_row_into_lines() {
+    let formula = sequence(vec![
+        symbol("x"),
+        operator("+"),
+        symbol("y"),
+        Formula::LineBreak {
+            content: None,
+            style: logifos_model::LineBreakStyle::Before,
+        },
+        operator("+"),
+        symbol("z"),
+    ]);
+    let result = layout(&formula, &mut provider(&font()), options(0)).unwrap();
+    // Two lines: x+y and +z. The stack's width is the wider line; the
+    // baseline rides the last line.
+    let metrics = result.tree.metrics();
+    assert_eq!(result.glyphs.len(), 5);
+    // The y glyph ends line 1; the trailing + glyph starts line 2 below it.
+    let y_y = result.glyphs[2].origin.y();
+    let y_plus = result.glyphs[3].origin.y();
+    assert!(
+        y_plus > y_y,
+        "+ on line 2 ({y_plus}) sits below y on line 1 ({y_y})"
+    );
+    // Line 1's glyphs share one baseline; line 2's do too, and the stack's
+    // baseline rides the last line's.
+    close(result.glyphs[0].origin.y(), result.glyphs[1].origin.y());
+    close(result.glyphs[1].origin.y(), y_y);
+    close(result.glyphs[3].origin.y(), y_plus);
+    close(result.glyphs[4].origin.y(), y_plus);
+    close(metrics.baseline(), y_plus);
+    // The width covers the wider first line's last glyph advance.
+    assert!(metrics.width() >= result.glyphs[2].origin.x() + 12.6);
+    // The top line keeps its own ink above the second line's.
+    assert!(y_plus > y_y);
+    let again = layout(&formula, &mut provider(&font()), options(0)).unwrap();
+    assert_eq!(result, again);
+}
+
+#[test]
 fn bevelled_fractions_lay_the_children_on_a_diagonal() {
     use logifos_layout::font::math::MathConstant;
 

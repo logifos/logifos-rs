@@ -6,8 +6,8 @@ mod scripts;
 use std::fmt;
 
 use logifos_model::{
-    CarryCell, CarryLocation, Crossout, Formula, Length, LengthUnit, LongDivStyle, LongDivision,
-    StackAlign, StackRow, TableLines, MAX_DEPTH, MAX_NODES,
+    CarryCell, CarryLocation, Crossout, Formula, Length, LengthUnit, LineBreakStyle, LongDivStyle,
+    LongDivision, StackAlign, StackRow, TableLines, MAX_DEPTH, MAX_NODES,
 };
 
 use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
@@ -1039,7 +1039,20 @@ impl Transformer {
         // MathML Core strips the token's boundary whitespace before the
         // operator lookup; inner whitespace stays significant.
         let trimmed = text.trim_matches(xml_whitespace);
-        if element.name.local == "mo" && trimmed.is_empty() {
+        // MathML 3 linebreaking: an mo carrying linebreak="newline" splits
+        // the row, whether or not it also carries operator content.
+        if attribute_value(element, "linebreak").as_deref() == Some("newline") {
+            let content = if trimmed.is_empty() {
+                None
+            } else {
+                Some(Box::new(Formula::Operator(trimmed.to_owned())))
+            };
+            return Ok(Formula::LineBreak {
+                content,
+                style: linebreak_style(element, location)?,
+            });
+        }
+        if trimmed.is_empty() {
             // An operator with no content paints nothing and carries no
             // spacing of its own — plurimath serializes its operator rspace
             // stamp as an empty mo — so it is a no-op token, not an
@@ -1055,6 +1068,21 @@ impl Transformer {
 
 fn xml_whitespace(character: char) -> bool {
     matches!(character, ' ' | '\t' | '\r' | '\n')
+}
+
+/// The `linebreakstyle` spelling an explicit break carries; the MathML 3
+/// default is `before`, and the structural spellings are the only ones the
+/// tree models (`infix`/`midpoint` refuse).
+fn linebreak_style(element: &Element, location: &str) -> Result<LineBreakStyle, TransformError> {
+    match attribute_value(element, "linebreakstyle").as_deref() {
+        None | Some("before") => Ok(LineBreakStyle::Before),
+        Some("after") => Ok(LineBreakStyle::After),
+        Some(_) => Err(refusal(
+            TransformErrorKind::UnsupportedAttribute,
+            element,
+            location,
+        )),
+    }
 }
 
 /// Parses a CSS <length-percentage>; invalid values are treated as absent

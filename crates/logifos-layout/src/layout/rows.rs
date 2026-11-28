@@ -1,9 +1,11 @@
 use super::radical;
-use super::{operator, LayoutError, Node, ResolvedStyle};
+use super::{build, operator, Budget, LayoutError, Node, ResolvedStyle};
 use crate::font::math::Direction;
 use crate::font::FontProvider;
 use crate::geometry::add;
-use crate::{BoxTree, Kern, Metrics, StackItem};
+use crate::geometry::subtract;
+use crate::{BoxTree, Kern, Metrics, Point, StackItem};
+use logifos_model::{Formula, LineBreakStyle};
 
 pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, LayoutError> {
     let empty = parts.iter().all(|(node, _, _)| node.empty);
@@ -33,6 +35,103 @@ pub(super) fn stack(parts: Vec<(Node<'_>, f64, f64)>) -> Result<Node<'_>, Layout
         right_space: None,
         max_size_percent: None,
     })
+}
+
+/// A row whose children carry explicit line breaks lays out as a
+/// top-to-bottom stack of ordinary rows (MathML 3 linebreaking; Core has
+/// no automatic breaking, so only the explicit `newline` splits). The
+/// break's operator content ends the current line or starts the next one
+/// per its `linebreakstyle`; the stack baseline rides the last line.
+pub(super) fn lined<'a>(
+    formulas: &[Formula],
+    fonts: &mut FontProvider,
+    style: ResolvedStyle,
+    budget: &mut Budget,
+    depth: usize,
+) -> Result<Option<Node<'a>>, LayoutError> {
+    if !formulas
+        .iter()
+        .any(|child| matches!(child, Formula::LineBreak { .. }))
+    {
+        return Ok(None);
+    }
+    let mut lines: Vec<Vec<Node>> = vec![Vec::new()];
+    for formula in formulas {
+        match formula {
+            Formula::LineBreak {
+                content,
+                style: placement,
+            } => {
+                let content = content
+                    .as_ref()
+                    .map(|child| build(child, fonts, style, budget, depth + 1))
+                    .transpose()?;
+                if let (Some(operator), LineBreakStyle::After) = (&content, placement) {
+                    if let Some(line) = lines.last_mut() {
+                        line.push(share(operator)?);
+                    }
+                }
+                lines.push(Vec::new());
+                if let (Some(operator), LineBreakStyle::Before) = (&content, placement) {
+                    if let Some(line) = lines.last_mut() {
+                        line.push(share(operator)?);
+                    }
+                }
+            }
+            formula => {
+                let child = build(formula, fonts, style, budget, depth + 1)?;
+                if let Some(line) = lines.last_mut() {
+                    line.push(child);
+                }
+            }
+        }
+    }
+    // A trailing break's newline ends the formula; nothing follows it.
+    if lines.last().is_some_and(Vec::is_empty) {
+        lines.pop();
+    }
+    let mut trees = Vec::with_capacity(lines.len());
+    let mut glyph_runs = Vec::with_capacity(lines.len());
+    for line in lines {
+        let row = row(line, fonts, style)?;
+        trees.push(row.tree);
+        glyph_runs.push(row.glyphs);
+    }
+    let mut items = Vec::with_capacity(trees.len());
+    let mut before = 0.0;
+    let mut offsets = Vec::with_capacity(trees.len());
+    for tree in &trees {
+        offsets.push(before);
+        before = add(before, tree.metrics().total_height())?;
+        items.push(StackItem::Box(tree.clone()));
+    }
+    let baseline = subtract(
+        before,
+        trees.last().map_or(0.0, |tree| tree.metrics().depth()),
+    )?;
+    let tree = BoxTree::vbox(items, baseline)?;
+    let mut glyphs = Vec::new();
+    for (run, offset) in glyph_runs.into_iter().zip(offsets) {
+        for mut glyph in run {
+            glyph.origin = glyph.origin.translated(Point::new(0.0, offset)?)?;
+            glyphs.push(glyph);
+        }
+    }
+    Ok(Some(Node {
+        tree,
+        glyphs,
+        operator: None,
+        operator_font_size_px: None,
+        italic: 0.0,
+        empty: false,
+        right_space: None,
+        max_size_percent: None,
+    }))
+}
+
+/// Clones one built node so it can ride its line.
+fn share<'a>(operator: &Node<'a>) -> Result<Node<'a>, LayoutError> {
+    Ok(operator.clone())
 }
 
 pub(super) fn row<'a>(
