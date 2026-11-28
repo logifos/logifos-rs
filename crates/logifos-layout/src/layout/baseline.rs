@@ -1,6 +1,7 @@
 //! Baseline shifts: ink extents and re-baselined wrappers for scripts and
 //! constructs that move a child off the row baseline.
 
+use crate::geometry::add;
 use crate::{BoxTree, Kern, StackItem};
 
 /// The ink's rise above the baseline; 0 for a box without ink.
@@ -20,13 +21,17 @@ pub(super) fn ink_descent(tree: &BoxTree) -> f64 {
 /// reporting the box's own y offset inside the wrapper.
 pub(super) fn raised(tree: BoxTree, shift: f64) -> Result<(BoxTree, f64), crate::GeometryError> {
     let height = tree.metrics().height();
-    let pad = (shift - tree.metrics().depth()).max(0.0);
+    let depth = tree.metrics().depth();
+    let pad = (shift - depth).max(0.0);
     let items = if pad > 0.0 {
         vec![StackItem::Box(tree), StackItem::Kern(Kern::new(pad)?)]
     } else {
         vec![StackItem::Box(tree)]
     };
-    let wrapper = BoxTree::vbox(items, height + shift)?;
+    // height + shift and the stack total are the same value only up to the
+    // association order; the min keeps the baseline inside the extent.
+    let baseline = (height + shift).min(add(add(height, depth)?, pad)?);
+    let wrapper = BoxTree::vbox(items, baseline)?;
     Ok((wrapper, 0.0))
 }
 

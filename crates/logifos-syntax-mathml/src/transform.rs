@@ -917,7 +917,11 @@ impl Transformer {
                 let pair = (Box::new(first), Box::new(second));
                 Ok(match element.name.local.as_str() {
                     // Core 3.3.2: an mfraction is a fraction whose
-                    // linethickness hint the layout owns.
+                    // linethickness hint the layout owns. Bevelled is the
+                    // MathML 3 diagonal layout, kept as its own variant.
+                    "mfrac" if attribute_value(element, "bevelled").as_deref() == Some("true") => {
+                        Formula::Bevelled(pair.0, pair.1)
+                    }
                     "mfrac" | "mfraction" => Formula::Fraction(pair.0, pair.1),
                     "msub" => Formula::Subscript(pair.0, pair.1),
                     _ => Formula::Superscript(pair.0, pair.1),

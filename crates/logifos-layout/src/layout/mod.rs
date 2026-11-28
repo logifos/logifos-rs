@@ -278,7 +278,9 @@ fn build_construct<'a>(
             operator::validate(text)?;
             token::token(text, Some(text), fonts, style, budget)
         }
-        Formula::Fraction(..) | Formula::Sqrt(_) | Formula::Root(..) if style.color.is_some() => {
+        Formula::Fraction(..) | Formula::Bevelled(..) | Formula::Sqrt(_) | Formula::Root(..)
+            if style.color.is_some() =>
+        {
             // Rules carry no color, so a colored rule would paint wrongly.
             Err(LayoutError::NotLaidOutYet)
         }
@@ -298,6 +300,12 @@ fn build_construct<'a>(
                 depth + 1,
             )?;
             fraction::fraction(numerator, denominator, fonts, style)
+        }
+        Formula::Bevelled(numerator, denominator) => {
+            let child_style = style.raise(fonts, u8::from(!style.display), style.cramped)?;
+            let numerator = build(numerator, fonts, child_style, budget, depth + 1)?;
+            let denominator = build(denominator, fonts, child_style, budget, depth + 1)?;
+            fraction::bevelled(numerator, denominator, fonts, style)
         }
         Formula::Superscript(base, script) => {
             let base = build(base, fonts, style, budget, depth + 1)?;

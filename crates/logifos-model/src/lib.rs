@@ -111,6 +111,9 @@ pub enum Formula {
     /// Rows of cells (each an anonymous row) in a table or matrix, with the
     /// table's vertical rules between columns (`columnlines`).
     Table(Vec<Vec<Formula>>, TableLines),
+    /// A bevelled fraction (MathML 3 `mfrac@bevelled`): the children sit on
+    /// a diagonal with a slanted divider instead of the axis-aligned rule.
+    Bevelled(Box<Formula>, Box<Formula>),
     /// An operator symbol with an implied spacing class.
     Operator(String),
     /// A text or identifier symbol.
@@ -498,5 +501,57 @@ mod tests {
             plain
         );
         assert!(plain.to_wire().unwrap()["fields"].get("options").is_none());
+    }
+
+    #[test]
+    fn frac_options_carry_bevelled() {
+        let child = json!({"class": "Math::Symbols::Symbol", "fields": {"value": "x"}});
+        let bevelled = json!({
+            "class": "Math::Function::Frac",
+            "fields": {
+                "parameter_one": child,
+                "parameter_two": child,
+                "options": {"bevelled": "true"},
+            },
+        });
+        let expected = Formula::Bevelled(
+            Box::new(Formula::Symbol("x".into())),
+            Box::new(Formula::Symbol("x".into())),
+        );
+        assert_eq!(
+            Formula::from_wire(bevelled.as_object().unwrap()).unwrap(),
+            expected
+        );
+        let wire = expected.to_wire().unwrap();
+        assert_eq!(wire["fields"]["options"], json!({"bevelled": "true"}));
+        assert_eq!(
+            Formula::from_wire(wire.as_object().unwrap()).unwrap(),
+            expected
+        );
+        // The plain fraction keeps the two-field shape.
+        let plain = Formula::Fraction(
+            Box::new(Formula::Symbol("x".into())),
+            Box::new(Formula::Symbol("x".into())),
+        );
+        assert!(plain.to_wire().unwrap()["fields"].get("options").is_none());
+        // Unknown option keys and non-boolean spellings refuse.
+        let foreign = json!({
+            "class": "Math::Function::Frac",
+            "fields": {
+                "parameter_one": child,
+                "parameter_two": child,
+                "options": {"linethickness": "thick"},
+            },
+        });
+        assert!(Formula::from_wire(foreign.as_object().unwrap()).is_err());
+        let spelled = json!({
+            "class": "Math::Function::Frac",
+            "fields": {
+                "parameter_one": child,
+                "parameter_two": child,
+                "options": {"bevelled": 1},
+            },
+        });
+        assert!(Formula::from_wire(spelled.as_object().unwrap()).is_err());
     }
 }

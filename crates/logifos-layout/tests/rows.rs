@@ -73,6 +73,7 @@ fn font() -> Vec<u8> {
         ('≤', 4),
         ('⋅', 4),
         (',', 4),
+        ('/', 4),
         (' ', 5),
     ])
     .finish()
@@ -776,6 +777,39 @@ fn fraction_lays_out_its_children_around_the_axis_rule() {
     // Both children center in the fraction width.
     close(stack[0].node().metrics().width(), width);
     close(stack[2].node().metrics().width(), width);
+}
+
+#[test]
+fn bevelled_fractions_lay_the_children_on_a_diagonal() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    // The shifts resolve at the compact children's size (18px * 80%).
+    let shift_up = f64::from(
+        fonts
+            .primary()
+            .math
+            .constants
+            .value(MathConstant::FractionNumeratorShiftUp),
+    ) * scale
+        * 0.8;
+    // Compact children: x (g1) 7.2w 8.64h 1.44d, y (g2) 10.08w 11.52h,
+    // the solidus (g4) 4.32w with ink 5.04h 0.72d at 14.4px.
+    let formula = Formula::Bevelled(Box::new(symbol("x")), Box::new(symbol("y")));
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    let metrics = result.tree.metrics();
+    close(metrics.width(), 7.2 + 4.32 + 10.08);
+    // The row baseline rides the raised numerator wrapper.
+    close(metrics.baseline(), 8.64 + shift_up);
+    // Numerator above, solidus mid, denominator below.
+    assert_eq!(result.glyphs.len(), 3);
+    let (_, x_y) = (result.glyphs[0].character, result.glyphs[0].origin.y());
+    let (_, slash_y) = (result.glyphs[1].character, result.glyphs[1].origin.y());
+    let (_, y_y) = (result.glyphs[2].character, result.glyphs[2].origin.y());
+    assert!(x_y < slash_y, "numerator {x_y} above solidus {slash_y}");
+    assert!(slash_y < y_y, "solidus {slash_y} above denominator {y_y}");
+    assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
 }
 
 #[test]

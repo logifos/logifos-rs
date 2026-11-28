@@ -109,6 +109,11 @@ pub(super) fn attributes(
                 // A layout-owned hint: the model keeps the fraction's
                 // structure, the thickness stays with the layout batch.
                 "linethickness" if element.name.local == "mfrac" => true,
+                // bevelled flips the fraction's layout; both boolean
+                // spellings are accepted and the mfrac arm consumes it.
+                "bevelled" if element.name.local == "mfrac" => {
+                    matches!(value.as_str(), "true" | "false")
+                }
                 // The elementary-stack geometry hints are consumed by the
                 // mstack/msrow/msgroup arms (the model carries them).
                 "stackalign" if element.name.local == "mstack" => true,
