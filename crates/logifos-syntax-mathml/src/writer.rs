@@ -328,7 +328,19 @@ impl SyntaxBuilder {
                 }
                 "msqrt"
             }
-            Formula::Table(rows) => {
+            Formula::Table(rows, columnlines) => {
+                // The default rides its absence; solid is the only spelling
+                // the tree models.
+                if *columnlines == logifos_model::TableLines::Solid {
+                    attributes_elem.push(crate::Attribute {
+                        name: QualifiedName {
+                            prefix: None,
+                            local: "columnlines".into(),
+                            namespace: None,
+                        },
+                        value: "solid".into(),
+                    });
+                }
                 for (row_index, row) in rows.iter().enumerate() {
                     let row_path = format!("{location}/rows/{row_index}");
                     self.visit(&row_path, depth + 1)?;

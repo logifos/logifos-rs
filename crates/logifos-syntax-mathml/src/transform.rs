@@ -7,7 +7,7 @@ use std::fmt;
 
 use logifos_model::{
     CarryCell, CarryLocation, Crossout, Formula, Length, LengthUnit, LongDivStyle, LongDivision,
-    StackAlign, StackRow, MAX_DEPTH, MAX_NODES,
+    StackAlign, StackRow, TableLines, MAX_DEPTH, MAX_NODES,
 };
 
 use crate::{Element, MathmlDocument, Node, QualifiedName, MATHML_NAMESPACE};
@@ -370,7 +370,16 @@ impl Transformer {
                         }
                     }
                 }
-                Ok(Formula::Table(rows))
+                Ok(Formula::Table(
+                    rows,
+                    match attribute_value(element, "columnlines").as_deref() {
+                        // "none" is the default and "solid" the only other
+                        // spelling the tree models; the attribute walk has
+                        // already refused everything else.
+                        Some("solid") => TableLines::Solid,
+                        _ => TableLines::None,
+                    },
+                ))
             }
             "mstack" => {
                 let align = match attribute_value(element, "stackalign").as_deref() {

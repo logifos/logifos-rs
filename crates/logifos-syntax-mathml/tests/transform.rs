@@ -1,4 +1,4 @@
-use logifos_model::{Formula, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, TableLines, MAX_DEPTH, MAX_NODES};
 use logifos_syntax_mathml::{
     parse, transform, MathmlDocument, Node, TransformError, TransformErrorKind, MATHML_NAMESPACE,
 };
@@ -304,11 +304,11 @@ fn tables_map_rows_of_anonymous_row_cells() {
                 Formula::Sequence(vec![symbol("2")]),
             ],
             vec![Formula::Sequence(vec![symbol("a"), operator("+")])],
-        ])])
+        ], TableLines::None)])
     );
     assert_eq!(
         converted("<math><mtable/></math>"),
-        Formula::Sequence(vec![Formula::Table(vec![])])
+        Formula::Sequence(vec![Formula::Table(vec![], TableLines::None)])
     );
     // A labeled row lays out as an ordinary row: the label becomes its
     // first cell.
@@ -319,7 +319,7 @@ fn tables_map_rows_of_anonymous_row_cells() {
         Formula::Sequence(vec![Formula::Table(vec![vec![
             Formula::Sequence(vec![symbol("0")]),
             Formula::Sequence(vec![symbol("x")]),
-        ]])])
+        ]], TableLines::None)])
     );
 }
 

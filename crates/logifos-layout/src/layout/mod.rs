@@ -421,7 +421,7 @@ fn build_construct<'a>(
             let index = build(index, fonts, raised, budget, depth + 1)?;
             radical::root(radicand, index, fonts, style)
         }
-        Formula::Table(rows) => {
+        Formula::Table(rows, columnlines) => {
             // mtable sets math-style compact (Core 3.5 stylesheet rules).
             let style = ResolvedStyle {
                 display: false,
@@ -448,7 +448,7 @@ fn build_construct<'a>(
                 }
                 built.push(cells);
             }
-            table::table(built, fonts, style)
+            table::table(built, *columnlines, fonts, style)
         }
     }
 }

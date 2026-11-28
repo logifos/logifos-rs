@@ -1,4 +1,4 @@
-use logifos_model::{Formula, ScriptPair, MAX_DEPTH, MAX_NODES};
+use logifos_model::{Formula, ScriptPair, TableLines, MAX_DEPTH, MAX_NODES};
 use logifos_syntax_mathml::{
     parse, transform, write, MathmlDocument, Node, TransformErrorKind, WriteErrorKind,
     MATHML_NAMESPACE,
@@ -53,18 +53,21 @@ fn tables_preserve_combined_scripts_multiscripts_and_distinct_tokens() {
     let body = "<mtable><mtr><mtd><msubsup><mi>x</mi><ms>sub</ms><mspace></mspace></msubsup></mtd><mtd><mmultiscripts><ms>base</ms><none></none><mi>post</mi><mprescripts></mprescripts><mspace></mspace><none></none></mmultiscripts></mtd></mtr></mtable>";
     roundtrip(
         body,
-        Formula::Table(vec![vec![
-            Formula::Sequence(vec![Formula::SubSup(
-                Box::new(symbol("x")),
-                Box::new(Formula::StringLiteral("sub".into())),
-                Box::new(Formula::Space(None, None, None)),
-            )]),
-            Formula::Sequence(vec![Formula::MultiScripts {
-                base: Box::new(Formula::StringLiteral("base".into())),
-                postscripts: vec![pair(None, Some(symbol("post")))],
-                prescripts: Some(vec![pair(Some(Formula::Space(None, None, None)), None)]),
-            }]),
-        ]]),
+        Formula::Table(
+            vec![vec![
+                Formula::Sequence(vec![Formula::SubSup(
+                    Box::new(symbol("x")),
+                    Box::new(Formula::StringLiteral("sub".into())),
+                    Box::new(Formula::Space(None, None, None)),
+                )]),
+                Formula::Sequence(vec![Formula::MultiScripts {
+                    base: Box::new(Formula::StringLiteral("base".into())),
+                    postscripts: vec![pair(None, Some(symbol("post")))],
+                    prescripts: Some(vec![pair(Some(Formula::Space(None, None, None)), None)]),
+                }]),
+            ]],
+            TableLines::None,
+        ),
         body,
     );
 }
@@ -72,7 +75,10 @@ fn tables_preserve_combined_scripts_multiscripts_and_distinct_tokens() {
 #[test]
 fn tables_remain_distinct_in_combined_and_multiscript_operands() {
     let table = "<mtable><mtr><mtd><mi>x</mi></mtd></mtr></mtable>";
-    let node = Formula::Table(vec![vec![Formula::Sequence(vec![symbol("x")])]]);
+    let node = Formula::Table(
+        vec![vec![Formula::Sequence(vec![symbol("x")])]],
+        TableLines::None,
+    );
     let body = format!("<msubsup>{table}<mi>sub</mi><mmultiscripts><mi>x</mi>{table}<none></none></mmultiscripts></msubsup>");
     roundtrip(
         &body,

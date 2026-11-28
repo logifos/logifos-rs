@@ -3,7 +3,7 @@ mod support;
 
 use logifos_layout::font::{FontProvider, FontResource};
 use logifos_layout::layout::{layout, LayoutError, LayoutOptions};
-use logifos_model::Formula;
+use logifos_model::{Formula, TableLines};
 
 #[test]
 fn space_and_string_literal_refuse_layout_without_visiting_their_operands() {
@@ -23,7 +23,7 @@ fn space_and_string_literal_refuse_layout_without_visiting_their_operands() {
         for formula in [
             node.clone(),
             Formula::Sequence(vec![node.clone()]),
-            Formula::Table(vec![vec![Formula::Sequence(vec![node])]]),
+            Formula::Table(vec![vec![Formula::Sequence(vec![node])]], TableLines::None),
         ] {
             let error = layout(
                 &formula,

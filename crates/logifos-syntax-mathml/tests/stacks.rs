@@ -91,9 +91,27 @@ fn scriptminsize_maxsize_and_columnlines_none_are_accepted() {
     let formula = transform(&parse(none).unwrap()).unwrap();
     let output = write(&formula).unwrap();
     assert!(!output.contains("columnlines"), "{output}");
-    let solid =
-        "<math><mtable columnlines=\"solid\"><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>";
-    assert!(transform(&parse(solid).unwrap()).is_err());
+    let dashed =
+        "<math><mtable columnlines=\"dashed\"><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>";
+    assert!(transform(&parse(dashed).unwrap()).is_err());
+    let listed =
+        "<math><mtable columnlines=\"solid none\"><mtr><mtd><mi>x</mi></mtd></mtr></mtable></math>";
+    assert!(transform(&parse(listed).unwrap()).is_err());
+}
+
+#[test]
+fn columnlines_solid_roundtrips_through_transform_and_writer() {
+    let source =
+        "<math><mtable columnlines=\"solid\"><mtr><mtd><mi>x</mi></mtd><mtd><mn>1</mn></mtd></mtr><mtr><mtd><mi>y</mi></mtd><mtd><mn>2</mn></mtd></mtr></mtable></math>";
+    let formula = transform(&parse(source).unwrap()).unwrap();
+    let output = write(&formula).unwrap();
+    assert!(output.contains("columnlines=\"solid\""), "{output}");
+    // The emitted form reparses to the same tree.
+    let again = transform(&parse(&output).unwrap()).unwrap();
+    assert_eq!(again, formula);
+    // The attribute refuses outside the table it belongs to.
+    let stray = "<math><mi columnlines=\"solid\">x</mi></math>";
+    assert!(transform(&parse(stray).unwrap()).is_err());
 }
 
 #[test]

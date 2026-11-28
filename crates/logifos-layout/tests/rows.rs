@@ -4,7 +4,7 @@ mod support;
 use logifos_layout::font::{FontErrorKind, FontFace, FontProvider, FontResource};
 use logifos_layout::layout::{layout, Layout, LayoutError, LayoutOptions};
 use logifos_layout::{BoxKind, BoxTree, Point};
-use logifos_model::Formula;
+use logifos_model::{Formula, TableLines};
 use support::{digest, put16, put32, words, FontBuilder};
 
 fn symbol(text: &str) -> Formula {
@@ -1052,16 +1052,19 @@ fn tables_center_cells_on_the_math_axis_with_mtd_padding() {
     // (ex = 450 units = 8.1px at 18px).
     let horizontal_pad = 7.2;
     let vertical_pad = 4.05;
-    let formula = Formula::Table(vec![
+    let formula = Formula::Table(
         vec![
-            Formula::Sequence(vec![symbol("x")]),
-            Formula::Sequence(vec![symbol("y")]),
+            vec![
+                Formula::Sequence(vec![symbol("x")]),
+                Formula::Sequence(vec![symbol("y")]),
+            ],
+            vec![
+                Formula::Sequence(vec![symbol("y")]),
+                Formula::Sequence(vec![symbol("x")]),
+            ],
         ],
-        vec![
-            Formula::Sequence(vec![symbol("y")]),
-            Formula::Sequence(vec![symbol("x")]),
-        ],
-    ]);
+        TableLines::None,
+    );
     let result = layout(&formula, &mut fonts, options(0)).unwrap();
     let metrics = result.tree.metrics();
     // Padded widths: x 9 + 14.4 = 23.4, y 12.6 + 14.4 = 27.0; both columns
@@ -1102,7 +1105,10 @@ fn tables_center_cells_on_the_math_axis_with_mtd_padding() {
     .unwrap();
     let fraction = Formula::Fraction(Box::new(symbol("x")), Box::new(symbol("y")));
     let inside = layout(
-        &Formula::Table(vec![vec![Formula::Sequence(vec![fraction])]]),
+        &Formula::Table(
+            vec![vec![Formula::Sequence(vec![fraction])]],
+            TableLines::None,
+        ),
         &mut fonts,
         options(0),
     )
@@ -1121,6 +1127,50 @@ fn tables_center_cells_on_the_math_axis_with_mtd_padding() {
     assert_eq!(snapshot(&result), include_str!("snapshots/table-grid.txt"));
     let mut fonts = provider(&font());
     assert_eq!(result, layout(&formula, &mut fonts, options(0)).unwrap());
+}
+
+#[test]
+fn solid_columnlines_draw_a_rule_at_each_column_boundary() {
+    use logifos_layout::font::math::MathConstant;
+
+    let mut fonts = provider(&font());
+    let scale = 18.0 / 1000.0;
+    let thickness = f64::from(
+        fonts
+            .primary()
+            .math
+            .constants
+            .value(MathConstant::FractionRuleThickness),
+    ) * scale;
+    let formula = Formula::Table(
+        vec![
+            vec![
+                Formula::Sequence(vec![symbol("x")]),
+                Formula::Sequence(vec![symbol("y")]),
+            ],
+            vec![
+                Formula::Sequence(vec![symbol("y")]),
+                Formula::Sequence(vec![symbol("x")]),
+            ],
+        ],
+        TableLines::Solid,
+    );
+    let result = layout(&formula, &mut fonts, options(0)).unwrap();
+    // The composed table sits inside the finish wrapper's hbox; its children
+    // are the rows tree and one rule per boundary. The grid metrics are the
+    // plain table's (54 wide, see the padding test).
+    let children = result.tree.children()[0].node().children();
+    assert_eq!(children.len(), 2);
+    let metrics = children[0].node().metrics();
+    close(metrics.width(), 54.0);
+    let rule = &children[1];
+    assert_eq!(rule.node().kind(), logifos_layout::BoxKind::Rule);
+    close(rule.node().metrics().width(), thickness);
+    close(rule.node().metrics().height(), metrics.height());
+    close(rule.node().metrics().depth(), metrics.depth());
+    close(rule.offset().y(), 0.0);
+    // The rule centers on the boundary of the two 27.0-wide columns.
+    close(rule.offset().x(), 27.0 - thickness / 2.0);
 }
 
 #[test]
@@ -1259,14 +1309,20 @@ fn explicit_center_is_preserved_without_changing_default_table_geometry() {
         column_align: Some(ColumnAlign::Center),
         ..Default::default()
     };
-    let plain = Formula::Table(vec![
-        vec![sequence(vec![symbol("x")])],
-        vec![sequence(vec![symbol("y"), symbol("z")])],
-    ]);
-    let explicit = Formula::Table(vec![
-        vec![styled(sequence(vec![symbol("x")]), hints)],
-        vec![sequence(vec![symbol("y"), symbol("z")])],
-    ]);
+    let plain = Formula::Table(
+        vec![
+            vec![sequence(vec![symbol("x")])],
+            vec![sequence(vec![symbol("y"), symbol("z")])],
+        ],
+        TableLines::None,
+    );
+    let explicit = Formula::Table(
+        vec![
+            vec![styled(sequence(vec![symbol("x")]), hints)],
+            vec![sequence(vec![symbol("y"), symbol("z")])],
+        ],
+        TableLines::None,
+    );
     assert_eq!(render(&plain, 0), render(&explicit, 0));
     let invalid = sequence(vec![styled(sequence(vec![symbol("x")]), hints)]);
     assert_eq!(

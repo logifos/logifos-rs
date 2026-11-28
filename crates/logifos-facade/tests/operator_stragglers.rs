@@ -101,7 +101,7 @@ fn children(formula: &Formula) -> Vec<&Formula> {
             }
             out
         }
-        Formula::Table(rows) => rows
+        Formula::Table(rows, _) => rows
             .iter()
             .flat_map(|row| row.iter())
             .flat_map(|cell| match cell {
